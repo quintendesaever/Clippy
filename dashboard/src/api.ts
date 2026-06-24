@@ -1,0 +1,44 @@
+import type { CalendarResponse, MeResponse } from "./types";
+
+async function fetchApi<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(path, {
+    ...init,
+    credentials: "same-origin",
+    headers: {
+      "Content-Type": "application/json",
+      ...(init?.headers ?? {}),
+    },
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(body.error ?? `Request failed (${res.status})`);
+  }
+  return res.json() as Promise<T>;
+}
+
+export async function getMe(): Promise<MeResponse> {
+  return fetchApi<MeResponse>("/api/me");
+}
+
+export async function logout(): Promise<void> {
+  await fetchApi<{ ok: boolean }>("/api/logout", { method: "POST" });
+}
+
+export async function getCalendar(): Promise<CalendarResponse> {
+  return fetchApi<CalendarResponse>("/api/calendar");
+}
+
+export async function saveCalendar(data: {
+  initials: string;
+  ics_url?: string;
+  timezone?: string;
+}): Promise<CalendarResponse> {
+  return fetchApi<CalendarResponse>("/api/calendar", {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteCalendar(): Promise<void> {
+  await fetchApi<{ ok: boolean }>("/api/calendar", { method: "DELETE" });
+}

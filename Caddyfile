@@ -1,0 +1,3 @@
+dashboard.clippybot.be {
+    reverse_proxy clippy:3000
+}

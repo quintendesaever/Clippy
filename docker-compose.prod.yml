@@ -1,0 +1,34 @@
+# Production: HTTPS via Caddy + Let's Encrypt
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Before running:
+# 1. Set DASHBOARD_URL=https://dashboard.clippybot.be in .env
+# 2. DNS A record: dashboard.clippybot.be → 91.99.237.148
+# 3. Discord OAuth redirect: https://dashboard.clippybot.be/api/auth/callback
+
+services:
+  clippy:
+    ports: []
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - clippy
+
+volumes:
+  caddy_data:
+  caddy_config:

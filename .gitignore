@@ -1,0 +1,11 @@
+node_modules/
+dist/
+dashboard/node_modules/
+dashboard/dist/
+.env
+.env.local
+*.log
+.DS_Store
+.f1-reminder-test
+ClippyV2.zip
+.cursor/

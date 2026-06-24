@@ -1,0 +1,11 @@
+node_modules
+dist
+dashboard/node_modules
+dashboard/dist
+.env
+.env.*
+!.env.example
+.git
+*.log
+ClippyV2.zip
+.cursor

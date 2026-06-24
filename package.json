@@ -1,0 +1,36 @@
+{
+  "name": "clippyv3",
+  "version": "1.0.0",
+  "description": "Discord bot with Supabase and settings dashboard",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "build:dashboard": "cd dashboard && npm ci && npm run build",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "deploy-commands": "tsx src/deploy-commands.ts",
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up -d",
+    "docker:prod": "docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build"
+  },
+  "keywords": ["discord", "bot", "supabase"],
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "cookie-session": "^2.1.0",
+    "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
+    "discord.js": "^14.26.4",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "@types/cookie-session": "^2.0.45",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
