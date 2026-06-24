@@ -27,8 +27,12 @@ const timetable: Command = {
 
     try {
       const timetableResult = await getGuildTimetable(interaction.guildId, range);
-      const view = buildTimetableEmbeds(timetableResult, range);
-      await interaction.editReply({ embeds: view.embeds, components: view.components });
+      const view = await buildTimetableEmbeds(timetableResult, range);
+      await interaction.editReply({
+        embeds: view.embeds,
+        components: view.components,
+        files: view.files ?? [],
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Kon rooster niet laden";
       await interaction.editReply({ content: `Kon rooster niet laden: ${message}` });

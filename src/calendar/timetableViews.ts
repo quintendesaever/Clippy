@@ -2,6 +2,7 @@ import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import {
   ActionRowBuilder,
+  AttachmentBuilder,
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
@@ -9,66 +10,24 @@ import {
   type APIButtonComponent,
 } from "discord.js";
 import { getDashboardUrl } from "../config.js";
-import {
-  emojiForInitials,
-  HOUR_END,
-  HOUR_START,
-  TOTAL_HOURS,
-} from "./eventUtils.js";
+import { renderDaySwimlanePng } from "./timetableImage.js";
 import { dayKeyInTimezone, getWeekDayKeys, getWeekMondayKey } from "./timetableService.js";
 import type { GuildTimetable, TimetableEvent } from "./types.js";
 
 const TIMETABLE_EMBED_COLOR = 0x5865f2;
 const DAY_LABELS = ["Ma", "Di", "Wo", "Do", "Vr", "Za"];
+const PNG_ATTACHMENT_NAME = "rooster.png";
 
 export type DaySwimlaneView = {
   embeds: EmbedBuilder[];
   components: APIActionRowComponent<APIButtonComponent>[];
+  files?: AttachmentBuilder[];
 };
-
-function formatEventTime(event: TimetableEvent, timezone: string): string {
-  if (event.allDay) return "Hele dag";
-  const start = toZonedTime(event.start, timezone);
-  const end = toZonedTime(event.end, timezone);
-  return `${format(start, "HH:mm")}–${format(end, "HH:mm")}`;
-}
 
 function formatDayTitle(dayKey: string, timezone: string): string {
   const [year, month, day] = dayKey.split("-").map(Number);
   const date = toZonedTime(new Date(year, month - 1, day, 12, 0, 0), timezone);
   return format(date, "EEEE d MMMM yyyy");
-}
-
-function buildMiniTimeline(events: TimetableEvent[], timezone: string): string {
-  const slots = TOTAL_HOURS * 2;
-  const grid = Array.from({ length: slots }, () => "·");
-
-  for (const event of events) {
-    if (event.allDay) {
-      for (let i = 0; i < slots; i++) grid[i] = "█";
-      continue;
-    }
-    const start = toZonedTime(event.start, timezone);
-    const end = toZonedTime(event.end, timezone);
-    const startHour = start.getHours() + start.getMinutes() / 60;
-    const endHour = end.getHours() + end.getMinutes() / 60;
-    const from = Math.max(0, Math.floor((startHour - HOUR_START) * 2));
-    const to = Math.min(slots, Math.ceil((endHour - HOUR_START) * 2));
-    for (let i = from; i < to; i++) grid[i] = "█";
-  }
-
-  return grid.join("");
-}
-
-function buildMemberFieldValue(events: TimetableEvent[], timezone: string): string {
-  const lines = events.map((event) => {
-    const badges = event.typeBadges.length ? ` [${event.typeBadges.join("")}]` : "";
-    const loc = event.location ? ` @ ${event.location}` : "";
-    return `${formatEventTime(event, timezone)} · ${event.title}${badges}${loc}`;
-  });
-  const timeline = buildMiniTimeline(events, timezone);
-  const hourLabels = `${HOUR_START}`.padStart(2, "0") + "      12      " + `${HOUR_END}`;
-  return `${lines.join("\n")}\n\`${hourLabels}\`\n\`${timeline}\``;
 }
 
 function buildFooter(timetable: GuildTimetable): string {
@@ -104,7 +63,7 @@ export function buildDayButtons(
     return makeDayButton(dayKey, label);
   });
 
-  const rows: APIActionRowComponent<APIButtonComponent>[] = [
+  return [
     new ActionRowBuilder<ButtonBuilder>().addComponents(buttons.slice(0, 5)).toJSON(),
     new ActionRowBuilder<ButtonBuilder>()
       .addComponents(
@@ -116,18 +75,17 @@ export function buildDayButtons(
       )
       .toJSON(),
   ];
-
-  return rows;
 }
 
-export function buildDaySwimlaneView(
+export async function buildDaySwimlaneView(
   timetable: GuildTimetable,
   dayKey: string,
   options?: { showWeekNav?: boolean }
-): DaySwimlaneView {
+): Promise<DaySwimlaneView> {
   const dashboardUrl = getDashboardUrl();
   const showWeekNav = options?.showWeekNav ?? true;
   const dayTitle = formatDayTitle(dayKey, timetable.guildTimezone);
+  const components = buildDayButtons(timetable, dayKey, showWeekNav);
 
   if (timetable.memberResults.length === 0) {
     const embed = new EmbedBuilder()
@@ -136,20 +94,10 @@ export function buildDaySwimlaneView(
       .setDescription(`Nog geen kalenders gekoppeld. Voeg de jouwe toe op ${dashboardUrl}`)
       .setFooter({ text: buildFooter(timetable) })
       .setTimestamp(new Date());
-    return { embeds: [embed], components: buildDayButtons(timetable, dayKey, showWeekNav) };
+    return { embeds: [embed], components };
   }
 
-  const dayEvents = timetable.eventsByDay.get(dayKey) ?? [];
-  const eventsByMember = new Map<string, TimetableEvent[]>();
-  for (const event of dayEvents) {
-    const bucket = eventsByMember.get(event.userId) ?? [];
-    bucket.push(event);
-    eventsByMember.set(event.userId, bucket);
-  }
-
-  const membersWithEvents = timetable.members.filter(
-    (member) => (eventsByMember.get(member.userId)?.length ?? 0) > 0
-  );
+  const png = await renderDaySwimlanePng(timetable, dayKey);
 
   const embed = new EmbedBuilder()
     .setColor(TIMETABLE_EMBED_COLOR)
@@ -157,21 +105,18 @@ export function buildDaySwimlaneView(
     .setFooter({ text: buildFooter(timetable) })
     .setTimestamp(new Date());
 
-  if (membersWithEvents.length === 0) {
+  if (!png) {
     embed.setDescription("Geen lessen gepland op deze dag.");
-    return { embeds: [embed], components: buildDayButtons(timetable, dayKey, showWeekNav) };
+    return { embeds: [embed], components };
   }
 
-  for (const member of membersWithEvents) {
-    const events = eventsByMember.get(member.userId) ?? [];
-    embed.addFields({
-      name: `${emojiForInitials(member.initials)} ${member.initials}`,
-      value: buildMemberFieldValue(events, timetable.guildTimezone).slice(0, 1024),
-      inline: false,
-    });
-  }
+  embed.setImage(`attachment://${PNG_ATTACHMENT_NAME}`);
 
-  return { embeds: [embed], components: buildDayButtons(timetable, dayKey, showWeekNav) };
+  const files = [
+    new AttachmentBuilder(png, { name: PNG_ATTACHMENT_NAME }),
+  ];
+
+  return { embeds: [embed], components, files };
 }
 
 export function getDefaultDayKey(timetable: GuildTimetable): string {

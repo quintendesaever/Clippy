@@ -19,8 +19,13 @@ export async function handleTimetableButton(interaction: ButtonInteraction): Pro
 
   try {
     const timetable = await getGuildTimetableForDay(interaction.guildId, dayKey);
-    const view = buildDaySwimlaneView(timetable, dayKey, { showWeekNav: true });
-    await interaction.editReply({ embeds: view.embeds, components: view.components });
+    const view = await buildDaySwimlaneView(timetable, dayKey, { showWeekNav: true });
+    await interaction.editReply({
+      content: null,
+      embeds: view.embeds,
+      components: view.components,
+      files: view.files ?? [],
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Kon rooster niet laden";
     await interaction.editReply({ content: `Fout: ${message}`, embeds: [], components: [] });
