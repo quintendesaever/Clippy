@@ -7,16 +7,16 @@ import type { TimetableRange } from "../calendar/types.js";
 const timetable: Command = {
   data: new SlashCommandBuilder()
     .setName("timetable")
-    .setDescription("Show the shared server timetable from linked ICS calendars.")
+    .setDescription("Toon het gedeelde serverrooster van gekoppelde ICS-kalenders.")
     .addSubcommand((sub) =>
-      sub.setName("today").setDescription("Events scheduled for today")
+      sub.setName("today").setDescription("Lessen van vandaag")
     )
     .addSubcommand((sub) =>
-      sub.setName("week").setDescription("Events scheduled for the next 7 days")
+      sub.setName("week").setDescription("Lessen deze week (dag per dag)")
     ),
   async execute(interaction) {
     if (!interaction.guildId) {
-      await interaction.reply({ content: "This command can only be used in a server.", ephemeral: true });
+      await interaction.reply({ content: "Dit commando werkt alleen in een server.", ephemeral: true });
       return;
     }
 
@@ -27,11 +27,11 @@ const timetable: Command = {
 
     try {
       const timetableResult = await getGuildTimetable(interaction.guildId, range);
-      const embeds = buildTimetableEmbeds(timetableResult, range);
-      await interaction.editReply({ embeds });
+      const view = buildTimetableEmbeds(timetableResult, range);
+      await interaction.editReply({ embeds: view.embeds, components: view.components });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to load timetable";
-      await interaction.editReply({ content: `Could not load timetable: ${message}` });
+      const message = err instanceof Error ? err.message : "Kon rooster niet laden";
+      await interaction.editReply({ content: `Kon rooster niet laden: ${message}` });
     }
   },
 };

@@ -40,7 +40,7 @@ a:hover {
 .userLabel {
   color: #a1a1aa;
   font-size: 0.875rem;
-  margin-right: auto;
+  margin-left: auto;
 }
 .main {
   flex: 1;
@@ -159,4 +159,378 @@ a:hover {
   color: #4ade80;
   font-size: 0.875rem;
   margin-top: 0.75rem;
+}
+
+.appNav {
+  display: flex;
+  gap: 0.25rem;
+}
+.appNavLink {
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #a1a1aa;
+  text-decoration: none;
+}
+.appNavLink:hover {
+  background: #2c2e33;
+  text-decoration: none;
+  color: #e4e4e7;
+}
+.appNavLinkActive {
+  background: #2c2e33;
+  color: #5865f2;
+}
+.mainWide {
+  max-width: 1200px;
+}
+
+.pageTabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #2c2e33;
+}
+.tab {
+  padding: 0.6rem 1rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #a1a1aa;
+  font-size: 0.875rem;
+  cursor: pointer;
+  margin-bottom: -1px;
+}
+.tab:hover {
+  color: #e4e4e7;
+}
+.tabActive {
+  color: #5865f2;
+  border-bottom-color: #5865f2;
+}
+
+.timetableSection {
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+}
+.timetableHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #27272a;
+}
+.timetableTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.timetableWeekNav {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.timetableNavBtn {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8125rem;
+}
+.timetableUsersRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #27272a;
+  font-size: 0.8125rem;
+}
+.timetableLegendTitle {
+  font-weight: 600;
+  color: #d4d4d8;
+  margin-right: 0.25rem;
+}
+.timetableUserChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.55rem;
+  background: #27272a;
+  border: 1px solid #3f3f46;
+  border-radius: 999px;
+  color: #d4d4d8;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+.timetableUserChipSelected {
+  border-color: #5865f2;
+  background: #2c2e33;
+}
+.timetableUserChipColor {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dayTabs {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.dayTab {
+  padding: 0.35rem 0.75rem;
+  background: #27272a;
+  border: 1px solid #3f3f46;
+  border-radius: 6px;
+  color: #a1a1aa;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+.dayTabActive {
+  background: #5865f2;
+  border-color: #5865f2;
+  color: #fff;
+}
+.timetableEmpty,
+.timetableLoading {
+  color: #a1a1aa;
+  font-size: 0.875rem;
+}
+.timetableLegends {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #27272a;
+  font-size: 0.8125rem;
+  color: #a1a1aa;
+}
+.timetableLegendTz {
+  color: #71717a;
+}
+
+.swimlaneWrap {
+  overflow-x: auto;
+  border: 1px solid #27272a;
+  border-radius: 6px;
+  background: #18181b;
+}
+.swimlaneTimeHeader {
+  display: grid;
+  grid-template-columns: 72px repeat(12, minmax(48px, 1fr));
+  border-bottom: 1px solid #27272a;
+  background: #27272a;
+}
+.swimlaneCorner {
+  min-height: 28px;
+}
+.swimlaneHourLabel {
+  font-size: 0.7rem;
+  color: #a1a1aa;
+  text-align: center;
+  padding: 0.35rem 0;
+  border-left: 1px solid #3f3f46;
+}
+.swimlaneRow {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  border-bottom: 1px solid #27272a;
+}
+.swimlaneRow:last-child {
+  border-bottom: none;
+}
+.swimlaneMemberLabel {
+  padding: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  background: #27272a;
+  border-left: 4px solid #5865f2;
+  display: flex;
+  align-items: center;
+}
+.swimlaneTrack {
+  position: relative;
+  background: repeating-linear-gradient(
+    to right,
+    #18181b 0,
+    #18181b calc(100% / 12 - 1px),
+    #27272a calc(100% / 12 - 1px),
+    #27272a calc(100% / 12)
+  );
+  min-height: 56px;
+}
+.swimlaneEvent {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  border: none;
+  border-radius: 4px;
+  padding: 0.2rem 0.4rem;
+  color: #1a1b1e;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  overflow: hidden;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 24px;
+}
+.swimlaneEvent:hover {
+  filter: brightness(1.08);
+}
+.swimlaneEventTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.swimlaneEventBadge {
+  flex-shrink: 0;
+  font-size: 0.6rem;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0 0.2rem;
+  border-radius: 2px;
+}
+
+.personalTimetableGridWrap {
+  overflow-x: auto;
+  width: 100%;
+  margin-bottom: 1rem;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px #27272a;
+}
+.personalTimetableGrid {
+  display: grid;
+  width: max-content;
+  min-width: 100%;
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 6px;
+}
+.personalTimetableCorner {
+  background: #27272a;
+  min-width: 56px;
+  min-height: 32px;
+}
+.personalTimetableDayHeader {
+  padding: 0.4rem 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  background: #27272a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-left: 1px solid #3f3f46;
+}
+.timetableDayName {
+  font-weight: 600;
+}
+.timetableDayDate {
+  font-size: 0.75rem;
+  color: #a1a1aa;
+}
+.personalTimetableTimeLabel {
+  padding: 0.2rem 0.35rem;
+  font-size: 0.7rem;
+  color: #a1a1aa;
+  background: #27272a;
+  border-top: 1px solid #3f3f46;
+  text-align: right;
+}
+.personalTimetableDayColumn {
+  position: relative;
+  background: #18181b;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 43px,
+    #2a2a2e 43px,
+    #2a2a2e 44px
+  );
+  border-left: 1px solid #2a2a2e;
+}
+.personalTimetableEvent {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  border-radius: 6px;
+  padding: 0.3rem 0.45rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  font-size: 0.75rem;
+  border: none;
+  cursor: pointer;
+  overflow: hidden;
+}
+.personalTimetableEventClickable:hover {
+  filter: brightness(1.08);
+}
+.personalTimetableEventSummary {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.personalTimetableEventTime {
+  font-size: 0.7rem;
+  opacity: 0.9;
+}
+
+.timetablePopupOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+.timetablePopup {
+  background: #25262b;
+  border: 1px solid #3f3f46;
+  border-radius: 8px;
+  max-width: 420px;
+  width: 100%;
+  padding: 1rem 1.25rem;
+}
+.timetablePopupHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+.timetablePopupTitle {
+  margin: 0;
+  font-size: 1rem;
+}
+.timetablePopupClose {
+  background: none;
+  border: none;
+  color: #a1a1aa;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+.timetablePopupBody {
+  margin: 0;
+  font-size: 0.875rem;
+}
+.timetablePopupBody dt {
+  color: #a1a1aa;
+  margin-top: 0.5rem;
+}
+.timetablePopupBody dd {
+  margin: 0.15rem 0 0;
 }

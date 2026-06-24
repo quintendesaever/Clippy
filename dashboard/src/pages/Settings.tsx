@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { deleteCalendar, getCalendar, logout, saveCalendar } from "../api";
+import { Link } from "react-router-dom";
+import { deleteCalendar, getCalendar, saveCalendar } from "../api";
+import AppLayout from "../components/AppLayout";
 import type { CalendarEntry, DiscordUser } from "../types";
 
 export default function Settings({ user }: { user: DiscordUser }) {
@@ -26,7 +28,7 @@ export default function Settings({ user }: { user: DiscordUser }) {
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load calendar");
+          setError(err instanceof Error ? err.message : "Laden mislukt");
         }
       })
       .finally(() => {
@@ -49,16 +51,16 @@ export default function Settings({ user }: { user: DiscordUser }) {
         timezone: timezone || undefined,
       });
       setExisting(result.calendar);
-      setMessage("Calendar saved.");
+      setMessage("Kalender opgeslagen.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save");
+      setError(err instanceof Error ? err.message : "Opslaan mislukt");
     } finally {
       setSaving(false);
     }
   }
 
   async function handleRemove() {
-    if (!confirm("Remove your calendar from the shared timetable?")) return;
+    if (!confirm("Je kalender verwijderen uit het gedeelde rooster?")) return;
     setSaving(true);
     setMessage(null);
     setError(null);
@@ -68,96 +70,80 @@ export default function Settings({ user }: { user: DiscordUser }) {
       setInitials("");
       setIcsUrl("");
       setTimezone("");
-      setMessage("Calendar removed.");
+      setMessage("Kalender verwijderd.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to remove");
+      setError(err instanceof Error ? err.message : "Verwijderen mislukt");
     } finally {
       setSaving(false);
     }
   }
 
-  async function handleLogout() {
-    await logout();
-    window.location.href = "/";
-  }
-
   if (loading) {
     return (
-      <div className="app">
-        <main className="main">
-          <p>Loading…</p>
-        </main>
-      </div>
+      <AppLayout user={user}>
+        <p>Laden…</p>
+      </AppLayout>
     );
   }
 
   return (
-    <div className="app">
-      <header className="appHeader">
-        <span className="appTitle">Clippy Settings</span>
-        <span className="userLabel">@{user.username}</span>
-        <button type="button" className="btn btnSecondary" onClick={handleLogout}>
-          Log out
-        </button>
-      </header>
-      <main className="main">
-        <section className="card">
-          <h2 className="cardTitle">My calendar</h2>
-          <p className="cardHint">
-            Link your ICS calendar for the shared timetable. Use <code>/timetable</code> in Discord
-            for a quick view.
-          </p>
-          <form onSubmit={handleSave} className="form">
-            <label className="formLabel">
-              Initials
-              <input
-                className="formInput"
-                value={initials}
-                onChange={(e) => setInitials(e.target.value)}
-                placeholder="e.g. QD"
-                maxLength={32}
-                required
-              />
-            </label>
-            <label className="formLabel">
-              ICS URL
-              <input
-                className="formInput"
-                type="url"
-                value={icsUrl}
-                onChange={(e) => setIcsUrl(e.target.value)}
-                placeholder="https://…/calendar.ics"
-              />
-            </label>
-            <label className="formLabel">
-              Timezone (optional)
-              <input
-                className="formInput"
-                value={timezone}
-                onChange={(e) => setTimezone(e.target.value)}
-                placeholder="e.g. Europe/Brussels"
-              />
-            </label>
-            <div className="formActions">
-              <button type="submit" className="btn" disabled={saving}>
-                {saving ? "Saving…" : "Save"}
+    <AppLayout user={user}>
+      <section className="card">
+        <h2 className="cardTitle">Mijn kalender</h2>
+        <p className="cardHint">
+          Koppel je ICS-kalender voor het gedeelde rooster. Bekijk het op{" "}
+          <Link to="/timetable">het rooster</Link> of via <code>/timetable</code> in Discord.
+        </p>
+        <form onSubmit={handleSave} className="form">
+          <label className="formLabel">
+            Initialen
+            <input
+              className="formInput"
+              value={initials}
+              onChange={(e) => setInitials(e.target.value)}
+              placeholder="bv. QD"
+              maxLength={32}
+              required
+            />
+          </label>
+          <label className="formLabel">
+            ICS-URL
+            <input
+              className="formInput"
+              type="url"
+              value={icsUrl}
+              onChange={(e) => setIcsUrl(e.target.value)}
+              placeholder="https://…/calendar.ics"
+            />
+          </label>
+          <label className="formLabel">
+            Tijdzone (optioneel)
+            <input
+              className="formInput"
+              value={timezone}
+              onChange={(e) => setTimezone(e.target.value)}
+              placeholder="bv. Europe/Brussels"
+            />
+          </label>
+          <div className="formActions">
+            <button type="submit" className="btn" disabled={saving}>
+              {saving ? "Opslaan…" : "Opslaan"}
+            </button>
+            {existing && (
+              <button
+                type="button"
+                className="btn btnSecondary"
+                onClick={handleRemove}
+                disabled={saving}
+              >
+                Verwijderen
               </button>
-              {existing && (
-                <button
-                  type="button"
-                  className="btn btnSecondary"
-                  onClick={handleRemove}
-                  disabled={saving}
-                >
-                  Remove
-                </button>
-              )}
-            </div>
-          </form>
-          {message && <p className="successMsg">{message}</p>}
-          {error && <p className="errorMsg">{error}</p>}
-        </section>
-      </main>
-    </div>
+            )}
+          </div>
+        </form>
+        {message && <p className="successMsg">{message}</p>}
+        {error && <p className="errorMsg">{error}</p>}
+      </section>
+    </AppLayout>
   );
 }

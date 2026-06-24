@@ -1,5 +1,6 @@
 import nodeIcal from "node-ical";
 import type { CalendarResponse, ParameterValue, VEvent } from "node-ical";
+import { parseActivitySummary } from "./eventUtils.js";
 import type { TimetableEvent } from "./types.js";
 
 function paramValueToString(value: ParameterValue | undefined): string | undefined {
@@ -28,6 +29,7 @@ function eventDurationMs(event: VEvent, start: Date): number {
 }
 
 function mapInstanceToEvent(
+  userId: string,
   initials: string,
   summary: string,
   start: Date,
@@ -37,10 +39,15 @@ function mapInstanceToEvent(
 ): TimetableEvent {
   const resolvedEnd =
     end ?? new Date(start.getTime() + (allDay ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000));
+  const rawTitle = summary.trim() || "Untitled";
+  const { title, typeBadges } = parseActivitySummary(rawTitle);
 
   return {
+    userId,
     initials,
-    title: summary.trim() || "Untitled",
+    title,
+    rawTitle,
+    typeBadges,
     start,
     end: resolvedEnd,
     allDay,
@@ -54,6 +61,7 @@ function isVEvent(component: CalendarResponse[string]): component is VEvent {
 
 export function parseIcsEvents(
   icsContent: string,
+  userId: string,
   initials: string,
   rangeStart: Date,
   rangeEnd: Date
@@ -81,6 +89,7 @@ export function parseIcsEvents(
         const end = toDate(instance.end);
         events.push(
           mapInstanceToEvent(
+            userId,
             initials,
             paramValueToString(instance.summary) ?? summary,
             start,
@@ -104,7 +113,7 @@ export function parseIcsEvents(
       continue;
     }
 
-    events.push(mapInstanceToEvent(initials, summary, start, effectiveEnd, allDay, location));
+    events.push(mapInstanceToEvent(userId, initials, summary, start, effectiveEnd, allDay, location));
   }
 
   return events.sort((a, b) => a.start.getTime() - b.start.getTime());

@@ -4,13 +4,15 @@ import { getMe } from "./api";
 import type { MeResponse } from "./types";
 import Login from "./pages/Login";
 import Settings from "./pages/Settings";
+import Timetable from "./pages/Timetable";
 
 function AuthedRoutes({ me }: { me: MeResponse }) {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/settings" replace />} />
+      <Route path="/" element={<Navigate to="/timetable" replace />} />
+      <Route path="/timetable" element={<Timetable user={me.user} />} />
       <Route path="/settings" element={<Settings user={me.user} />} />
-      <Route path="*" element={<Navigate to="/settings" replace />} />
+      <Route path="*" element={<Navigate to="/timetable" replace />} />
     </Routes>
   );
 }
@@ -36,7 +38,7 @@ export default function App() {
   }, []);
 
   if (loading) {
-    return <p style={{ padding: "2rem" }}>Loading…</p>;
+    return <p style={{ padding: "2rem" }}>Laden…</p>;
   }
 
   return (

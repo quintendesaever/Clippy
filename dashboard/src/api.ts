@@ -1,4 +1,9 @@
-import type { CalendarResponse, MeResponse } from "./types";
+import type {
+  CalendarResponse,
+  CalendarsResponse,
+  MeResponse,
+  TimetableResponse,
+} from "./types";
 
 async function fetchApi<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
@@ -26,6 +31,15 @@ export async function logout(): Promise<void> {
 
 export async function getCalendar(): Promise<CalendarResponse> {
   return fetchApi<CalendarResponse>("/api/calendar");
+}
+
+export async function getCalendars(): Promise<CalendarsResponse> {
+  return fetchApi<CalendarsResponse>("/api/calendars");
+}
+
+export async function getTimetable(from: string, to: string): Promise<TimetableResponse> {
+  const params = new URLSearchParams({ from, to });
+  return fetchApi<TimetableResponse>(`/api/timetable?${params}`);
 }
 
 export async function saveCalendar(data: {

@@ -22,3 +22,41 @@ export interface CalendarEntry {
 export interface CalendarResponse {
   calendar: CalendarEntry | null;
 }
+
+export interface CalendarMember {
+  user_id: string;
+  initials: string;
+  timezone: string;
+  ics_url: string | null;
+  color: string;
+}
+
+export interface CalendarsResponse {
+  calendars: CalendarMember[];
+}
+
+export interface TimetableEventDto {
+  userId: string;
+  initials: string;
+  title: string;
+  rawTitle: string;
+  typeBadges: string[];
+  start: string;
+  end: string;
+  allDay: boolean;
+  location: string | null;
+}
+
+export interface TimetableMemberDto {
+  userId: string;
+  initials: string;
+  color: string;
+  error: string | null;
+}
+
+export interface TimetableResponse {
+  events: TimetableEventDto[];
+  eventsByUser: Record<string, TimetableEventDto[]>;
+  members: TimetableMemberDto[];
+  timezone: string;
+}

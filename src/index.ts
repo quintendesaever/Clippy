@@ -12,6 +12,7 @@ import {
   recordMemberCountSnapshot,
 } from "./stats/liveHandlers.js";
 import { startF1ReminderJob } from "./f1/reminderJob.js";
+import { handleTimetableButton } from "./calendar/timetableInteractions.js";
 
 const token = process.env.DISCORD_TOKEN?.trim();
 if (!token) {
@@ -71,6 +72,16 @@ client.once("clientReady", async () => {
 });
 
 client.on("interactionCreate", async (interaction) => {
+  if (interaction.isButton()) {
+    try {
+      const handled = await handleTimetableButton(interaction);
+      if (handled) return;
+    } catch (err) {
+      console.error("Error handling button:", err);
+    }
+    return;
+  }
+
   if (!interaction.isChatInputCommand()) return;
 
   const command = commands.get(interaction.commandName);

@@ -21,3 +21,19 @@ export async function getGuildMemberCalendars(guildId: string): Promise<MemberCa
       ics_url: row.ics_url.trim(),
     }));
 }
+
+export async function getGuildCalendarMembers(guildId: string): Promise<
+  { user_id: string; initials: string; timezone: string; ics_url: string | null }[]
+> {
+  const { data, error } = await supabase
+    .from("member_calendars")
+    .select("user_id, initials, timezone, ics_url")
+    .eq("guild_id", guildId)
+    .order("initials");
+
+  if (error) {
+    throw new Error(`Failed to load members: ${error.message}`);
+  }
+
+  return data ?? [];
+}

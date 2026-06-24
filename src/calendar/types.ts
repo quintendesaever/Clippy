@@ -6,8 +6,11 @@ export type MemberCalendar = {
 };
 
 export type TimetableEvent = {
+  userId: string;
   initials: string;
   title: string;
+  rawTitle: string;
+  typeBadges: string[];
   start: Date;
   end: Date;
   allDay: boolean;
@@ -15,8 +18,16 @@ export type TimetableEvent = {
 };
 
 export type MemberLoadResult = {
+  userId: string;
   initials: string;
   events: TimetableEvent[];
+  error?: string;
+};
+
+export type TimetableMember = {
+  userId: string;
+  initials: string;
+  color: string;
   error?: string;
 };
 
@@ -25,7 +36,9 @@ export type TimetableRange = "today" | "week";
 export type GuildTimetable = {
   events: TimetableEvent[];
   eventsByDay: Map<string, TimetableEvent[]>;
+  eventsByUser: Map<string, TimetableEvent[]>;
   memberResults: MemberLoadResult[];
+  members: TimetableMember[];
   guildTimezone: string;
   rangeStart: Date;
   rangeEnd: Date;

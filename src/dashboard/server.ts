@@ -5,7 +5,10 @@ import cookieSession from "cookie-session";
 import { supabase } from "../supabase.js";
 import { getDashboardUrl, getGuildId } from "../config.js";
 import { getGuildTimezone } from "../stats/helpers.js";
+import { getGuildCalendarMembers } from "../calendar/memberCalendars.js";
+import { colorForInitials } from "../calendar/eventUtils.js";
 import { getGuildTimetableForDates } from "../calendar/timetableService.js";
+import { serializeEventForApi } from "../calendar/timetableViews.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isProduction = process.env.NODE_ENV === "production";
@@ -213,6 +216,25 @@ export function createDashboardApp(): express.Express {
     res.json({ calendar: data });
   });
 
+  app.get("/api/calendars", requireSession, async (_req: Request, res: Response) => {
+    const guildId = getGuildId();
+    try {
+      const rows = await getGuildCalendarMembers(guildId);
+      res.json({
+        calendars: rows.map((row) => ({
+          user_id: row.user_id,
+          initials: row.initials,
+          timezone: row.timezone,
+          ics_url: row.ics_url,
+          color: colorForInitials(row.initials),
+        })),
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load calendars";
+      res.status(500).json({ error: message });
+    }
+  });
+
   app.get("/api/timetable", requireSession, async (req: Request, res: Response) => {
     const guildId = getGuildId();
     const from =
@@ -235,18 +257,18 @@ export function createDashboardApp(): express.Express {
 
     try {
       const timetable = await getGuildTimetableForDates(guildId, from, to);
+      const eventsByUser: Record<string, ReturnType<typeof serializeEventForApi>[]> = {};
+      for (const [userId, events] of timetable.eventsByUser) {
+        eventsByUser[userId] = events.map(serializeEventForApi);
+      }
       res.json({
-        events: timetable.events.map((event) => ({
-          initials: event.initials,
-          title: event.title,
-          start: event.start.toISOString(),
-          end: event.end.toISOString(),
-          allDay: event.allDay,
-          location: event.location ?? null,
-        })),
-        members: timetable.memberResults.map((result) => ({
-          initials: result.initials,
-          error: result.error ?? null,
+        events: timetable.events.map(serializeEventForApi),
+        eventsByUser,
+        members: timetable.members.map((member) => ({
+          userId: member.userId,
+          initials: member.initials,
+          color: member.color,
+          error: member.error ?? null,
         })),
         timezone: timetable.guildTimezone,
       });
