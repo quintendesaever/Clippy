@@ -86,32 +86,36 @@ export function buildDayButtons(
   selectedDayKey: string,
   showWeekNav: boolean
 ): APIActionRowComponent<APIButtonComponent>[] {
+  if (!showWeekNav) return [];
+
   const weekMonday = getWeekMondayKey(new Date(), timetable.guildTimezone);
   const dayKeys = getWeekDayKeys(weekMonday, timetable.guildTimezone);
 
-  const dayRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    dayKeys.map((dayKey, i) => {
-      const [y, m, d] = dayKey.split("-").map(Number);
-      const date = toZonedTime(new Date(y, m - 1, d, 12, 0, 0), timetable.guildTimezone);
-      const label = `${DAY_LABELS[i]} ${format(date, "d/M")}`;
-      return new ButtonBuilder()
-        .setCustomId(`timetable:day:${dayKey}`)
-        .setLabel(label)
-        .setStyle(dayKey === selectedDayKey ? ButtonStyle.Primary : ButtonStyle.Secondary);
-    })
-  );
+  const makeDayButton = (dayKey: string, label: string) =>
+    new ButtonBuilder()
+      .setCustomId(`timetable:day:${dayKey}`)
+      .setLabel(label)
+      .setStyle(dayKey === selectedDayKey ? ButtonStyle.Primary : ButtonStyle.Secondary);
 
-  const rows: APIActionRowComponent<APIButtonComponent>[] = [dayRow.toJSON()];
+  const buttons = dayKeys.map((dayKey, i) => {
+    const [y, m, d] = dayKey.split("-").map(Number);
+    const date = toZonedTime(new Date(y, m - 1, d, 12, 0, 0), timetable.guildTimezone);
+    const label = `${DAY_LABELS[i]} ${format(date, "d/M")}`;
+    return makeDayButton(dayKey, label);
+  });
 
-  if (showWeekNav) {
-    const linkRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder()
-        .setLabel("Volledig rooster")
-        .setStyle(ButtonStyle.Link)
-        .setURL(`${getDashboardUrl()}/timetable`)
-    );
-    rows.push(linkRow.toJSON());
-  }
+  const rows: APIActionRowComponent<APIButtonComponent>[] = [
+    new ActionRowBuilder<ButtonBuilder>().addComponents(buttons.slice(0, 5)).toJSON(),
+    new ActionRowBuilder<ButtonBuilder>()
+      .addComponents(
+        buttons[5],
+        new ButtonBuilder()
+          .setLabel("Volledig rooster")
+          .setStyle(ButtonStyle.Link)
+          .setURL(`${getDashboardUrl()}/timetable`)
+      )
+      .toJSON(),
+  ];
 
   return rows;
 }
