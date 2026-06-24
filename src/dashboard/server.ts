@@ -29,9 +29,9 @@ interface DiscordGuild {
 }
 
 interface SessionData {
-  access_token?: string;
   state?: string;
   user?: DiscordUser;
+  guildVerified?: boolean;
 }
 
 async function discordUserApi<T>(accessToken: string, apiPath: string): Promise<T> {
@@ -47,24 +47,13 @@ async function userIsGuildMember(accessToken: string, guildId: string): Promise<
   return guilds.some((g) => g.id === guildId);
 }
 
-async function requireGuildMember(req: Request, res: Response, next: NextFunction): Promise<void> {
+function requireSession(req: Request, res: Response, next: NextFunction): void {
   const session = req.session as SessionData;
-  if (!session?.access_token || !session.user) {
+  if (!session?.user || !session.guildVerified) {
     res.status(401).json({ error: "Not authenticated" });
     return;
   }
-  try {
-    const guildId = getGuildId();
-    const isMember = await userIsGuildMember(session.access_token, guildId);
-    if (!isMember) {
-      res.status(403).json({ error: "Not a member of this server" });
-      return;
-    }
-    next();
-  } catch (err) {
-    console.error("guild membership check:", err);
-    res.status(500).json({ error: "Server configuration error" });
-  }
+  next();
 }
 
 export function createDashboardApp(): express.Express {
@@ -133,19 +122,18 @@ export function createDashboardApp(): express.Express {
     }
 
     const tokenData = (await tokenRes.json()) as { access_token: string };
-    session.access_token = tokenData.access_token;
-    const user = await discordUserApi<DiscordUser>(tokenData.access_token, "/users/@me");
-    session.user = user;
+    const accessToken = tokenData.access_token;
+    const user = await discordUserApi<DiscordUser>(accessToken, "/users/@me");
 
     const guildId = getGuildId();
-    const isMember = await userIsGuildMember(tokenData.access_token, guildId);
+    const isMember = await userIsGuildMember(accessToken, guildId);
     if (!isMember) {
-      session.access_token = undefined;
-      session.user = undefined;
       res.redirect("/?error=not_member");
       return;
     }
 
+    session.user = user;
+    session.guildVerified = true;
     res.redirect("/settings");
   });
 
@@ -154,13 +142,13 @@ export function createDashboardApp(): express.Express {
     res.json({ ok: true });
   });
 
-  app.get("/api/me", requireGuildMember, (req: Request, res: Response) => {
+  app.get("/api/me", requireSession, (req: Request, res: Response) => {
     const session = req.session as SessionData;
     res.json({ user: session.user });
   });
 
-  app.get("/api/calendar", requireGuildMember, async (_req: Request, res: Response) => {
-    const session = _req.session as SessionData;
+  app.get("/api/calendar", requireSession, async (req: Request, res: Response) => {
+    const session = req.session as SessionData;
     const guildId = getGuildId();
     const userId = session.user!.id;
 
@@ -178,7 +166,7 @@ export function createDashboardApp(): express.Express {
     res.json({ calendar: data });
   });
 
-  app.put("/api/calendar", requireGuildMember, async (req: Request, res: Response) => {
+  app.put("/api/calendar", requireSession, async (req: Request, res: Response) => {
     const session = req.session as SessionData;
     const guildId = getGuildId();
     const userId = session.user!.id;
@@ -224,7 +212,7 @@ export function createDashboardApp(): express.Express {
     res.json({ calendar: data });
   });
 
-  app.delete("/api/calendar", requireGuildMember, async (req: Request, res: Response) => {
+  app.delete("/api/calendar", requireSession, async (req: Request, res: Response) => {
     const session = req.session as SessionData;
     const guildId = getGuildId();
     const userId = session.user!.id;

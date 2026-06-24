@@ -58,7 +58,8 @@ Discord bot with Supabase stats tracking and a web settings dashboard.
 
 ```bash
 ssh root@91.99.237.148
-git clone <your-repo-url> && cd ClippyV3
+git clone git@github.com:RageMonke/ClippyBotV3.git /opt/ClippyBotV3
+cd /opt/ClippyBotV3
 cp .env.example .env
 # Edit .env with all secrets; set DASHBOARD_URL=https://dashboard.clippybot.be
 
@@ -68,8 +69,18 @@ docker compose exec clippy node dist/deploy-commands.js
 
 ### Updates
 
+On the server (after deploy key is configured):
+
 ```bash
-git pull
+ssh root@91.99.237.148
+/opt/ClippyBotV3/scripts/deploy.sh
+```
+
+Or manually:
+
+```bash
+cd /opt/ClippyBotV3
+git pull origin main
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 ```
 

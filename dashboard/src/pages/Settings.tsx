@@ -1,11 +1,8 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { deleteCalendar, getCalendar, getMe, logout, saveCalendar } from "../api";
+import { deleteCalendar, getCalendar, logout, saveCalendar } from "../api";
 import type { CalendarEntry, DiscordUser } from "../types";
 
-export default function Settings() {
-  const navigate = useNavigate();
-  const [user, setUser] = useState<DiscordUser | null>(null);
+export default function Settings({ user }: { user: DiscordUser }) {
   const [initials, setInitials] = useState("");
   const [icsUrl, setIcsUrl] = useState("");
   const [timezone, setTimezone] = useState("");
@@ -17,12 +14,8 @@ export default function Settings() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      try {
-        const me = await getMe();
-        if (cancelled) return;
-        setUser(me.user);
-        const cal = await getCalendar();
+    getCalendar()
+      .then((cal) => {
         if (cancelled) return;
         if (cal.calendar) {
           setExisting(cal.calendar);
@@ -30,16 +23,19 @@ export default function Settings() {
           setIcsUrl(cal.calendar.ics_url ?? "");
           setTimezone(cal.calendar.timezone);
         }
-      } catch {
-        if (!cancelled) navigate("/", { replace: true });
-      } finally {
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load calendar");
+        }
+      })
+      .finally(() => {
         if (!cancelled) setLoading(false);
-      }
-    })();
+      });
     return () => {
       cancelled = true;
     };
-  }, [navigate]);
+  }, []);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -82,7 +78,7 @@ export default function Settings() {
 
   async function handleLogout() {
     await logout();
-    navigate("/", { replace: true });
+    window.location.href = "/";
   }
 
   if (loading) {
@@ -99,7 +95,7 @@ export default function Settings() {
     <div className="app">
       <header className="appHeader">
         <span className="appTitle">Clippy Settings</span>
-        {user && <span className="userLabel">@{user.username}</span>}
+        <span className="userLabel">@{user.username}</span>
         <button type="button" className="btn btnSecondary" onClick={handleLogout}>
           Log out
         </button>
