@@ -104,8 +104,8 @@ export default function Settings({ user }: { user: DiscordUser }) {
         <section className="card">
           <h2 className="cardTitle">My calendar</h2>
           <p className="cardHint">
-            Link your ICS calendar for the shared timetable. Viewing the timetable will be available
-            in Discord later.
+            Link your ICS calendar for the shared timetable. Use <code>/timetable</code> in Discord
+            for a quick view.
           </p>
           <form onSubmit={handleSave} className="form">
             <label className="formLabel">

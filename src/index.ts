@@ -40,10 +40,10 @@ const client = new Client({
   partials: [Partials.Channel, Partials.Message, Partials.Reaction],
 });
 
-let commands: Awaited<ReturnType<typeof loadCommands>>;
+const commands = await loadCommands();
+console.log(`Loaded ${commands.size} slash command(s): ${[...commands.keys()].join(", ")}`);
 
 client.once("clientReady", async () => {
-  commands = await loadCommands();
   console.log(`Logged in as ${client.user?.tag}`);
 
   const otherGuilds = client.guilds.cache.filter((g) => g.id !== guildId);
@@ -73,8 +73,20 @@ client.once("clientReady", async () => {
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
-  const command = commands?.get(interaction.commandName);
-  if (!command) return;
+  const command = commands.get(interaction.commandName);
+  if (!command) {
+    console.warn(`No handler for slash command: ${interaction.commandName}`);
+    const payload = {
+      content: "This command is not available on the running bot version. Ask an admin to redeploy.",
+      ephemeral: true,
+    };
+    if (interaction.replied || interaction.deferred) {
+      await interaction.followUp(payload).catch(() => {});
+    } else {
+      await interaction.reply(payload).catch(() => {});
+    }
+    return;
+  }
 
   try {
     await command.execute(interaction);

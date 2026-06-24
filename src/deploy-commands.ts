@@ -29,6 +29,10 @@ try {
   const commands = await loadCommands();
   const body = [...commands.values()].map((cmd) => cmd.data.toJSON());
 
+  // Remove stale global commands from older deployments (e.g. bare /timetable, /calendar, /f1).
+  await rest.put(Routes.applicationCommands(clientId), { body: [] });
+  console.log("Cleared global slash commands.");
+
   await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body });
   console.log(`Successfully registered ${body.length} slash command(s) for guild ${guildId}.`);
 } catch (error) {

@@ -5,6 +5,7 @@ import cookieSession from "cookie-session";
 import { supabase } from "../supabase.js";
 import { getDashboardUrl, getGuildId } from "../config.js";
 import { getGuildTimezone } from "../stats/helpers.js";
+import { getGuildTimetableForDates } from "../calendar/timetableService.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isProduction = process.env.NODE_ENV === "production";
@@ -210,6 +211,49 @@ export function createDashboardApp(): express.Express {
       return;
     }
     res.json({ calendar: data });
+  });
+
+  app.get("/api/timetable", requireSession, async (req: Request, res: Response) => {
+    const guildId = getGuildId();
+    const from =
+      typeof req.query.from === "string" && /^\d{4}-\d{2}-\d{2}$/.test(req.query.from)
+        ? req.query.from
+        : null;
+    const to =
+      typeof req.query.to === "string" && /^\d{4}-\d{2}-\d{2}$/.test(req.query.to)
+        ? req.query.to
+        : null;
+
+    if (!from || !to) {
+      res.status(400).json({ error: "from and to query params are required (YYYY-MM-DD)" });
+      return;
+    }
+    if (from > to) {
+      res.status(400).json({ error: "from must be on or before to" });
+      return;
+    }
+
+    try {
+      const timetable = await getGuildTimetableForDates(guildId, from, to);
+      res.json({
+        events: timetable.events.map((event) => ({
+          initials: event.initials,
+          title: event.title,
+          start: event.start.toISOString(),
+          end: event.end.toISOString(),
+          allDay: event.allDay,
+          location: event.location ?? null,
+        })),
+        members: timetable.memberResults.map((result) => ({
+          initials: result.initials,
+          error: result.error ?? null,
+        })),
+        timezone: timetable.guildTimezone,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load timetable";
+      res.status(500).json({ error: message });
+    }
   });
 
   app.delete("/api/calendar", requireSession, async (req: Request, res: Response) => {
