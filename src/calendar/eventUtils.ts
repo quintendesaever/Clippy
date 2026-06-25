@@ -70,6 +70,20 @@ export const HOUR_START = 8;
 export const HOUR_END = 20;
 export const TOTAL_HOURS = HOUR_END - HOUR_START;
 
+const TYPE_BADGE_COLORS: Record<string, string> = {
+  H: "#8b5cf6",
+  P: "#f97316",
+  W: "#22c55e",
+  L: "#3b82f6",
+  G: "#06b6d4",
+  E: "#eab308",
+  S: "#ec4899",
+};
+
+export function colorForTypeBadge(badge: string): string {
+  return TYPE_BADGE_COLORS[badge.toUpperCase()] ?? "#6366f1";
+}
+
 const ROOM_CODE_PATTERN = /\b([A-Z]{3,6}\.\d+\.\d+)\b/g;
 
 export function shortLocation(location: string | undefined): string | undefined {
