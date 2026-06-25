@@ -5,20 +5,27 @@ import { supabase } from "../supabase.js";
 import { shortLocation, truncateText } from "./eventUtils.js";
 import type { GuildTimetable, TimetableEvent } from "./types.js";
 
-const WIDTH = 4200;
+// Kept moderate so Discord chat downscaling leaves text readable (~550px display width).
+const WIDTH = 1200;
 const HOUR_START = 8;
 const HOUR_END = 20;
 const HOUR_COUNT = HOUR_END - HOUR_START;
-const HEADER_HEIGHT = 36;
-const ROW_HEIGHT = 96;
-const ROW_GAP = 12;
+const HEADER_HEIGHT = 52;
+const ROW_HEIGHT = 160;
+const ROW_GAP = 14;
 const FONT = "system-ui,-apple-system,sans-serif";
 
-const CARD_RADIUS = 12;
-const CARD_INNER_PAD = 16;
-const AVATAR_SIZE = 32;
-const AVATAR_OVERLAP = 8;
+const CARD_RADIUS = 14;
+const CARD_INNER_PAD = 18;
+const AVATAR_SIZE = 52;
+const AVATAR_OVERLAP = 14;
 const AVATAR_BORDER = 2;
+
+const TITLE_FONT_SIZE = 42;
+const SUBTITLE_FONT_SIZE = 34;
+const HOUR_LABEL_FONT_SIZE = 30;
+const TITLE_LINE_HEIGHT = 48;
+const SUBTITLE_GAP = 10;
 
 const TYPE_LABELS: Record<string, string> = {
   H: "Hoorcollege",
@@ -133,11 +140,10 @@ function buildTextLines(
   textClipId: string
 ): string[] {
   const textMaxWidth = cardWidth - (textX - cardX) - CARD_INNER_PAD;
-  const titleLines = wrapText(title, textMaxWidth, 14, 2);
-  const subtitleLines = wrapText(subtitle, textMaxWidth, 12, 1);
-  const titleLineHeight = 16;
-  const titleBlockHeight = titleLines.length * titleLineHeight;
-  const titleStartY = cy - (titleBlockHeight + 14) / 2 + 12;
+  const titleLines = wrapText(title, textMaxWidth, TITLE_FONT_SIZE, 2);
+  const subtitleLines = wrapText(subtitle, textMaxWidth, SUBTITLE_FONT_SIZE, 1);
+  const titleBlockHeight = titleLines.length * TITLE_LINE_HEIGHT;
+  const titleStartY = cy - (titleBlockHeight + SUBTITLE_FONT_SIZE + SUBTITLE_GAP) / 2 + TITLE_FONT_SIZE * 0.85;
 
   const parts: string[] = [
     `<clipPath id="${textClipId}"><rect x="${textX}" y="${cardY}" width="${Math.max(textMaxWidth, 0)}" height="${cardHeight}"/></clipPath>`,
@@ -145,13 +151,13 @@ function buildTextLines(
 
   titleLines.forEach((line, index) => {
     parts.push(
-      `<text x="${textX}" y="${titleStartY + index * titleLineHeight}" fill="${THEME.white}" font-size="14" font-weight="600" font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(line)}</text>`
+      `<text x="${textX}" y="${titleStartY + index * TITLE_LINE_HEIGHT}" fill="${THEME.white}" font-size="${TITLE_FONT_SIZE}" font-weight="600" font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(line)}</text>`
     );
   });
 
   subtitleLines.forEach((line) => {
     parts.push(
-      `<text x="${textX}" y="${titleStartY + titleBlockHeight + 4}" fill="${THEME.textMuted}" font-size="12" font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(line)}</text>`
+      `<text x="${textX}" y="${titleStartY + titleBlockHeight + SUBTITLE_GAP}" fill="${THEME.textMuted}" font-size="${SUBTITLE_FONT_SIZE}" font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(line)}</text>`
     );
   });
 
@@ -326,7 +332,7 @@ function buildHourHeader(colWidth: number): string[] {
   for (let i = 0; i < HOUR_COUNT; i++) {
     const x = hourTickX(i, colWidth);
     parts.push(
-      `<text x="${x}" y="${HEADER_HEIGHT / 2 + 4}" fill="${THEME.textMuted}" font-size="12" font-weight="500" text-anchor="middle" font-family="${FONT}">${formatHourLabel(HOUR_START + i)}</text>`
+      `<text x="${x}" y="${HEADER_HEIGHT / 2 + HOUR_LABEL_FONT_SIZE * 0.35}" fill="${THEME.textMuted}" font-size="${HOUR_LABEL_FONT_SIZE}" font-weight="500" text-anchor="middle" font-family="${FONT}">${formatHourLabel(HOUR_START + i)}</text>`
     );
   }
 
@@ -370,7 +376,7 @@ function buildAvatarStack(
   });
 
   const rendered = userIds.filter((id) => avatarDataUrls.has(id)).length;
-  const endX = rendered > 0 ? startX + AVATAR_SIZE + avatarStep * (rendered - 1) + 12 : startX;
+  const endX = rendered > 0 ? startX + AVATAR_SIZE + avatarStep * (rendered - 1) + 16 : startX;
 
   return { parts, endX };
 }
