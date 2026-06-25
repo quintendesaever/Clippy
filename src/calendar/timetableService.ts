@@ -11,7 +11,6 @@ import type {
   MemberLoadResult,
   TimetableEvent,
   TimetableMember,
-  TimetableRange,
 } from "./types.js";
 
 export function dayKeyInTimezone(date: Date, timezone: string): string {
@@ -22,16 +21,10 @@ export function dayKeyInTimezone(date: Date, timezone: string): string {
   return `${year}-${month}-${day}`;
 }
 
-function rangeBounds(range: TimetableRange, timezone: string): { rangeStart: Date; rangeEnd: Date } {
+function rangeBounds(timezone: string): { rangeStart: Date; rangeEnd: Date } {
   const today = getTodayInGuildTz(timezone);
   const [year, month, day] = today.split("-").map(Number);
   const startLocal = fromZonedTime(new Date(year, month - 1, day, 0, 0, 0, 0), timezone);
-
-  if (range === "today") {
-    const endLocal = fromZonedTime(new Date(year, month - 1, day, 23, 59, 59, 999), timezone);
-    return { rangeStart: startLocal, rangeEnd: endLocal };
-  }
-
   const zonedEnd = addDays(toZonedTime(startLocal, timezone), 6);
   const endLocal = fromZonedTime(endOfDay(zonedEnd), timezone);
   return { rangeStart: startLocal, rangeEnd: endLocal };
@@ -113,9 +106,9 @@ function buildGuildTimetable(
   };
 }
 
-export async function getGuildTimetable(guildId: string, range: TimetableRange): Promise<GuildTimetable> {
+export async function getGuildTimetable(guildId: string): Promise<GuildTimetable> {
   const guildTimezone = await getGuildTimezone(guildId);
-  const { rangeStart, rangeEnd } = rangeBounds(range, guildTimezone);
+  const { rangeStart, rangeEnd } = rangeBounds(guildTimezone);
   const members = await getGuildMemberCalendars(guildId);
   const memberResults = await Promise.all(
     members.map((member) => loadMemberEvents(member, rangeStart, rangeEnd))

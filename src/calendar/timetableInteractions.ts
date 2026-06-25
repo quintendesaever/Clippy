@@ -1,6 +1,6 @@
 import type { ButtonInteraction } from "discord.js";
 import { getGuildTimetableForDay } from "./timetableService.js";
-import { buildDaySwimlaneView } from "./timetableViews.js";
+import { buildTimetableView, toTimetableReply } from "./timetableViews.js";
 
 export async function handleTimetableButton(interaction: ButtonInteraction): Promise<boolean> {
   if (!interaction.customId.startsWith("timetable:day:")) return false;
@@ -19,16 +19,12 @@ export async function handleTimetableButton(interaction: ButtonInteraction): Pro
 
   try {
     const timetable = await getGuildTimetableForDay(interaction.guildId, dayKey);
-    const view = await buildDaySwimlaneView(timetable, dayKey, { showWeekNav: true });
-    await interaction.editReply({
-      content: null,
-      embeds: view.embeds,
-      components: view.components,
-      files: view.files ?? [],
-    });
+    const view = await buildTimetableView(timetable, dayKey);
+    await interaction.editReply(toTimetableReply(view));
   } catch (err) {
+    console.error("timetable button error:", err);
     const message = err instanceof Error ? err.message : "Kon rooster niet laden";
-    await interaction.editReply({ content: `Fout: ${message}`, embeds: [], components: [] });
+    await interaction.editReply({ content: `Fout: ${message}`, components: [], files: [] });
   }
 
   return true;

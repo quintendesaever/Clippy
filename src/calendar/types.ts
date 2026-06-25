@@ -31,8 +31,6 @@ export type TimetableMember = {
   error?: string;
 };
 
-export type TimetableRange = "today" | "week";
-
 export type GuildTimetable = {
   events: TimetableEvent[];
   eventsByDay: Map<string, TimetableEvent[]>;

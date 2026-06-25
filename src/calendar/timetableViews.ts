@@ -5,48 +5,27 @@ import {
   AttachmentBuilder,
   ButtonBuilder,
   ButtonStyle,
-  EmbedBuilder,
   type APIActionRowComponent,
   type APIButtonComponent,
 } from "discord.js";
-import { getDashboardUrl } from "../config.js";
-import { renderDaySwimlanePng } from "./timetableImage.js";
+import { getDashboardUrl, getPublicDashboardUrl } from "../config.js";
+import { renderTimetablePng } from "./timetableImage.js";
 import { dayKeyInTimezone, getWeekDayKeys, getWeekMondayKey } from "./timetableService.js";
 import type { GuildTimetable, TimetableEvent } from "./types.js";
 
-const TIMETABLE_EMBED_COLOR = 0x5865f2;
 const DAY_LABELS = ["Ma", "Di", "Wo", "Do", "Vr", "Za"];
 const PNG_ATTACHMENT_NAME = "rooster.png";
 
-export type DaySwimlaneView = {
-  embeds: EmbedBuilder[];
+export type TimetableView = {
   components: APIActionRowComponent<APIButtonComponent>[];
   files?: AttachmentBuilder[];
+  content?: string;
 };
 
-function formatDayTitle(dayKey: string, timezone: string): string {
-  const [year, month, day] = dayKey.split("-").map(Number);
-  const date = toZonedTime(new Date(year, month - 1, day, 12, 0, 0), timezone);
-  return format(date, "EEEE d MMMM yyyy");
-}
-
-function buildFooter(timetable: GuildTimetable): string {
-  const dashboardUrl = getDashboardUrl();
-  const failed = timetable.memberResults.filter((result) => result.error);
-  const parts = [`Tijden in ${timetable.guildTimezone}`, `Volledig rooster: ${dashboardUrl}`];
-  if (failed.length > 0) {
-    parts.push(`Niet geladen: ${failed.map((r) => r.initials).join(", ")}`);
-  }
-  return parts.join(" · ");
-}
-
-export function buildDayButtons(
+function buildDayButtons(
   timetable: GuildTimetable,
-  selectedDayKey: string,
-  showWeekNav: boolean
+  selectedDayKey: string
 ): APIActionRowComponent<APIButtonComponent>[] {
-  if (!showWeekNav) return [];
-
   const weekMonday = getWeekMondayKey(new Date(), timetable.guildTimezone);
   const dayKeys = getWeekDayKeys(weekMonday, timetable.guildTimezone);
 
@@ -63,60 +42,56 @@ export function buildDayButtons(
     return makeDayButton(dayKey, label);
   });
 
+  const secondRow: ButtonBuilder[] = [buttons[5]];
+  const publicDashboardUrl = getPublicDashboardUrl();
+  if (publicDashboardUrl) {
+    secondRow.push(
+      new ButtonBuilder()
+        .setLabel("Volledig rooster")
+        .setStyle(ButtonStyle.Link)
+        .setURL(`${publicDashboardUrl}/timetable`)
+    );
+  }
+
   return [
     new ActionRowBuilder<ButtonBuilder>().addComponents(buttons.slice(0, 5)).toJSON(),
-    new ActionRowBuilder<ButtonBuilder>()
-      .addComponents(
-        buttons[5],
-        new ButtonBuilder()
-          .setLabel("Volledig rooster")
-          .setStyle(ButtonStyle.Link)
-          .setURL(`${getDashboardUrl()}/timetable`)
-      )
-      .toJSON(),
+    new ActionRowBuilder<ButtonBuilder>().addComponents(secondRow).toJSON(),
   ];
 }
 
-export async function buildDaySwimlaneView(
+export async function buildTimetableView(
   timetable: GuildTimetable,
-  dayKey: string,
-  options?: { showWeekNav?: boolean }
-): Promise<DaySwimlaneView> {
+  dayKey: string
+): Promise<TimetableView> {
   const dashboardUrl = getDashboardUrl();
-  const showWeekNav = options?.showWeekNav ?? true;
-  const dayTitle = formatDayTitle(dayKey, timetable.guildTimezone);
-  const components = buildDayButtons(timetable, dayKey, showWeekNav);
+  const components = buildDayButtons(timetable, dayKey);
 
   if (timetable.memberResults.length === 0) {
-    const embed = new EmbedBuilder()
-      .setColor(TIMETABLE_EMBED_COLOR)
-      .setTitle(`Rooster — ${dayTitle}`)
-      .setDescription(`Nog geen kalenders gekoppeld. Voeg de jouwe toe op ${dashboardUrl}`)
-      .setFooter({ text: buildFooter(timetable) })
-      .setTimestamp(new Date());
-    return { embeds: [embed], components };
+    return {
+      content: `Nog geen kalenders gekoppeld. Voeg de jouwe toe op ${dashboardUrl}`,
+      components,
+    };
   }
 
-  const png = await renderDaySwimlanePng(timetable, dayKey);
+  const png = await renderTimetablePng(timetable, dayKey);
+  const files = [new AttachmentBuilder(png, { name: PNG_ATTACHMENT_NAME })];
 
-  const embed = new EmbedBuilder()
-    .setColor(TIMETABLE_EMBED_COLOR)
-    .setTitle(`Rooster — ${dayTitle}`)
-    .setFooter({ text: buildFooter(timetable) })
-    .setTimestamp(new Date());
+  return { components, files };
+}
 
-  if (!png) {
-    embed.setDescription("Geen lessen gepland op deze dag.");
-    return { embeds: [embed], components };
+export function toTimetableReply(view: TimetableView) {
+  const payload: {
+    content?: string;
+    components: TimetableView["components"];
+    files: AttachmentBuilder[];
+  } = {
+    components: view.components,
+    files: view.files ?? [],
+  };
+  if (view.content !== undefined) {
+    payload.content = view.content;
   }
-
-  embed.setImage(`attachment://${PNG_ATTACHMENT_NAME}`);
-
-  const files = [
-    new AttachmentBuilder(png, { name: PNG_ATTACHMENT_NAME }),
-  ];
-
-  return { embeds: [embed], components, files };
+  return payload;
 }
 
 export function getDefaultDayKey(timetable: GuildTimetable): string {
