@@ -5,27 +5,27 @@ import { supabase } from "../supabase.js";
 import { shortLocation, truncateText } from "./eventUtils.js";
 import type { GuildTimetable, TimetableEvent } from "./types.js";
 
-// Kept moderate so Discord chat downscaling leaves text readable (~550px display width).
-const WIDTH = 1200;
+// Sized for Discord inline display (~550–800px): wide enough for event labels, fonts that fit card width.
+const WIDTH = 1500;
 const HOUR_START = 8;
 const HOUR_END = 20;
 const HOUR_COUNT = HOUR_END - HOUR_START;
-const HEADER_HEIGHT = 52;
-const ROW_HEIGHT = 160;
-const ROW_GAP = 14;
+const HEADER_HEIGHT = 40;
+const ROW_HEIGHT = 96;
+const ROW_GAP = 12;
 const FONT = "system-ui,-apple-system,sans-serif";
 
-const CARD_RADIUS = 14;
-const CARD_INNER_PAD = 18;
-const AVATAR_SIZE = 52;
-const AVATAR_OVERLAP = 14;
+const CARD_RADIUS = 12;
+const CARD_INNER_PAD = 14;
+const AVATAR_SIZE = 36;
+const AVATAR_OVERLAP = 10;
 const AVATAR_BORDER = 2;
 
-const TITLE_FONT_SIZE = 42;
-const SUBTITLE_FONT_SIZE = 34;
-const HOUR_LABEL_FONT_SIZE = 30;
-const TITLE_LINE_HEIGHT = 48;
-const SUBTITLE_GAP = 10;
+const TITLE_FONT_SIZE = 20;
+const SUBTITLE_FONT_SIZE = 15;
+const HOUR_LABEL_FONT_SIZE = 14;
+const TITLE_LINE_HEIGHT = 24;
+const SUBTITLE_GAP = 6;
 
 const TYPE_LABELS: Record<string, string> = {
   H: "Hoorcollege",
@@ -376,7 +376,7 @@ function buildAvatarStack(
   });
 
   const rendered = userIds.filter((id) => avatarDataUrls.has(id)).length;
-  const endX = rendered > 0 ? startX + AVATAR_SIZE + avatarStep * (rendered - 1) + 16 : startX;
+  const endX = rendered > 0 ? startX + AVATAR_SIZE + avatarStep * (rendered - 1) + 12 : startX;
 
   return { parts, endX };
 }
