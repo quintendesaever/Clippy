@@ -73,6 +73,11 @@ export async function buildTimetableView(
     };
   }
 
+  const dayEvents = timetable.eventsByDay.get(dayKey) ?? [];
+  if (dayEvents.length === 0) {
+    return { content: "Geen lessen op deze dag.", components };
+  }
+
   const png = await renderTimetablePng(timetable, dayKey);
   const files = [new AttachmentBuilder(png, { name: PNG_ATTACHMENT_NAME })];
 

@@ -1,8 +1,9 @@
+import { toZonedTime } from "date-fns-tz";
 import sharp from "sharp";
-import { truncateText } from "./eventUtils.js";
 import { getGuildId } from "../config.js";
 import { supabase } from "../supabase.js";
-import type { GuildTimetable } from "./types.js";
+import { shortLocation, truncateText } from "./eventUtils.js";
+import type { GuildTimetable, TimetableEvent } from "./types.js";
 
 const WIDTH = 4200;
 const HOUR_START = 8;
@@ -19,6 +20,16 @@ const AVATAR_SIZE = 32;
 const AVATAR_OVERLAP = 8;
 const AVATAR_BORDER = 2;
 
+const TYPE_LABELS: Record<string, string> = {
+  H: "Hoorcollege",
+  P: "Practicum",
+  W: "Werkcollege",
+  L: "Les",
+  G: "Groepswerk",
+  E: "Exercise",
+  S: "Seminar",
+};
+
 const THEME = {
   dark: "#0b0c10",
   card: "#1a1d26",
@@ -29,48 +40,14 @@ const THEME = {
 
 type CardBounds = { x: number; y: number; width: number; height: number };
 
-type DemoCard = {
-  startHour: number;
-  startMinute: number;
-  endHour: number;
-  endMinute: number;
+type RenderCard = {
+  start: Date;
+  end: Date;
   title: string;
   subtitle: string;
-  avatarMemberIndices: number[];
-};
-
-const HARDCODED_CARDS: Record<number, DemoCard[]> = {
-  0: [
-    {
-      startHour: 10,
-      startMinute: 0,
-      endHour: 12,
-      endMinute: 0,
-      title: "Lineaire Algebra en Analytische Meetkunde I",
-      subtitle: "Hoorcollege · Auditorium D, Plateau-Rozier",
-      avatarMemberIndices: [0, 1, 2],
-    },
-    {
-      startHour: 13,
-      startMinute: 0,
-      endHour: 14,
-      endMinute: 30,
-      title: "Analyse en Differentialvergelijkingen",
-      subtitle: "Werkcollege · S9, Sterre campus",
-      avatarMemberIndices: [0, 1],
-    },
-  ],
-  1: [
-    {
-      startHour: 11,
-      startMinute: 0,
-      endHour: 14,
-      endMinute: 0,
-      title: "Physica: Elektriciteit en Magnetisme",
-      subtitle: "Practicum · Labo 3, Technicum T2",
-      avatarMemberIndices: [1, 2, 3],
-    },
-  ],
+  userIds: string[];
+  startMs: number;
+  endMs: number;
 };
 
 function escapeXml(text: string): string {
@@ -197,6 +174,87 @@ function cardBounds(
     width: Math.max(endX - x, 2),
     height: ROW_HEIGHT,
   };
+}
+
+function buildEventSubtitle(event: TimetableEvent): string {
+  const typeLabel = event.typeBadges.map((badge) => TYPE_LABELS[badge] ?? badge).join(" · ");
+  const location = shortLocation(event.location);
+  return [typeLabel, location].filter(Boolean).join(" · ");
+}
+
+function clipEventToGrid(
+  start: Date,
+  end: Date,
+  timezone: string
+): { startHour: number; startMinute: number; endHour: number; endMinute: number } | null {
+  const startZoned = toZonedTime(start, timezone);
+  const endZoned = toZonedTime(end, timezone);
+  const startMinutes = startZoned.getHours() * 60 + startZoned.getMinutes();
+  const endMinutes = endZoned.getHours() * 60 + endZoned.getMinutes();
+  const gridStart = HOUR_START * 60;
+  const gridEnd = HOUR_END * 60;
+
+  if (endMinutes <= gridStart || startMinutes >= gridEnd) return null;
+
+  const clippedStart = Math.max(startMinutes, gridStart);
+  const clippedEnd = Math.min(endMinutes, gridEnd);
+  if (clippedEnd <= clippedStart) return null;
+
+  return {
+    startHour: Math.floor(clippedStart / 60),
+    startMinute: clippedStart % 60,
+    endHour: Math.floor(clippedEnd / 60),
+    endMinute: clippedEnd % 60,
+  };
+}
+
+function groupDayEvents(events: TimetableEvent[]): RenderCard[] {
+  const groups = new Map<string, RenderCard>();
+
+  for (const event of events) {
+    if (event.allDay) continue;
+
+    const key = `${event.start.getTime()}|${event.end.getTime()}|${event.title.toLowerCase()}`;
+    const existing = groups.get(key);
+    if (existing) {
+      if (!existing.userIds.includes(event.userId)) {
+        existing.userIds.push(event.userId);
+      }
+      continue;
+    }
+
+    groups.set(key, {
+      start: event.start,
+      end: event.end,
+      title: event.title,
+      subtitle: buildEventSubtitle(event),
+      userIds: [event.userId],
+      startMs: event.start.getTime(),
+      endMs: event.end.getTime(),
+    });
+  }
+
+  return [...groups.values()].sort((a, b) => a.startMs - b.startMs);
+}
+
+function cardsOverlap(a: RenderCard, b: RenderCard): boolean {
+  return a.startMs < b.endMs && a.endMs > b.startMs;
+}
+
+function packEventsIntoRows(cards: RenderCard[]): RenderCard[][] {
+  const rows: RenderCard[][] = [];
+  for (const card of cards) {
+    let placed = false;
+    for (const row of rows) {
+      if (!row.some((existing) => cardsOverlap(existing, card))) {
+        row.push(card);
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) rows.push([card]);
+  }
+  return rows;
 }
 
 function discordAvatarUrl(userId: string, avatarHash: string | null): string {
@@ -349,36 +407,33 @@ function buildActivityCard(
   ];
 }
 
-function resolveAvatarUserIds(timetable: GuildTimetable, indices: number[]): string[] {
-  return indices
-    .map((index) => timetable.members[index]?.userId)
-    .filter((userId): userId is string => !!userId);
-}
-
-function buildHardcodedCards(
+function buildRowCards(
   rowIndex: number,
   rowY: number,
+  cards: RenderCard[],
   colWidth: number,
-  timetable: GuildTimetable,
+  timezone: string,
   avatarDataUrls: Map<string, string>
 ): string[] {
-  const cards = HARDCODED_CARDS[rowIndex] ?? [];
   return cards.flatMap((card, cardIndex) => {
+    const times = clipEventToGrid(card.start, card.end, timezone);
+    if (!times) return [];
+
     const bounds = cardBounds(
       rowY,
-      card.startHour,
-      card.startMinute,
-      card.endHour,
-      card.endMinute,
+      times.startHour,
+      times.startMinute,
+      times.endHour,
+      times.endMinute,
       colWidth
     );
     return buildActivityCard(
       bounds,
       card.title,
       card.subtitle,
-      resolveAvatarUserIds(timetable, card.avatarMemberIndices),
+      card.userIds,
       avatarDataUrls,
-      `${rowIndex}-${cardIndex}`
+      `${rowIndex}-${card.startMs}-${cardIndex}`
     );
   });
 }
@@ -386,19 +441,27 @@ function buildHardcodedCards(
 function buildRow(
   rowIndex: number,
   colWidth: number,
-  timetable: GuildTimetable,
+  cards: RenderCard[],
+  timezone: string,
   avatarDataUrls: Map<string, string>
 ): string[] {
   const y = rowTop(rowIndex);
   return [
     `<rect x="0" y="${y}" width="${WIDTH}" height="${ROW_HEIGHT}" fill="${THEME.dark}"/>`,
     ...buildHourGridLines(y, ROW_HEIGHT, colWidth),
-    ...buildHardcodedCards(rowIndex, y, colWidth, timetable, avatarDataUrls),
+    ...buildRowCards(rowIndex, y, cards, colWidth, timezone, avatarDataUrls),
   ];
 }
 
-function buildTimelineSvg(timetable: GuildTimetable, avatarDataUrls: Map<string, string>): string {
-  const rowCount = Math.max(timetable.members.length, 1);
+function buildTimelineSvg(
+  timetable: GuildTimetable,
+  dayKey: string,
+  avatarDataUrls: Map<string, string>
+): string {
+  const dayEvents = timetable.eventsByDay.get(dayKey) ?? [];
+  const grouped = groupDayEvents(dayEvents);
+  const packedRows = packEventsIntoRows(grouped);
+  const rowCount = Math.max(packedRows.length, 1);
   const colWidth = WIDTH / HOUR_COUNT;
   const height =
     HEADER_HEIGHT + rowCount * ROW_HEIGHT + Math.max(0, rowCount - 1) * ROW_GAP;
@@ -410,7 +473,7 @@ function buildTimelineSvg(timetable: GuildTimetable, avatarDataUrls: Map<string,
   ];
 
   for (let i = 0; i < rowCount; i++) {
-    parts.push(...buildRow(i, colWidth, timetable, avatarDataUrls));
+    parts.push(...buildRow(i, colWidth, packedRows[i] ?? [], timetable.guildTimezone, avatarDataUrls));
   }
 
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -421,11 +484,12 @@ function buildTimelineSvg(timetable: GuildTimetable, avatarDataUrls: Map<string,
 
 export async function renderTimetablePng(
   timetable: GuildTimetable,
-  _dayKey: string
+  dayKey: string
 ): Promise<Buffer> {
   const guildId = getGuildId();
-  const userIds = timetable.members.map((member) => member.userId);
+  const dayEvents = timetable.eventsByDay.get(dayKey) ?? [];
+  const userIds = [...new Set(dayEvents.map((event) => event.userId))];
   const avatarDataUrls = await loadAvatarDataUrls(guildId, userIds);
-  const svg = buildTimelineSvg(timetable, avatarDataUrls);
+  const svg = buildTimelineSvg(timetable, dayKey, avatarDataUrls);
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
