@@ -13,12 +13,13 @@ const HOUR_COUNT = HOUR_END - HOUR_START;
 const HEADER_HEIGHT = 40;
 const ROW_HEIGHT = 96;
 const ROW_GAP = 12;
+const CONTENT_PAD = 28;
 const FONT = "system-ui,-apple-system,sans-serif";
 
 const CARD_RADIUS = 12;
 const CARD_INNER_PAD = 14;
-const AVATAR_SIZE = 36;
-const AVATAR_OVERLAP = 10;
+const AVATAR_SIZE = 44;
+const AVATAR_OVERLAP = 12;
 const AVATAR_BORDER = 2;
 
 const TITLE_FONT_SIZE = 20;
@@ -151,7 +152,7 @@ function buildTextLines(
 
   titleLines.forEach((line, index) => {
     parts.push(
-      `<text x="${textX}" y="${titleStartY + index * TITLE_LINE_HEIGHT}" fill="${THEME.white}" font-size="${TITLE_FONT_SIZE}" font-weight="600" font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(line)}</text>`
+      `<text x="${textX}" y="${titleStartY + index * TITLE_LINE_HEIGHT}" fill="${THEME.white}" font-size="${TITLE_FONT_SIZE}" font-weight="400" font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(line)}</text>`
     );
   });
 
@@ -469,21 +470,29 @@ function buildTimelineSvg(
   const packedRows = packEventsIntoRows(grouped);
   const rowCount = Math.max(packedRows.length, 1);
   const colWidth = WIDTH / HOUR_COUNT;
-  const height =
+  const contentHeight =
     HEADER_HEIGHT + rowCount * ROW_HEIGHT + Math.max(0, rowCount - 1) * ROW_GAP;
+  const svgWidth = WIDTH + 2 * CONTENT_PAD;
+  const svgHeight = contentHeight + 2 * CONTENT_PAD;
 
-  const parts: string[] = [
-    buildDefs(),
-    `<rect width="100%" height="100%" fill="${THEME.dark}"/>`,
+  const inner: string[] = [
     ...buildHourHeader(colWidth),
   ];
 
   for (let i = 0; i < rowCount; i++) {
-    parts.push(...buildRow(i, colWidth, packedRows[i] ?? [], timetable.guildTimezone, avatarDataUrls));
+    inner.push(...buildRow(i, colWidth, packedRows[i] ?? [], timetable.guildTimezone, avatarDataUrls));
   }
 
+  const parts: string[] = [
+    buildDefs(),
+    `<rect width="100%" height="100%" fill="${THEME.dark}"/>`,
+    `<g transform="translate(${CONTENT_PAD}, ${CONTENT_PAD})">`,
+    ...inner,
+    `</g>`,
+  ];
+
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${height}" viewBox="0 0 ${WIDTH} ${height}">
+<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}">
   ${parts.join("\n  ")}
 </svg>`;
 }
