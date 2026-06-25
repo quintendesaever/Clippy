@@ -1,4 +1,5 @@
 import sharp from "sharp";
+import { truncateText } from "./eventUtils.js";
 import type { GuildTimetable, TimetableMember } from "./types.js";
 
 const WIDTH = 700;
@@ -7,13 +8,12 @@ const HOUR_END = 20;
 const HOUR_COUNT = HOUR_END - HOUR_START;
 const MEMBER_LABEL_WIDTH = 72;
 const HEADER_HEIGHT = 32;
-const ROW_HEIGHT = 64;
+const ROW_HEIGHT = 72;
 const FONT = "system-ui,sans-serif";
 
-const CARD_RADIUS = 14;
-const CARD_MARGIN_Y = 6;
-const CARD_INNER_PAD = 12;
-const AVATAR_R = 14;
+const CARD_MARGIN_Y = 4;
+const CARD_INNER_PAD = 10;
+const AVATAR_R = 15;
 const AVATAR_OVERLAP = 10;
 
 /** Discord client dark theme — https://discord.com/branding */
@@ -22,7 +22,6 @@ const DISCORD = {
   backgroundSecondary: "#2b2d31",
   backgroundTertiary: "#1e1f22",
   backgroundAccent: "#4e5058",
-  backgroundElevated: "#232428",
   textNormal: "#dbdee1",
   textMuted: "#949ba4",
   headerPrimary: "#f2f3f5",
@@ -32,6 +31,8 @@ const DISCORD = {
 
 const BG_CANVAS = DISCORD.backgroundSecondary;
 const GRID_LINE = DISCORD.backgroundAccent;
+const CARD_FILL = DISCORD.backgroundPrimary;
+const CARD_BORDER = "#3f4147";
 
 function escapeXml(text: string): string {
   return text
@@ -52,6 +53,24 @@ function hourTickX(hourIndex: number, colWidth: number): number {
 function timeToX(hour: number, minute: number, colWidth: number): number {
   const minutesFromStart = (hour - HOUR_START) * 60 + minute;
   return MEMBER_LABEL_WIDTH + (minutesFromStart / 60) * colWidth;
+}
+
+function cardBounds(
+  rowY: number,
+  startHour: number,
+  startMinute: number,
+  endHour: number,
+  endMinute: number,
+  colWidth: number
+): { x: number; y: number; width: number; height: number } {
+  const x = timeToX(startHour, startMinute, colWidth);
+  const endX = timeToX(endHour, endMinute, colWidth);
+  return {
+    x,
+    y: rowY + CARD_MARGIN_Y,
+    width: Math.max(endX - x, 2),
+    height: ROW_HEIGHT - CARD_MARGIN_Y * 2,
+  };
 }
 
 function buildHourHeader(colWidth: number): string[] {
@@ -83,7 +102,7 @@ function buildHourGridLines(y: number, height: number, colWidth: number): string
 }
 
 function buildKebabMenu(x: number, cy: number): string[] {
-  const dotR = 2;
+  const dotR = 2.5;
   const gap = 5;
   return [-gap, 0, gap].map(
     (offset) =>
@@ -92,41 +111,60 @@ function buildKebabMenu(x: number, cy: number): string[] {
 }
 
 function buildActivityCard(
-  x: number,
-  y: number,
-  width: number,
-  height: number,
+  bounds: { x: number; y: number; width: number; height: number },
   title: string,
   subtitle: string,
   avatarColors: [string, string]
 ): string[] {
+  const { x, y, width, height } = bounds;
+  const radius = Math.min(12, height / 2 - 1, width / 2 - 1);
   const cy = y + height / 2;
-  const avatar1Cx = x + CARD_INNER_PAD + AVATAR_R;
-  const avatar2Cx = avatar1Cx + AVATAR_R * 2 - AVATAR_OVERLAP;
-  const textX = avatar2Cx + AVATAR_R + 10;
-  const menuX = x + width - CARD_INNER_PAD;
+  const showMenu = width >= 110;
+  const showSubtitle = width >= 90;
+  const showAvatars = width >= 48;
+  const menuPad = showMenu ? 24 : CARD_INNER_PAD;
 
-  return [
-    `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${CARD_RADIUS}" ry="${CARD_RADIUS}" fill="${DISCORD.backgroundElevated}"/>`,
-    `<circle cx="${avatar2Cx}" cy="${cy}" r="${AVATAR_R}" fill="${avatarColors[1]}"/>`,
-    `<circle cx="${avatar1Cx}" cy="${cy}" r="${AVATAR_R}" fill="${avatarColors[0]}"/>`,
-    `<text x="${textX}" y="${cy - 2}" fill="${DISCORD.headerPrimary}" font-size="13" font-weight="600" font-family="${FONT}">${escapeXml(title)}</text>`,
-    `<text x="${textX}" y="${cy + 14}" fill="${DISCORD.textMuted}" font-size="11" font-family="${FONT}">${escapeXml(subtitle)}</text>`,
-    ...buildKebabMenu(menuX, cy),
+  let contentX = x + CARD_INNER_PAD;
+  const parts: string[] = [
+    `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${radius}" ry="${radius}" fill="${CARD_FILL}" stroke="${CARD_BORDER}" stroke-width="1"/>`,
   ];
+
+  if (showAvatars) {
+    const avatar1Cx = contentX + AVATAR_R;
+    const avatar2Cx = avatar1Cx + AVATAR_R * 2 - AVATAR_OVERLAP;
+    contentX = avatar2Cx + AVATAR_R + 8;
+    parts.push(
+      `<circle cx="${avatar2Cx}" cy="${cy}" r="${AVATAR_R}" fill="${avatarColors[1]}"/>`,
+      `<circle cx="${avatar1Cx}" cy="${cy}" r="${AVATAR_R}" fill="${avatarColors[0]}"/>`
+    );
+  }
+
+  const textMaxWidth = Math.max(0, x + width - contentX - menuPad);
+  const maxChars = Math.max(4, Math.floor(textMaxWidth / 7));
+  const clippedTitle = truncateText(title, maxChars);
+  const clippedSubtitle = truncateText(subtitle, maxChars);
+
+  parts.push(
+    `<text x="${contentX}" y="${showSubtitle ? cy - 2 : cy + 4}" fill="${DISCORD.headerPrimary}" font-size="13" font-weight="600" font-family="${FONT}">${escapeXml(clippedTitle)}</text>`
+  );
+
+  if (showSubtitle) {
+    parts.push(
+      `<text x="${contentX}" y="${cy + 14}" fill="${DISCORD.textMuted}" font-size="11" font-family="${FONT}">${escapeXml(clippedSubtitle)}</text>`
+    );
+  }
+
+  if (showMenu) {
+    parts.push(...buildKebabMenu(x + width - CARD_INNER_PAD, cy));
+  }
+
+  return parts;
 }
 
 function buildHardcodedActivityCard(rowY: number, colWidth: number): string[] {
-  const cardX = timeToX(10, 0, colWidth);
-  const cardWidth = timeToX(11, 30, colWidth) - cardX;
-  const cardY = rowY + CARD_MARGIN_Y;
-  const cardHeight = ROW_HEIGHT - CARD_MARGIN_Y * 2;
-
+  const bounds = cardBounds(rowY, 10, 0, 11, 30, colWidth);
   return buildActivityCard(
-    cardX,
-    cardY,
-    cardWidth,
-    cardHeight,
+    bounds,
     "Lineaire Algebra",
     "Hoorcollege · AUD.D",
     [DISCORD.blurple, "#57f287"]
