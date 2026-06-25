@@ -1,9 +1,10 @@
 import sharp from "sharp";
+import { truncateText } from "./eventUtils.js";
 import { getGuildId } from "../config.js";
 import { supabase } from "../supabase.js";
 import type { GuildTimetable } from "./types.js";
 
-const WIDTH = 1200;
+const WIDTH = 4200;
 const HOUR_START = 8;
 const HOUR_END = 20;
 const HOUR_COUNT = HOUR_END - HOUR_START;
@@ -45,8 +46,8 @@ const HARDCODED_CARDS: Record<number, DemoCard[]> = {
       startMinute: 0,
       endHour: 12,
       endMinute: 0,
-      title: "Lineaire Algebra",
-      subtitle: "Hoorcollege · AUD.D",
+      title: "Lineaire Algebra en Analytische Meetkunde I",
+      subtitle: "Hoorcollege · Auditorium D, Plateau-Rozier",
       avatarMemberIndices: [0, 1, 2],
     },
     {
@@ -54,8 +55,8 @@ const HARDCODED_CARDS: Record<number, DemoCard[]> = {
       startMinute: 0,
       endHour: 14,
       endMinute: 30,
-      title: "Analyse",
-      subtitle: "Werkcollege · S9",
+      title: "Analyse en Differentialvergelijkingen",
+      subtitle: "Werkcollege · S9, Sterre campus",
       avatarMemberIndices: [0, 1],
     },
   ],
@@ -65,8 +66,8 @@ const HARDCODED_CARDS: Record<number, DemoCard[]> = {
       startMinute: 0,
       endHour: 14,
       endMinute: 0,
-      title: "Physica",
-      subtitle: "Practicum · Lab 3",
+      title: "Physica: Elektriciteit en Magnetisme",
+      subtitle: "Practicum · Labo 3, Technicum T2",
       avatarMemberIndices: [1, 2, 3],
     },
   ],
@@ -95,6 +96,89 @@ function hourTickX(hourIndex: number, colWidth: number): number {
 function timeToX(hour: number, minute: number, colWidth: number): number {
   const minutesFromStart = (hour - HOUR_START) * 60 + minute;
   return (minutesFromStart / 60) * colWidth;
+}
+
+function approxCharWidth(fontSize: number): number {
+  return fontSize * 0.58;
+}
+
+function wrapText(text: string, maxWidthPx: number, fontSize: number, maxLines: number): string[] {
+  if (maxWidthPx <= 0 || maxLines <= 0) return [truncateText(text, 0)];
+
+  const maxChars = Math.max(8, Math.floor(maxWidthPx / approxCharWidth(fontSize)));
+  const words = text.split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [""];
+
+  const lines: string[] = [];
+  let current = "";
+
+  for (const word of words) {
+    const next = current ? `${current} ${word}` : word;
+    if (next.length <= maxChars) {
+      current = next;
+      continue;
+    }
+
+    if (current) lines.push(current);
+    current = word.length > maxChars ? truncateText(word, maxChars) : word;
+
+    if (lines.length >= maxLines - 1) break;
+  }
+
+  if (lines.length < maxLines && current) lines.push(current);
+
+  if (lines.length > maxLines) {
+    return lines.slice(0, maxLines).map((line, i) =>
+      i === maxLines - 1 ? truncateText(line, maxChars) : line
+    );
+  }
+
+  if (lines.length === maxLines) {
+    const joined = words.join(" ");
+    const used = lines.join(" ");
+    if (used.length < joined.length) {
+      lines[maxLines - 1] = truncateText(lines[maxLines - 1], maxChars);
+    }
+  }
+
+  return lines.length > 0 ? lines : [truncateText(text, maxChars)];
+}
+
+function buildTextLines(
+  textX: number,
+  cardX: number,
+  cardY: number,
+  cardWidth: number,
+  cardHeight: number,
+  cy: number,
+  title: string,
+  subtitle: string,
+  textClipId: string
+): string[] {
+  const textMaxWidth = cardWidth - (textX - cardX) - CARD_INNER_PAD;
+  const titleLines = wrapText(title, textMaxWidth, 14, 2);
+  const subtitleLines = wrapText(subtitle, textMaxWidth, 12, 1);
+  const titleLineHeight = 16;
+  const titleBlockHeight = titleLines.length * titleLineHeight;
+  const titleStartY = cy - (titleBlockHeight + 14) / 2 + 12;
+
+  const parts: string[] = [
+    `<clipPath id="${textClipId}"><rect x="${textX}" y="${cardY}" width="${Math.max(textMaxWidth, 0)}" height="${cardHeight}"/></clipPath>`,
+  ];
+
+  titleLines.forEach((line, index) => {
+    parts.push(
+      `<text x="${textX}" y="${titleStartY + index * titleLineHeight}" fill="${THEME.white}" font-size="14" font-weight="600" font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(line)}</text>`
+    );
+  });
+
+  subtitleLines.forEach((line) => {
+    parts.push(
+      `<text x="${textX}" y="${titleStartY + titleBlockHeight + 4}" fill="${THEME.textMuted}" font-size="12" font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(line)}</text>`
+    );
+  });
+
+  return parts;
 }
 
 function cardBounds(
@@ -261,8 +345,7 @@ function buildActivityCard(
     `</g>`,
     `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${radius}" ry="${radius}" fill="none" stroke="${THEME.border}" stroke-width="1"/>`,
     ...avatarParts,
-    `<text x="${textX}" y="${cy - 3}" fill="${THEME.white}" font-size="14" font-weight="600" font-family="${FONT}">${escapeXml(title)}</text>`,
-    `<text x="${textX}" y="${cy + 16}" fill="${THEME.textMuted}" font-size="12" font-family="${FONT}">${escapeXml(subtitle)}</text>`,
+    ...buildTextLines(textX, x, y, width, height, cy, title, subtitle, `${clipId}-text`),
   ];
 }
 
