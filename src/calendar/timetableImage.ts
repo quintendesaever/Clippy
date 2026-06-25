@@ -9,9 +9,22 @@ const PAD = 16;
 const LINE_HEIGHT = 22;
 const LOCATION_INDENT = 108;
 
-const BG_CANVAS = "#0b0c10";
-const TEXT_PRIMARY = "#f4f4f5";
-const TEXT_MUTED = "#71717a";
+/** Discord client dark theme — https://discord.com/branding */
+const DISCORD = {
+  backgroundPrimary: "#313338",
+  backgroundSecondary: "#2b2d31",
+  backgroundTertiary: "#1e1f22",
+  backgroundAccent: "#4e5058",
+  textNormal: "#dbdee1",
+  textMuted: "#949ba4",
+  headerPrimary: "#f2f3f5",
+  headerSecondary: "#b5bac1",
+  blurple: "#5865f2",
+} as const;
+
+const BG_CANVAS = DISCORD.backgroundSecondary;
+const TEXT_PRIMARY = DISCORD.textNormal;
+const TEXT_MUTED = DISCORD.textMuted;
 
 function escapeXml(text: string): string {
   return text
@@ -22,7 +35,7 @@ function escapeXml(text: string): string {
 }
 
 function memberColor(timetable: GuildTimetable, event: TimetableEvent): string {
-  return timetable.members.find((m) => m.userId === event.userId)?.color ?? "#a1a1aa";
+  return timetable.members.find((m) => m.userId === event.userId)?.color ?? DISCORD.headerSecondary;
 }
 
 function formatEventTime(event: TimetableEvent, timezone: string): string {
