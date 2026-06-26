@@ -1,98 +1,183 @@
+@import "./theme.css";
+
 * {
   box-sizing: border-box;
 }
+
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  background: #1a1b1e;
-  color: #e4e4e7;
+  font-family: var(--font-family);
+  background: var(--color-bg);
+  color: var(--color-text);
   min-height: 100vh;
 }
+
 a {
-  color: #5865f2;
+  color: var(--color-accent);
   text-decoration: none;
 }
+
 a:hover {
   text-decoration: underline;
 }
+
 #root {
   min-height: 100vh;
 }
 
-.app {
+/* App shell */
+.appShell {
   display: flex;
-  flex-direction: column;
   min-height: 100vh;
 }
-.appHeader {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.75rem 1.5rem;
-  background: #25262b;
-  border-bottom: 1px solid #2c2e33;
-  flex-wrap: wrap;
-}
-.appTitle {
-  font-weight: 600;
-  font-size: 1.125rem;
-}
-.userLabel {
-  color: #a1a1aa;
-  font-size: 0.875rem;
-  margin-left: auto;
-}
-.main {
+
+.appMain {
   flex: 1;
-  padding: 1rem 1.5rem;
-  max-width: 640px;
-  width: 100%;
-  margin: 0 auto;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem;
 }
 
+.appMainNarrow {
+  max-width: 720px;
+}
+
+/* Sidebar */
+.sidebar {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-card);
+  border-right: 1px solid var(--color-border);
+  min-height: 100vh;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.sidebarBrand {
+  padding: 1.25rem 1rem 1rem;
+  font-weight: 600;
+  font-size: 1.125rem;
+  color: var(--color-text);
+}
+
+.sidebarNav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0 0.5rem;
+  flex: 1;
+}
+
+.sidebarLink {
+  display: block;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.sidebarLink:hover {
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.sidebarLinkActive {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.sidebarFooter {
+  padding: 1rem;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sidebarUser {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.sidebarUsername {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebarToggle {
+  display: none;
+}
+
+/* Buttons */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0.5rem 1rem;
-  background: #5865f2;
+  background: var(--color-accent);
   color: #fff;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
+  font-family: inherit;
 }
+
 .btn:hover {
-  background: #4752c4;
+  background: var(--color-accent-hover);
 }
+
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
 .btnSecondary {
-  background: #2c2e33;
-  color: #e4e4e7;
-}
-.btnSecondary:hover {
-  background: #373a40;
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
 }
 
-.card {
-  background: #25262b;
-  border: 1px solid #2c2e33;
-  border-radius: 8px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 1rem;
+.btnSecondary:hover {
+  background: var(--color-border);
 }
+
+.btnSmall {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8125rem;
+}
+
+.btnBlock {
+  width: 100%;
+}
+
+/* Forms */
+.card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.25rem 1.5rem;
+}
+
 .cardTitle {
   font-size: 1rem;
   font-weight: 600;
   margin: 0 0 0.5rem;
 }
+
 .cardHint {
   font-size: 0.875rem;
-  color: #a1a1aa;
+  color: var(--color-text-muted);
   margin: 0 0 1rem;
 }
 
@@ -101,6 +186,7 @@ a:hover {
   flex-direction: column;
   gap: 1rem;
 }
+
 .formLabel {
   display: flex;
   flex-direction: column;
@@ -108,384 +194,411 @@ a:hover {
   font-size: 0.875rem;
   font-weight: 500;
 }
+
 .formInput {
   padding: 0.5rem 0.75rem;
-  background: #2c2e33;
-  border: 1px solid #373a40;
-  border-radius: 6px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   color: inherit;
   font-size: 0.875rem;
+  font-family: inherit;
 }
+
 .formInput:focus {
   outline: none;
-  border-color: #5865f2;
+  border-color: var(--color-accent);
 }
+
 .formActions {
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
 }
 
+.errorMsg {
+  color: var(--color-error);
+  font-size: 0.875rem;
+}
+
+.successMsg {
+  color: var(--color-success);
+  font-size: 0.875rem;
+  margin-top: 0.75rem;
+}
+
+/* Login */
 .loginPage {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
+  background: var(--color-bg);
 }
+
 .loginCard {
-  background: #25262b;
-  border: 1px solid #2c2e33;
-  border-radius: 8px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   padding: 2rem;
   max-width: 400px;
   width: 100%;
   text-align: center;
 }
+
 .loginCard h1 {
   margin: 0 0 0.5rem;
   font-size: 1.5rem;
 }
+
 .loginCard p {
-  color: #a1a1aa;
+  color: var(--color-text-muted);
   margin: 0 0 1.5rem;
 }
 
-.errorMsg {
-  color: #f87171;
-  font-size: 0.875rem;
-}
-.successMsg {
-  color: #4ade80;
-  font-size: 0.875rem;
-  margin-top: 0.75rem;
-}
-
-.appNav {
-  display: flex;
-  gap: 0.25rem;
-}
-.appNavLink {
-  padding: 0.35rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  color: #a1a1aa;
-  text-decoration: none;
-}
-.appNavLink:hover {
-  background: #2c2e33;
-  text-decoration: none;
-  color: #e4e4e7;
-}
-.appNavLinkActive {
-  background: #2c2e33;
-  color: #5865f2;
-}
-.mainWide {
-  max-width: 1200px;
-}
-
+/* Page tabs */
 .pageTabs {
   display: flex;
   gap: 0;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid #2c2e33;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--color-border);
 }
+
 .tab {
   padding: 0.6rem 1rem;
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
-  color: #a1a1aa;
+  color: var(--color-text-muted);
   font-size: 0.875rem;
   cursor: pointer;
   margin-bottom: -1px;
-}
-.tab:hover {
-  color: #e4e4e7;
-}
-.tabActive {
-  color: #5865f2;
-  border-bottom-color: #5865f2;
+  font-family: inherit;
 }
 
-.timetableSection {
-  background: #18181b;
-  border: 1px solid #27272a;
-  border-radius: 8px;
-  padding: 1rem 1.25rem;
+.tab:hover {
+  color: var(--color-text);
 }
-.timetableHeader {
+
+.tabActive {
+  color: var(--color-text);
+  border-bottom-color: var(--color-text);
+}
+
+/* Timetable page */
+.timetablePageHeader {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid #27272a;
 }
-.timetableTitle {
+
+.timetablePageTitle {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.125rem;
   font-weight: 600;
 }
+
 .timetableWeekNav {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
 }
-.timetableNavBtn {
-  padding: 0.35rem 0.65rem;
-  font-size: 0.8125rem;
-}
-.timetableUsersRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem;
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid #27272a;
-  font-size: 0.8125rem;
-}
-.timetableLegendTitle {
-  font-weight: 600;
-  color: #d4d4d8;
-  margin-right: 0.25rem;
-}
-.timetableUserChip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.25rem 0.55rem;
-  background: #27272a;
-  border: 1px solid #3f3f46;
-  border-radius: 999px;
-  color: #d4d4d8;
-  font-size: 0.8125rem;
-  cursor: pointer;
-}
-.timetableUserChipSelected {
-  border-color: #5865f2;
-  background: #2c2e33;
-}
-.timetableUserChipColor {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.dayTabs {
-  display: flex;
-  gap: 0.35rem;
-  flex-wrap: wrap;
-  margin-bottom: 1rem;
-}
-.dayTab {
-  padding: 0.35rem 0.75rem;
-  background: #27272a;
-  border: 1px solid #3f3f46;
-  border-radius: 6px;
-  color: #a1a1aa;
-  font-size: 0.8125rem;
-  cursor: pointer;
-}
-.dayTabActive {
-  background: #5865f2;
-  border-color: #5865f2;
-  color: #fff;
-}
+
 .timetableEmpty,
 .timetableLoading {
-  color: #a1a1aa;
+  color: var(--color-text-muted);
   font-size: 0.875rem;
 }
-.timetableLegends {
+
+.timetableLegend {
+  margin-top: 1.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 0.5rem;
-  margin-top: 1rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid #27272a;
-  font-size: 0.8125rem;
-  color: #a1a1aa;
-}
-.timetableLegendTz {
-  color: #71717a;
 }
 
-.swimlaneWrap {
-  overflow-x: auto;
-  border: 1px solid #27272a;
-  border-radius: 6px;
-  background: #18181b;
-}
-.swimlaneTimeHeader {
-  display: grid;
-  grid-template-columns: 72px repeat(12, minmax(48px, 1fr));
-  border-bottom: 1px solid #27272a;
-  background: #27272a;
-}
-.swimlaneCorner {
-  min-height: 28px;
-}
-.swimlaneHourLabel {
-  font-size: 0.7rem;
-  color: #a1a1aa;
-  text-align: center;
-  padding: 0.35rem 0;
-  border-left: 1px solid #3f3f46;
-}
-.swimlaneRow {
-  display: grid;
-  grid-template-columns: 72px 1fr;
-  border-bottom: 1px solid #27272a;
-}
-.swimlaneRow:last-child {
-  border-bottom: none;
-}
-.swimlaneMemberLabel {
-  padding: 0.5rem;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  background: #27272a;
-  border-left: 4px solid #5865f2;
+/* Member filter */
+.memberFilter {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 1.25rem;
 }
-.swimlaneTrack {
-  position: relative;
-  background: repeating-linear-gradient(
-    to right,
-    #18181b 0,
-    #18181b calc(100% / 12 - 1px),
-    #27272a calc(100% / 12 - 1px),
-    #27272a calc(100% / 12)
-  );
-  min-height: 56px;
-}
-.swimlaneEvent {
-  position: absolute;
-  top: 6px;
-  bottom: 6px;
-  border: none;
-  border-radius: 4px;
-  padding: 0.2rem 0.4rem;
-  color: #1a1b1e;
-  font-size: 0.7rem;
+
+.memberFilterLabel {
   font-weight: 600;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin-right: 0.25rem;
+}
+
+.memberChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.55rem 0.25rem 0.3rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text);
+  font-size: 0.8125rem;
   cursor: pointer;
-  overflow: hidden;
-  text-align: left;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  min-width: 24px;
-}
-.swimlaneEvent:hover {
-  filter: brightness(1.08);
-}
-.swimlaneEventTitle {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.swimlaneEventBadge {
-  flex-shrink: 0;
-  font-size: 0.6rem;
-  background: rgba(0, 0, 0, 0.2);
-  padding: 0 0.2rem;
-  border-radius: 2px;
+  font-family: inherit;
 }
 
-.personalTimetableGridWrap {
-  overflow-x: auto;
-  width: 100%;
-  margin-bottom: 1rem;
-  border-radius: 6px;
-  box-shadow: 0 0 0 1px #27272a;
+.memberChipSelected {
+  border-color: var(--color-text-muted);
 }
-.personalTimetableGrid {
+
+.memberChip:not(.memberChipSelected) {
+  opacity: 0.55;
+}
+
+/* Avatar */
+.avatar {
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--color-card);
+}
+
+.avatarSm {
+  width: 24px;
+  height: 24px;
+}
+
+.avatarMd {
+  width: var(--avatar-size);
+  height: var(--avatar-size);
+}
+
+.avatarStack {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.avatarStack .avatar {
+  margin-left: calc(-1 * var(--avatar-overlap));
+  border: 2px solid var(--color-card);
+}
+
+.avatarStack .avatar:first-child {
+  margin-left: 0;
+}
+
+/* Timeline day */
+.timelineDay {
+  margin-bottom: 1.5rem;
+}
+
+.timelineDayLabel {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 0.5rem;
+}
+
+.timelineDayScroll {
+  overflow-x: auto;
+  border-radius: var(--radius-sm);
+}
+
+.timelineDayInner {
+  min-width: 600px;
+}
+
+.timelineHourHeader {
+  display: grid;
+  height: var(--header-height);
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+  position: relative;
+}
+
+.timelineHourLabel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.timelineRow {
+  position: relative;
+  height: var(--row-height);
+  background: var(--color-bg);
+  margin-bottom: var(--row-gap);
+}
+
+.timelineRow:last-child {
+  margin-bottom: 0;
+}
+
+.timelineGridLine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--color-border);
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+/* Event card */
+.eventCard {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.65rem;
+  background: var(--color-card);
+  border: none;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  overflow: hidden;
+  min-width: 48px;
+}
+
+.eventCard:hover {
+  filter: brightness(1.06);
+}
+
+.eventCardTitle {
+  font-size: 0.875rem;
+  font-weight: 400;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  line-height: 1.3;
+}
+
+/* Week grid (personal) */
+.weekGridWrap {
+  overflow-x: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.weekGrid {
   display: grid;
   width: max-content;
   min-width: 100%;
-  background: #18181b;
-  border: 1px solid #27272a;
-  border-radius: 6px;
+  background: var(--color-bg);
 }
-.personalTimetableCorner {
-  background: #27272a;
+
+.weekGridCorner {
+  background: var(--color-bg);
   min-width: 56px;
-  min-height: 32px;
+  min-height: var(--header-height);
+  border-bottom: 1px solid var(--color-border);
 }
-.personalTimetableDayHeader {
+
+.weekGridDayHeader {
   padding: 0.4rem 0.35rem;
   font-size: 0.8125rem;
   font-weight: 500;
-  background: #27272a;
+  background: var(--color-bg);
   display: flex;
   flex-direction: column;
   align-items: center;
-  border-left: 1px solid #3f3f46;
+  border-left: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
 }
-.timetableDayName {
+
+.weekGridDayName {
   font-weight: 600;
 }
-.timetableDayDate {
+
+.weekGridDayDate {
   font-size: 0.75rem;
-  color: #a1a1aa;
+  color: var(--color-text-muted);
 }
-.personalTimetableTimeLabel {
+
+.weekGridTimeLabel {
   padding: 0.2rem 0.35rem;
   font-size: 0.7rem;
-  color: #a1a1aa;
-  background: #27272a;
-  border-top: 1px solid #3f3f46;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
   text-align: right;
 }
-.personalTimetableDayColumn {
+
+.weekGridDayColumn {
   position: relative;
-  background: #18181b;
+  background: var(--color-bg);
   background-image: repeating-linear-gradient(
     to bottom,
     transparent 0,
     transparent 43px,
-    #2a2a2e 43px,
-    #2a2a2e 44px
+    color-mix(in srgb, var(--color-border) 15%, transparent) 43px,
+    color-mix(in srgb, var(--color-border) 15%, transparent) 44px
   );
-  border-left: 1px solid #2a2a2e;
+  border-left: 1px solid color-mix(in srgb, var(--color-border) 30%, transparent);
 }
-.personalTimetableEvent {
+
+.weekGridEvent {
   position: absolute;
   left: 2px;
   right: 2px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 0.3rem 0.45rem;
   display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
+  align-items: center;
+  gap: 0.35rem;
   font-size: 0.75rem;
   border: none;
   cursor: pointer;
   overflow: hidden;
+  background: var(--color-card);
+  color: var(--color-text);
+  box-shadow: var(--shadow-card);
+  font-family: inherit;
+  text-align: left;
 }
-.personalTimetableEventClickable:hover {
-  filter: brightness(1.08);
+
+.weekGridEvent:hover {
+  filter: brightness(1.06);
 }
-.personalTimetableEventSummary {
-  font-weight: 600;
+
+.weekGridEventBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.weekGridEventTitle {
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.personalTimetableEventTime {
+
+.weekGridEventTime {
   font-size: 0.7rem;
-  opacity: 0.9;
+  color: var(--color-text-muted);
 }
 
-.timetablePopupOverlay {
+/* Event popup */
+.eventPopupOverlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
@@ -495,42 +608,88 @@ a:hover {
   z-index: 100;
   padding: 1rem;
 }
-.timetablePopup {
-  background: #25262b;
-  border: 1px solid #3f3f46;
-  border-radius: 8px;
+
+.eventPopup {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   max-width: 420px;
   width: 100%;
   padding: 1rem 1.25rem;
 }
-.timetablePopupHeader {
+
+.eventPopupHeader {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 1rem;
   margin-bottom: 0.75rem;
 }
-.timetablePopupTitle {
+
+.eventPopupTitle {
   margin: 0;
   font-size: 1rem;
 }
-.timetablePopupClose {
+
+.eventPopupClose {
   background: none;
   border: none;
-  color: #a1a1aa;
+  color: var(--color-text-muted);
   font-size: 1.5rem;
   line-height: 1;
   cursor: pointer;
   padding: 0;
 }
-.timetablePopupBody {
+
+.eventPopupBody {
   margin: 0;
   font-size: 0.875rem;
 }
-.timetablePopupBody dt {
-  color: #a1a1aa;
+
+.eventPopupBody dt {
+  color: var(--color-text-muted);
   margin-top: 0.5rem;
 }
-.timetablePopupBody dd {
+
+.eventPopupBody dd {
   margin: 0.15rem 0 0;
+}
+
+/* Mobile sidebar */
+@media (max-width: 767px) {
+  .appShell {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    height: auto;
+    min-height: unset;
+    position: relative;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .sidebarBrand {
+    padding: 0.75rem 1rem;
+  }
+
+  .sidebarNav {
+    flex-direction: row;
+    padding: 0 0.5rem 0.75rem;
+    flex: unset;
+    width: 100%;
+  }
+
+  .sidebarFooter {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .sidebarFooter .btnBlock {
+    width: auto;
+  }
 }

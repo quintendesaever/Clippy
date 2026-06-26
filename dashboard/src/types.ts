@@ -28,7 +28,7 @@ export interface CalendarMember {
   initials: string;
   timezone: string;
   ics_url: string | null;
-  color: string;
+  avatar_hash: string | null;
 }
 
 export interface CalendarsResponse {

@@ -4,58 +4,39 @@ import { getGuildId } from "../config.js";
 import { supabase } from "../supabase.js";
 import { truncateText } from "./eventUtils.js";
 import type { GuildTimetable, TimetableEvent } from "./types.js";
+import {
+  clipEventToGrid,
+  createTimelineLayout,
+  groupDayEvents,
+  packEventsIntoRows,
+  type TimelineLayout,
+} from "../../shared/timetable/layout.js";
+import {
+  AVATAR_BORDER,
+  AVATAR_OVERLAP,
+  AVATAR_SIZE,
+  CARD_INNER_PAD,
+  CARD_RADIUS,
+  FONT,
+  GRID_INSET_X,
+  HEADER_BODY_GAP,
+  HEADER_HEIGHT,
+  HOUR_LABEL_FONT_SIZE,
+  OUTER_PAD_BOTTOM,
+  OUTER_PAD_TOP,
+  OUTER_PAD_X,
+  ROW_GAP,
+  ROW_HEIGHT,
+  THEME,
+  TIMETABLE_WIDTH,
+  TITLE_FONT_SIZE,
+  TITLE_LINE_HEIGHT,
+  TITLE_MAX_LINES,
+} from "../../shared/timetable/theme.js";
 
-// ~880px wide: close to mobile chat width so Discord scales less aggressively.
-const WIDTH = 880;
-const HOUR_MIN = 8;
-const HOUR_MAX = 20;
-const HEADER_HEIGHT = 32;
-const ROW_HEIGHT = 92;
-const ROW_GAP = 8;
-const OUTER_PAD_X = 10;
-const OUTER_PAD_TOP = 10;
-const OUTER_PAD_BOTTOM = 8;
-const GRID_INSET_X = 10;
-const HEADER_BODY_GAP = 6;
-const FONT = "system-ui,-apple-system,sans-serif";
-
-const CARD_RADIUS = 10;
-const CARD_INNER_PAD = 10;
-const AVATAR_SIZE = 42;
-const AVATAR_OVERLAP = 10;
-const AVATAR_BORDER = 2;
-
-const TITLE_FONT_SIZE = 20;
-const HOUR_LABEL_FONT_SIZE = 12;
-const TITLE_LINE_HEIGHT = 24;
-const TITLE_MAX_LINES = 3;
-
-const THEME = {
-  dark: "#1C1D22",
-  card: "#323338",
-  border: "#3f4147",
-  textMuted: "#949ba4",
-  white: "#dbdee1",
-} as const;
+const WIDTH = TIMETABLE_WIDTH;
 
 type CardBounds = { x: number; y: number; width: number; height: number };
-
-type RenderCard = {
-  start: Date;
-  end: Date;
-  title: string;
-  userIds: string[];
-  startMs: number;
-  endMs: number;
-};
-
-type TimelineLayout = {
-  hourStart: number;
-  hourEnd: number;
-  hourCount: number;
-  colWidth: number;
-  gridInset: number;
-};
 
 function escapeXml(text: string): string {
   return text
@@ -82,40 +63,8 @@ function timeToX(hour: number, minute: number, layout: TimelineLayout): number {
   return layout.gridInset + (minutesFromStart / 60) * layout.colWidth;
 }
 
-function computeDisplayHourRange(
-  events: TimetableEvent[],
-  timezone: string
-): { hourStart: number; hourEnd: number } {
-  const timed = events.filter((event) => !event.allDay);
-  if (timed.length === 0) return { hourStart: HOUR_MIN, hourEnd: HOUR_MAX };
-
-  let minMinutes = Infinity;
-  let maxMinutes = -Infinity;
-  for (const event of timed) {
-    const start = toZonedTime(event.start, timezone);
-    const end = toZonedTime(event.end, timezone);
-    minMinutes = Math.min(minMinutes, start.getHours() * 60 + start.getMinutes());
-    maxMinutes = Math.max(maxMinutes, end.getHours() * 60 + end.getMinutes());
-  }
-
-  const hourStart = Math.max(HOUR_MIN, Math.floor(minMinutes / 60) - 1);
-  let hourEnd = Math.min(HOUR_MAX, Math.ceil(maxMinutes / 60) + 1);
-  if (hourEnd - hourStart < 4) {
-    hourEnd = Math.min(HOUR_MAX, hourStart + 4);
-  }
-  return { hourStart, hourEnd };
-}
-
 function createLayout(events: TimetableEvent[], timezone: string): TimelineLayout {
-  const { hourStart, hourEnd } = computeDisplayHourRange(events, timezone);
-  const hourCount = hourEnd - hourStart;
-  return {
-    hourStart,
-    hourEnd,
-    hourCount,
-    colWidth: (WIDTH - 2 * GRID_INSET_X) / hourCount,
-    gridInset: GRID_INSET_X,
-  };
+  return createTimelineLayout(events, timezone, WIDTH, GRID_INSET_X);
 }
 
 function approxCharWidth(fontSize: number): number {
@@ -212,81 +161,6 @@ function cardBounds(
     width: Math.max(endX - x, 2),
     height: ROW_HEIGHT,
   };
-}
-
-function clipEventToGrid(
-  start: Date,
-  end: Date,
-  timezone: string,
-  layout: TimelineLayout
-): { startHour: number; startMinute: number; endHour: number; endMinute: number } | null {
-  const startZoned = toZonedTime(start, timezone);
-  const endZoned = toZonedTime(end, timezone);
-  const startMinutes = startZoned.getHours() * 60 + startZoned.getMinutes();
-  const endMinutes = endZoned.getHours() * 60 + endZoned.getMinutes();
-  const gridStart = layout.hourStart * 60;
-  const gridEnd = layout.hourEnd * 60;
-
-  if (endMinutes <= gridStart || startMinutes >= gridEnd) return null;
-
-  const clippedStart = Math.max(startMinutes, gridStart);
-  const clippedEnd = Math.min(endMinutes, gridEnd);
-  if (clippedEnd <= clippedStart) return null;
-
-  return {
-    startHour: Math.floor(clippedStart / 60),
-    startMinute: clippedStart % 60,
-    endHour: Math.floor(clippedEnd / 60),
-    endMinute: clippedEnd % 60,
-  };
-}
-
-function groupDayEvents(events: TimetableEvent[]): RenderCard[] {
-  const groups = new Map<string, RenderCard>();
-
-  for (const event of events) {
-    if (event.allDay) continue;
-
-    const key = `${event.start.getTime()}|${event.end.getTime()}|${event.title.toLowerCase()}`;
-    const existing = groups.get(key);
-    if (existing) {
-      if (!existing.userIds.includes(event.userId)) {
-        existing.userIds.push(event.userId);
-      }
-      continue;
-    }
-
-    groups.set(key, {
-      start: event.start,
-      end: event.end,
-      title: event.title,
-      userIds: [event.userId],
-      startMs: event.start.getTime(),
-      endMs: event.end.getTime(),
-    });
-  }
-
-  return [...groups.values()].sort((a, b) => a.startMs - b.startMs);
-}
-
-function cardsOverlap(a: RenderCard, b: RenderCard): boolean {
-  return a.startMs < b.endMs && a.endMs > b.startMs;
-}
-
-function packEventsIntoRows(cards: RenderCard[]): RenderCard[][] {
-  const rows: RenderCard[][] = [];
-  for (const card of cards) {
-    let placed = false;
-    for (const row of rows) {
-      if (!row.some((existing) => cardsOverlap(existing, card))) {
-        row.push(card);
-        placed = true;
-        break;
-      }
-    }
-    if (!placed) rows.push([card]);
-  }
-  return rows;
 }
 
 function discordAvatarUrl(userId: string, avatarHash: string | null): string {
@@ -440,7 +314,7 @@ function buildActivityCard(
 function buildRowCards(
   rowIndex: number,
   rowY: number,
-  cards: RenderCard[],
+  cards: import("../../shared/timetable/layout.js").RenderCard[],
   layout: TimelineLayout,
   timezone: string,
   avatarDataUrls: Map<string, string>
@@ -469,7 +343,7 @@ function buildRowCards(
 
 function buildRow(
   rowIndex: number,
-  cards: RenderCard[],
+  cards: import("../../shared/timetable/layout.js").RenderCard[],
   layout: TimelineLayout,
   timezone: string,
   avatarDataUrls: Map<string, string>

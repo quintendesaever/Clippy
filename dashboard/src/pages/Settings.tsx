@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { deleteCalendar, getCalendar, saveCalendar } from "../api";
-import AppLayout from "../components/AppLayout";
+import AppShell from "../components/AppShell";
+import Button from "../components/Button";
 import type { CalendarEntry, DiscordUser } from "../types";
 
 export default function Settings({ user }: { user: DiscordUser }) {
@@ -80,14 +81,14 @@ export default function Settings({ user }: { user: DiscordUser }) {
 
   if (loading) {
     return (
-      <AppLayout user={user}>
-        <p>Laden…</p>
-      </AppLayout>
+      <AppShell user={user} narrow>
+        <p className="timetableLoading">Laden…</p>
+      </AppShell>
     );
   }
 
   return (
-    <AppLayout user={user}>
+    <AppShell user={user} narrow>
       <section className="card">
         <h2 className="cardTitle">Mijn kalender</h2>
         <p className="cardHint">
@@ -126,24 +127,19 @@ export default function Settings({ user }: { user: DiscordUser }) {
             />
           </label>
           <div className="formActions">
-            <button type="submit" className="btn" disabled={saving}>
+            <Button type="submit" disabled={saving}>
               {saving ? "Opslaan…" : "Opslaan"}
-            </button>
+            </Button>
             {existing && (
-              <button
-                type="button"
-                className="btn btnSecondary"
-                onClick={handleRemove}
-                disabled={saving}
-              >
+              <Button variant="secondary" onClick={handleRemove} disabled={saving}>
                 Verwijderen
-              </button>
+              </Button>
             )}
           </div>
         </form>
         {message && <p className="successMsg">{message}</p>}
         {error && <p className="errorMsg">{error}</p>}
       </section>
-    </AppLayout>
+    </AppShell>
   );
 }

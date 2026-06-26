@@ -7,7 +7,6 @@ import { getDashboardUrl, getGuildId } from "../config.js";
 import { ensureGuild, getGuildTimezone } from "../stats/helpers.js";
 import { upsertMember } from "../stats/members.js";
 import { getGuildCalendarMembers } from "../calendar/memberCalendars.js";
-import { colorForInitials } from "../calendar/eventUtils.js";
 import { getGuildTimetableForDates } from "../calendar/timetableService.js";
 import { serializeEventForApi } from "../calendar/timetableViews.js";
 
@@ -224,13 +223,32 @@ export function createDashboardApp(): express.Express {
     const guildId = getGuildId();
     try {
       const rows = await getGuildCalendarMembers(guildId);
+      const userIds = rows.map((row) => row.user_id);
+      const avatarByUser = new Map<string, string | null>();
+
+      if (userIds.length > 0) {
+        const { data: members, error: membersError } = await supabase
+          .from("members")
+          .select("user_id, avatar_hash")
+          .eq("guild_id", guildId)
+          .in("user_id", userIds);
+
+        if (membersError) {
+          console.error("dashboard: load member avatars:", membersError.message);
+        } else {
+          for (const member of members ?? []) {
+            avatarByUser.set(member.user_id, member.avatar_hash as string | null);
+          }
+        }
+      }
+
       res.json({
         calendars: rows.map((row) => ({
           user_id: row.user_id,
           initials: row.initials,
           timezone: row.timezone,
           ics_url: row.ics_url,
-          color: colorForInitials(row.initials),
+          avatar_hash: avatarByUser.get(row.user_id) ?? null,
         })),
       });
     } catch (err) {
@@ -300,7 +318,7 @@ export function createDashboardApp(): express.Express {
     res.json({ ok: true });
   });
 
-  const dashboardDist = path.resolve(__dirname, "../../dashboard/dist");
+  const dashboardDist = path.resolve(process.cwd(), "dashboard/dist");
   app.use(express.static(dashboardDist));
 
   app.get("*", (_req, res) => {

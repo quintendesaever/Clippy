@@ -5,21 +5,22 @@ export default function Login() {
   return (
     <div className="loginPage">
       <div className="loginCard">
-        <h1>Clippy Settings</h1>
-        <p>Sign in with Discord to manage your server settings.</p>
+        <h1>Clippy</h1>
+        <p>Meld je aan met Discord om je kalender te beheren.</p>
         <a href="/api/auth/discord" className="btn" style={{ display: "inline-block" }}>
-          Login with Discord
+          Inloggen met Discord
         </a>
         {error && (
           <p className="errorMsg" style={{ marginTop: "1rem" }}>
             {error === "invalid_callback" &&
-              "Session was lost. Clear cookies for this site and try again."}
-            {error === "token_exchange" && "Could not complete login. Please try again."}
-            {error === "not_member" && "You must be a member of this Discord server to access settings."}
+              "Sessie verloren. Wis cookies voor deze site en probeer opnieuw."}
+            {error === "token_exchange" && "Inloggen mislukt. Probeer opnieuw."}
+            {error === "not_member" &&
+              "Je moet lid zijn van deze Discord-server om toegang te krijgen."}
             {error !== "invalid_callback" &&
               error !== "token_exchange" &&
               error !== "not_member" &&
-              "Something went wrong."}
+              "Er ging iets mis."}
           </p>
         )}
       </div>

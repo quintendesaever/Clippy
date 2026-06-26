@@ -38,7 +38,11 @@ export default function App() {
   }, []);
 
   if (loading) {
-    return <p style={{ padding: "2rem" }}>Laden…</p>;
+    return (
+      <div className="loginPage">
+        <p className="timetableLoading">Laden…</p>
+      </div>
+    );
   }
 
   return (
