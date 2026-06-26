@@ -99,6 +99,14 @@ export function hourLabels(hourStart: number, hourEnd: number): number[] {
   return Array.from({ length: hourEnd - hourStart + 1 }, (_, i) => hourStart + i);
 }
 
+export function sparseHourLabels(hourStart: number, hourEnd: number): number[] {
+  const mid = hourStart + Math.floor((hourEnd - hourStart) / 2);
+  if (mid === hourStart || mid === hourEnd) {
+    return [hourStart, hourEnd];
+  }
+  return [hourStart, mid, hourEnd];
+}
+
 export type DayAvailabilityInput = {
   dayKey: string;
   dayLabel: string;

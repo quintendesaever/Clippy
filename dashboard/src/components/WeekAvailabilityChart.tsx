@@ -5,7 +5,7 @@ import {
   DEFAULT_HOUR_END,
   DEFAULT_HOUR_START,
   formatMinutes,
-  hourLabels,
+  sparseHourLabels,
   type BusySlot,
   type DayAvailabilityInput,
 } from "../lib/availability";
@@ -38,7 +38,7 @@ export default function WeekAvailabilityChart({
     return Math.max(1, ...counts, 0);
   }, [slotsByDay]);
 
-  const hours = hourLabels(hourStart, hourEnd);
+  const hours = sparseHourLabels(hourStart, hourEnd);
 
   if (days.length === 0) return null;
 
