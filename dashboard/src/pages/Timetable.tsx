@@ -108,18 +108,22 @@ export default function Timetable({ user }: { user: DiscordUser }) {
             <>
               {toolbar}
 
-              <PagePanel>
+              <div className="timetableMemberFilter">
                 <MemberFilter calendars={calendars} selected={selected} onToggle={toggleMember} />
+              </div>
 
-                {calendars.length === 0 && (
-                  <p className="timetableEmpty">Nog geen kalenders gekoppeld.</p>
-                )}
-                {calendars.length > 0 && selectedCalendars.length === 0 && (
-                  <p className="timetableEmpty">Selecteer minstens één lid.</p>
-                )}
+              {calendars.length === 0 && (
+                <p className="timetableEmpty">Nog geen kalenders gekoppeld.</p>
+              )}
+              {calendars.length > 0 && selectedCalendars.length === 0 && (
+                <p className="timetableEmpty">Selecteer minstens één lid.</p>
+              )}
 
-                {selectedCalendars.length > 0 && <WeekAvailabilityChart days={weekDays} />}
-              </PagePanel>
+              {selectedCalendars.length > 0 && (
+                <PagePanel>
+                  <WeekAvailabilityChart days={weekDays} />
+                </PagePanel>
+              )}
 
               {selectedCalendars.length > 0 && (
                 <PagePanel>
