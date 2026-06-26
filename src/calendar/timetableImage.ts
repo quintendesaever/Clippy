@@ -215,14 +215,6 @@ async function loadAvatarDataUrls(
   return new Map(entries.filter((entry): entry is readonly [string, string] => entry !== null));
 }
 
-function buildDefs(): string {
-  return `<defs>
-    <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="112%">
-      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.2"/>
-    </filter>
-  </defs>`;
-}
-
 function buildHourHeader(layout: TimelineLayout): string[] {
   const parts: string[] = [
     `<rect x="0" y="0" width="${WIDTH}" height="${HEADER_HEIGHT}" fill="${THEME.dark}"/>`,
@@ -290,7 +282,7 @@ function buildActivityCard(
 ): string[] {
   const { x, y, width, height } = bounds;
   const radius = Math.min(CARD_RADIUS, height / 2 - 1, width / 2 - 1);
-  const clipId = `card-${cardId}`;
+  const textClipId = `card-${cardId}-text`;
   const cy = y + height / 2;
   const avatarStartX = x + CARD_INNER_PAD;
   const { parts: avatarParts, endX: textX } = buildAvatarStack(
@@ -302,12 +294,9 @@ function buildActivityCard(
   );
 
   return [
-    `<clipPath id="${clipId}"><rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${radius}" ry="${radius}"/></clipPath>`,
-    `<g filter="url(#cardShadow)" clip-path="url(#${clipId})">`,
-    `<rect x="${x}" y="${y}" width="${width}" height="${height}" fill="${THEME.card}"/>`,
-    `</g>`,
+    `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${radius}" ry="${radius}" fill="${THEME.card}" stroke="${THEME.border}" stroke-width="1"/>`,
     ...avatarParts,
-    ...buildTextLines(textX, x, y, width, height, cy, title, `${clipId}-text`),
+    ...buildTextLines(textX, x, y, width, height, cy, title, textClipId),
   ];
 }
 
@@ -378,7 +367,6 @@ function buildTimelineSvg(
   }
 
   const parts: string[] = [
-    buildDefs(),
     `<rect width="100%" height="100%" fill="${THEME.dark}"/>`,
     `<g transform="translate(${OUTER_PAD_X}, ${OUTER_PAD_TOP})">`,
     ...inner,
