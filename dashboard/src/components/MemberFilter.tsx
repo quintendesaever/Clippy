@@ -12,7 +12,6 @@ export default function MemberFilter({ calendars, selected, onToggle }: MemberFi
 
   return (
     <div className="memberFilter">
-      <span className="memberFilterLabel">Leden:</span>
       {calendars.map((c) => (
         <button
           key={c.user_id}

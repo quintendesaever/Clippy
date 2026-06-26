@@ -479,36 +479,22 @@ a:hover {
   margin-bottom: 0;
 }
 
-.memberFilterLabel {
-  font-weight: 600;
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
-  margin-right: 0.25rem;
-}
-
 .memberChip {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
   padding: 0.25rem 0.55rem 0.25rem 0.3rem;
-  background: transparent;
+  background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: 999px;
   color: var(--color-text);
   font-size: 0.8125rem;
   cursor: pointer;
   font-family: inherit;
-  transition: background 0.15s ease, opacity 0.15s ease;
-}
-
-.memberChip:hover {
-  background: color-mix(in srgb, var(--color-card) 40%, transparent);
 }
 
 .memberChipSelected {
-  background: var(--color-card);
-  border-color: var(--color-border);
-  opacity: 1;
+  border-color: var(--color-text-muted);
 }
 
 .memberChip:not(.memberChipSelected) {
