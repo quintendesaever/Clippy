@@ -699,9 +699,19 @@ a:hover {
   color: var(--color-text-muted);
 }
 
+.weekTimelineDayGrid {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  position: relative;
+  z-index: 0;
+  pointer-events: none;
+  min-height: 0;
+}
+
 .weekTimelineTrack {
   grid-column: 2;
   position: relative;
+  z-index: 1;
   height: var(--timeline-row-height);
   background: var(--color-bg);
 }

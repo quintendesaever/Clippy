@@ -138,18 +138,20 @@ export default function WeekTimelineGrid({
               <span className="weekTimelineDayName">{day.dayLabel}</span>
               <span className="weekTimelineDayDate">{formatDayMonth(day.dayKey)}</span>
             </div>
+            <div className="weekTimelineDayGrid" aria-hidden="true">
+              {Array.from({ length: layout.hourCount + 1 }, (_, i) => (
+                <div
+                  key={i}
+                  className="timelineGridLine"
+                  style={{ left: `${(i / layout.hourCount) * 100}%` }}
+                />
+              ))}
+            </div>
             {day.packedRows.map((row, rowIndex) => (
               <div
                 key={rowIndex}
                 className={`weekTimelineTrack${day.isEmpty ? " weekTimelineTrackEmpty" : ""}`}
               >
-                {Array.from({ length: layout.hourCount + 1 }, (_, i) => (
-                  <div
-                    key={i}
-                    className="timelineGridLine"
-                    style={{ left: `${(i / layout.hourCount) * 100}%` }}
-                  />
-                ))}
                 {row.map((card, cardIndex) => {
                   const pos = cardPositionPercent(card, timezone, layout);
                   if (!pos) return null;
