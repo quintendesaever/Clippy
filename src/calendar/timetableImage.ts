@@ -7,13 +7,14 @@ import type { GuildTimetable, TimetableEvent } from "./types.js";
 
 // Sized for Discord inline display (~550–800px): wide enough for event labels, fonts that fit card width.
 const WIDTH = 1500;
-const HOUR_START = 8;
-const HOUR_END = 20;
-const HOUR_COUNT = HOUR_END - HOUR_START;
+const HOUR_MIN = 8;
+const HOUR_MAX = 20;
 const HEADER_HEIGHT = 40;
 const ROW_HEIGHT = 96;
 const ROW_GAP = 12;
-const CONTENT_PAD = 28;
+const OUTER_PAD = 32;
+const GRID_INSET_X = 24;
+const HEADER_BODY_GAP = 10;
 const FONT = "system-ui,-apple-system,sans-serif";
 
 const CARD_RADIUS = 12;
@@ -58,6 +59,14 @@ type RenderCard = {
   endMs: number;
 };
 
+type TimelineLayout = {
+  hourStart: number;
+  hourEnd: number;
+  hourCount: number;
+  colWidth: number;
+  gridInset: number;
+};
+
 function escapeXml(text: string): string {
   return text
     .replace(/&/g, "&amp;")
@@ -71,16 +80,52 @@ function formatHourLabel(hour: number): string {
 }
 
 function rowTop(rowIndex: number): number {
-  return HEADER_HEIGHT + rowIndex * (ROW_HEIGHT + ROW_GAP);
+  return HEADER_HEIGHT + HEADER_BODY_GAP + rowIndex * (ROW_HEIGHT + ROW_GAP);
 }
 
-function hourTickX(hourIndex: number, colWidth: number): number {
-  return hourIndex * colWidth;
+function hourTickX(hourIndex: number, layout: TimelineLayout): number {
+  return layout.gridInset + hourIndex * layout.colWidth;
 }
 
-function timeToX(hour: number, minute: number, colWidth: number): number {
-  const minutesFromStart = (hour - HOUR_START) * 60 + minute;
-  return (minutesFromStart / 60) * colWidth;
+function timeToX(hour: number, minute: number, layout: TimelineLayout): number {
+  const minutesFromStart = (hour - layout.hourStart) * 60 + minute;
+  return layout.gridInset + (minutesFromStart / 60) * layout.colWidth;
+}
+
+function computeDisplayHourRange(
+  events: TimetableEvent[],
+  timezone: string
+): { hourStart: number; hourEnd: number } {
+  const timed = events.filter((event) => !event.allDay);
+  if (timed.length === 0) return { hourStart: HOUR_MIN, hourEnd: HOUR_MAX };
+
+  let minMinutes = Infinity;
+  let maxMinutes = -Infinity;
+  for (const event of timed) {
+    const start = toZonedTime(event.start, timezone);
+    const end = toZonedTime(event.end, timezone);
+    minMinutes = Math.min(minMinutes, start.getHours() * 60 + start.getMinutes());
+    maxMinutes = Math.max(maxMinutes, end.getHours() * 60 + end.getMinutes());
+  }
+
+  const hourStart = Math.max(HOUR_MIN, Math.floor(minMinutes / 60) - 1);
+  let hourEnd = Math.min(HOUR_MAX, Math.ceil(maxMinutes / 60) + 1);
+  if (hourEnd - hourStart < 4) {
+    hourEnd = Math.min(HOUR_MAX, hourStart + 4);
+  }
+  return { hourStart, hourEnd };
+}
+
+function createLayout(events: TimetableEvent[], timezone: string): TimelineLayout {
+  const { hourStart, hourEnd } = computeDisplayHourRange(events, timezone);
+  const hourCount = hourEnd - hourStart;
+  return {
+    hourStart,
+    hourEnd,
+    hourCount,
+    colWidth: (WIDTH - 2 * GRID_INSET_X) / hourCount,
+    gridInset: GRID_INSET_X,
+  };
 }
 
 function approxCharWidth(fontSize: number): number {
@@ -171,10 +216,10 @@ function cardBounds(
   startMinute: number,
   endHour: number,
   endMinute: number,
-  colWidth: number
+  layout: TimelineLayout
 ): CardBounds {
-  const x = timeToX(startHour, startMinute, colWidth);
-  const endX = timeToX(endHour, endMinute, colWidth);
+  const x = timeToX(startHour, startMinute, layout);
+  const endX = timeToX(endHour, endMinute, layout);
   return {
     x,
     y: rowY,
@@ -192,14 +237,15 @@ function buildEventSubtitle(event: TimetableEvent): string {
 function clipEventToGrid(
   start: Date,
   end: Date,
-  timezone: string
+  timezone: string,
+  layout: TimelineLayout
 ): { startHour: number; startMinute: number; endHour: number; endMinute: number } | null {
   const startZoned = toZonedTime(start, timezone);
   const endZoned = toZonedTime(end, timezone);
   const startMinutes = startZoned.getHours() * 60 + startZoned.getMinutes();
   const endMinutes = endZoned.getHours() * 60 + endZoned.getMinutes();
-  const gridStart = HOUR_START * 60;
-  const gridEnd = HOUR_END * 60;
+  const gridStart = layout.hourStart * 60;
+  const gridEnd = layout.hourEnd * 60;
 
   if (endMinutes <= gridStart || startMinutes >= gridEnd) return null;
 
@@ -324,26 +370,26 @@ function buildDefs(): string {
   </defs>`;
 }
 
-function buildHourHeader(colWidth: number): string[] {
+function buildHourHeader(layout: TimelineLayout): string[] {
   const parts: string[] = [
     `<rect x="0" y="0" width="${WIDTH}" height="${HEADER_HEIGHT}" fill="${THEME.dark}"/>`,
     `<line x1="0" y1="${HEADER_HEIGHT}" x2="${WIDTH}" y2="${HEADER_HEIGHT}" stroke="${THEME.border}" stroke-width="1"/>`,
   ];
 
-  for (let i = 0; i < HOUR_COUNT; i++) {
-    const x = hourTickX(i, colWidth);
+  for (let i = 0; i < layout.hourCount; i++) {
+    const x = layout.gridInset + (i + 0.5) * layout.colWidth;
     parts.push(
-      `<text x="${x}" y="${HEADER_HEIGHT / 2 + HOUR_LABEL_FONT_SIZE * 0.35}" fill="${THEME.textMuted}" font-size="${HOUR_LABEL_FONT_SIZE}" font-weight="500" text-anchor="middle" font-family="${FONT}">${formatHourLabel(HOUR_START + i)}</text>`
+      `<text x="${x}" y="${HEADER_HEIGHT / 2 + HOUR_LABEL_FONT_SIZE * 0.35}" fill="${THEME.textMuted}" font-size="${HOUR_LABEL_FONT_SIZE}" font-weight="500" text-anchor="middle" font-family="${FONT}">${formatHourLabel(layout.hourStart + i)}</text>`
     );
   }
 
   return parts;
 }
 
-function buildHourGridLines(y: number, height: number, colWidth: number): string[] {
+function buildHourGridLines(y: number, height: number, layout: TimelineLayout): string[] {
   const parts: string[] = [];
-  for (let i = 0; i <= HOUR_COUNT; i++) {
-    const x = hourTickX(i, colWidth);
+  for (let i = 0; i <= layout.hourCount; i++) {
+    const x = hourTickX(i, layout);
     parts.push(
       `<line x1="${x}" y1="${y}" x2="${x}" y2="${y + height}" stroke="${THEME.border}" stroke-width="1" stroke-opacity="0.15"/>`
     );
@@ -418,12 +464,12 @@ function buildRowCards(
   rowIndex: number,
   rowY: number,
   cards: RenderCard[],
-  colWidth: number,
+  layout: TimelineLayout,
   timezone: string,
   avatarDataUrls: Map<string, string>
 ): string[] {
   return cards.flatMap((card, cardIndex) => {
-    const times = clipEventToGrid(card.start, card.end, timezone);
+    const times = clipEventToGrid(card.start, card.end, timezone, layout);
     if (!times) return [];
 
     const bounds = cardBounds(
@@ -432,7 +478,7 @@ function buildRowCards(
       times.startMinute,
       times.endHour,
       times.endMinute,
-      colWidth
+      layout
     );
     return buildActivityCard(
       bounds,
@@ -447,16 +493,16 @@ function buildRowCards(
 
 function buildRow(
   rowIndex: number,
-  colWidth: number,
   cards: RenderCard[],
+  layout: TimelineLayout,
   timezone: string,
   avatarDataUrls: Map<string, string>
 ): string[] {
   const y = rowTop(rowIndex);
   return [
     `<rect x="0" y="${y}" width="${WIDTH}" height="${ROW_HEIGHT}" fill="${THEME.dark}"/>`,
-    ...buildHourGridLines(y, ROW_HEIGHT, colWidth),
-    ...buildRowCards(rowIndex, y, cards, colWidth, timezone, avatarDataUrls),
+    ...buildHourGridLines(y, ROW_HEIGHT, layout),
+    ...buildRowCards(rowIndex, y, cards, layout, timezone, avatarDataUrls),
   ];
 }
 
@@ -469,24 +515,22 @@ function buildTimelineSvg(
   const grouped = groupDayEvents(dayEvents);
   const packedRows = packEventsIntoRows(grouped);
   const rowCount = Math.max(packedRows.length, 1);
-  const colWidth = WIDTH / HOUR_COUNT;
-  const contentHeight =
-    HEADER_HEIGHT + rowCount * ROW_HEIGHT + Math.max(0, rowCount - 1) * ROW_GAP;
-  const svgWidth = WIDTH + 2 * CONTENT_PAD;
-  const svgHeight = contentHeight + 2 * CONTENT_PAD;
+  const layout = createLayout(dayEvents, timetable.guildTimezone);
+  const rowsHeight = rowCount * ROW_HEIGHT + Math.max(0, rowCount - 1) * ROW_GAP;
+  const contentHeight = HEADER_HEIGHT + HEADER_BODY_GAP + rowsHeight + HEADER_BODY_GAP;
+  const svgWidth = WIDTH + 2 * OUTER_PAD;
+  const svgHeight = contentHeight + 2 * OUTER_PAD;
 
-  const inner: string[] = [
-    ...buildHourHeader(colWidth),
-  ];
+  const inner: string[] = [...buildHourHeader(layout)];
 
   for (let i = 0; i < rowCount; i++) {
-    inner.push(...buildRow(i, colWidth, packedRows[i] ?? [], timetable.guildTimezone, avatarDataUrls));
+    inner.push(...buildRow(i, packedRows[i] ?? [], layout, timetable.guildTimezone, avatarDataUrls));
   }
 
   const parts: string[] = [
     buildDefs(),
     `<rect width="100%" height="100%" fill="${THEME.dark}"/>`,
-    `<g transform="translate(${CONTENT_PAD}, ${CONTENT_PAD})">`,
+    `<g transform="translate(${OUTER_PAD}, ${OUTER_PAD})">`,
     ...inner,
     `</g>`,
   ];
