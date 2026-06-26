@@ -85,16 +85,6 @@ export default function Timetable({ user }: { user: DiscordUser }) {
     });
   }
 
-  const toolbar = (
-    <div className="timetableToolbar">
-      <WeekNav
-        onPrev={() => shiftWeek(-1)}
-        onThisWeek={goToThisWeek}
-        onNext={() => shiftWeek(1)}
-      />
-    </div>
-  );
-
   const displayError = error ?? calendarError;
 
   return (
@@ -106,10 +96,13 @@ export default function Timetable({ user }: { user: DiscordUser }) {
 
           {!loading && (
             <>
-              {toolbar}
-
-              <div className="timetableMemberFilter">
+              <div className="timetableToolbar">
                 <MemberFilter calendars={calendars} selected={selected} onToggle={toggleMember} />
+                <WeekNav
+                  onPrev={() => shiftWeek(-1)}
+                  onThisWeek={goToThisWeek}
+                  onNext={() => shiftWeek(1)}
+                />
               </div>
 
               {calendars.length === 0 && (
