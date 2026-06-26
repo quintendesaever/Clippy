@@ -88,10 +88,12 @@ export default function WeekTimelineGrid({
         const layoutEvents = toLayoutEvents(day.events);
         const grouped = groupDayEvents(layoutEvents);
         const packed = packEventsIntoRows(grouped);
-        const rows = packed.length > 0 ? packed : [[]];
+        const isEmpty = packed.length === 0;
+        const rows = isEmpty ? [[]] : packed;
         return {
           ...day,
           packedRows: rows,
+          isEmpty,
           eventLookup: buildEventLookup(day.events),
         };
       }),
@@ -137,7 +139,10 @@ export default function WeekTimelineGrid({
               <span className="weekTimelineDayDate">{formatDayMonth(day.dayKey)}</span>
             </div>
             {day.packedRows.map((row, rowIndex) => (
-              <div key={rowIndex} className="weekTimelineTrack">
+              <div
+                key={rowIndex}
+                className={`weekTimelineTrack${day.isEmpty ? " weekTimelineTrackEmpty" : ""}`}
+              >
                   {Array.from({ length: layout.hourCount + 1 }, (_, i) => (
                     <div
                       key={i}

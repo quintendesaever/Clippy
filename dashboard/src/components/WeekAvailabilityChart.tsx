@@ -2,10 +2,8 @@ import { useMemo } from "react";
 import {
   barColor,
   computeBusySlots,
-  computeWeekBestWindows,
   DEFAULT_HOUR_END,
   DEFAULT_HOUR_START,
-  formatTimeRange,
   hourLabels,
   type DayAvailabilityInput,
 } from "../lib/availability";
@@ -15,14 +13,12 @@ type WeekAvailabilityChartProps = {
   days: DayAvailabilityInput[];
   hourStart?: number;
   hourEnd?: number;
-  maxBusy?: number;
 };
 
 export default function WeekAvailabilityChart({
   days,
   hourStart = DEFAULT_HOUR_START,
   hourEnd = DEFAULT_HOUR_END,
-  maxBusy = 2,
 }: WeekAvailabilityChartProps) {
   const slotsByDay = useMemo(
     () => days.map((day) => ({ ...day, slots: computeBusySlots(day.events, hourStart, hourEnd) })),
@@ -34,12 +30,8 @@ export default function WeekAvailabilityChart({
     return Math.max(1, ...counts, 0);
   }, [slotsByDay]);
 
-  const bestWindows = useMemo(
-    () => computeWeekBestWindows(days, maxBusy, hourStart, hourEnd),
-    [days, maxBusy, hourStart, hourEnd]
-  );
-
   const hours = hourLabels(hourStart, hourEnd);
+  const hourCount = hours.length;
 
   if (days.length === 0) return null;
 
@@ -52,6 +44,13 @@ export default function WeekAvailabilityChart({
               {day.dayLabel} {formatDayMonth(day.dayKey)}
             </div>
             <div className="availabilityChartBars availabilityDayColumnBars">
+              {Array.from({ length: hourCount + 1 }, (_, i) => (
+                <div
+                  key={i}
+                  className="availabilityGridLine"
+                  style={{ left: `${(i / hourCount) * 100}%` }}
+                />
+              ))}
               {day.slots.map((slot) => {
                 const heightPct = (slot.busyCount / maxCount) * 100;
                 return (
@@ -80,26 +79,8 @@ export default function WeekAvailabilityChart({
         ))}
       </div>
 
-      <div className="availabilityBestWindows">
-        <p className="availabilityBestTitle">Beste vensters (≤{maxBusy} personen bezet)</p>
-        {bestWindows.length > 0 ? (
-          <div className="availabilityBestPills">
-            {bestWindows.map((entry) => (
-              <span
-                key={`${entry.dayKey}-${entry.range.startMinutes}-${entry.range.endMinutes}`}
-                className="availabilityPill"
-              >
-                {entry.dayLabel} {formatTimeRange(entry.range)}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <p className="availabilityBestEmpty">Geen vrije vensters deze week.</p>
-        )}
-      </div>
-
       <p className="availabilityCaption">
-        Staafhoogte = aantal bezette personen. Groene slots = beste momenten om iets in te plannen.
+        Staafhoogte = aantal bezette personen per half uur.
       </p>
     </div>
   );

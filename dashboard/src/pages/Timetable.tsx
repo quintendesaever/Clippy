@@ -3,7 +3,6 @@ import { getCalendars, getTimetable } from "../api";
 import AppShell from "../components/AppShell";
 import EventPopup from "../components/EventPopup";
 import MemberFilter from "../components/MemberFilter";
-import PageLayout from "../components/PageLayout";
 import PagePanel from "../components/PagePanel";
 import WeekAvailabilityChart from "../components/WeekAvailabilityChart";
 import WeekGrid from "../components/WeekGrid";
@@ -11,7 +10,6 @@ import WeekNav from "../components/WeekNav";
 import WeekTimelineGrid from "../components/WeekTimelineGrid";
 import {
   DAY_LABELS,
-  formatDayMonth,
   getWeekMonday,
   toISODate,
   weekDayDates,
@@ -114,94 +112,93 @@ export default function Timetable({ user }: { user: DiscordUser }) {
     setWeekStart(toISODate(new Date(weekMonday.getTime() + delta * 7 * 86400000)));
   }
 
-  const title = tab === "shared" ? "Gedeeld rooster" : "Mijn rooster";
-  const subtitle = `Week van ${formatDayMonth(weekStart)} – ${formatDayMonth(dayDates[5])}`;
+  const toolbar = (
+    <div className="timetableToolbar">
+      <div className="topBarTabs">
+        <button
+          type="button"
+          className={`topBarTab ${tab === "shared" ? "topBarTabActive" : ""}`}
+          onClick={() => setTab("shared")}
+        >
+          Gedeeld
+        </button>
+        <button
+          type="button"
+          className={`topBarTab ${tab === "personal" ? "topBarTabActive" : ""}`}
+          onClick={() => setTab("personal")}
+        >
+          Mijn rooster
+        </button>
+      </div>
+      <WeekNav
+        onPrev={() => shiftWeek(-1)}
+        onThisWeek={() => setWeekStart(toISODate(getWeekMonday(new Date())))}
+        onNext={() => shiftWeek(1)}
+      />
+    </div>
+  );
 
   return (
     <AppShell user={user}>
-      <PageLayout
-        title={title}
-        subtitle={subtitle}
-        actions={
-          <>
-            <div className="topBarTabs">
-              <button
-                type="button"
-                className={`topBarTab ${tab === "shared" ? "topBarTabActive" : ""}`}
-                onClick={() => setTab("shared")}
-              >
-                Gedeeld
-              </button>
-              <button
-                type="button"
-                className={`topBarTab ${tab === "personal" ? "topBarTabActive" : ""}`}
-                onClick={() => setTab("personal")}
-              >
-                Mijn rooster
-              </button>
-            </div>
-            <WeekNav
-              onPrev={() => shiftWeek(-1)}
-              onThisWeek={() => setWeekStart(toISODate(getWeekMonday(new Date())))}
-              onNext={() => shiftWeek(1)}
-            />
-          </>
-        }
-      >
-        {error && <p className="errorMsg">{error}</p>}
-        {loading && <p className="timetableLoading">Rooster laden…</p>}
+      <div className="pageLayout">
+        <div className="pageLayoutContent">
+          {error && <p className="errorMsg">{error}</p>}
+          {loading && <p className="timetableLoading">Rooster laden…</p>}
 
-        {!loading && tab === "shared" && (
-          <PagePanel>
-            <MemberFilter calendars={calendars} selected={selected} onToggle={toggleMember} />
+          {!loading && tab === "shared" && (
+            <PagePanel>
+              {toolbar}
+              <MemberFilter calendars={calendars} selected={selected} onToggle={toggleMember} />
 
-            {calendars.length === 0 && (
-              <p className="timetableEmpty">Nog geen kalenders gekoppeld.</p>
-            )}
-            {calendars.length > 0 && selectedCalendars.length === 0 && (
-              <p className="timetableEmpty">Selecteer minstens één lid.</p>
-            )}
+              {calendars.length === 0 && (
+                <p className="timetableEmpty">Nog geen kalenders gekoppeld.</p>
+              )}
+              {calendars.length > 0 && selectedCalendars.length === 0 && (
+                <p className="timetableEmpty">Selecteer minstens één lid.</p>
+              )}
 
-            {selectedCalendars.length > 0 && (
-              <>
-                <WeekAvailabilityChart days={weekDays} />
-                <WeekTimelineGrid
-                  days={weekDays}
-                  timezone={timezone}
-                  avatarByUser={avatarByUser}
+              {selectedCalendars.length > 0 && (
+                <>
+                  <WeekAvailabilityChart days={weekDays} />
+                  <WeekTimelineGrid
+                    days={weekDays}
+                    timezone={timezone}
+                    avatarByUser={avatarByUser}
+                    onEventClick={setPopupEvent}
+                  />
+                </>
+              )}
+
+              <div className="timetableLegend">
+                <span>
+                  <strong>H</strong> = Hoorcollege · <strong>P</strong> = Practicum · <strong>W</strong> =
+                  Werkcollege
+                </span>
+                <span>Tijden in {timezone}</span>
+              </div>
+            </PagePanel>
+          )}
+
+          {!loading && tab === "personal" && (
+            <PagePanel>
+              {toolbar}
+              {personalEvents.length === 0 ? (
+                <p className="timetableEmpty">
+                  Geen lessen deze week, of geen kalender gekoppeld.
+                </p>
+              ) : (
+                <WeekGrid
+                  dayDates={dayDates}
+                  events={personalEvents}
+                  userId={user.id}
+                  userAvatar={user.avatar}
                   onEventClick={setPopupEvent}
                 />
-              </>
-            )}
-
-            <div className="timetableLegend">
-              <span>
-                <strong>H</strong> = Hoorcollege · <strong>P</strong> = Practicum · <strong>W</strong> =
-                Werkcollege
-              </span>
-              <span>Tijden in {timezone}</span>
-            </div>
-          </PagePanel>
-        )}
-
-        {!loading && tab === "personal" && (
-          <PagePanel>
-            {personalEvents.length === 0 ? (
-              <p className="timetableEmpty">
-                Geen lessen deze week, of geen kalender gekoppeld.
-              </p>
-            ) : (
-              <WeekGrid
-                dayDates={dayDates}
-                events={personalEvents}
-                userId={user.id}
-                userAvatar={user.avatar}
-                onEventClick={setPopupEvent}
-              />
-            )}
-          </PagePanel>
-        )}
-      </PageLayout>
+              )}
+            </PagePanel>
+          )}
+        </div>
+      </div>
 
       {popupEvent && <EventPopup event={popupEvent} onClose={() => setPopupEvent(null)} />}
     </AppShell>
