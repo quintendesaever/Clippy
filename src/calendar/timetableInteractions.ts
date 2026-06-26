@@ -24,7 +24,7 @@ export async function handleTimetableButton(interaction: ButtonInteraction): Pro
   } catch (err) {
     console.error("timetable button error:", err);
     const message = err instanceof Error ? err.message : "Kon rooster niet laden";
-    await interaction.editReply({ content: `Fout: ${message}`, components: [], files: [] });
+    await interaction.editReply({ content: `Fout: ${message}`, components: [], files: [], embeds: [] });
   }
 
   return true;

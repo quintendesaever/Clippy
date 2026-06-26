@@ -5,8 +5,10 @@ import {
   AttachmentBuilder,
   ButtonBuilder,
   ButtonStyle,
+  EmbedBuilder,
   type APIActionRowComponent,
   type APIButtonComponent,
+  type APIEmbed,
 } from "discord.js";
 import { getDashboardUrl, getPublicDashboardUrl } from "../config.js";
 import { renderTimetablePng } from "./timetableImage.js";
@@ -15,12 +17,31 @@ import type { GuildTimetable, TimetableEvent } from "./types.js";
 
 const DAY_LABELS = ["Ma", "Di", "Wo", "Do", "Vr", "Za"];
 const PNG_ATTACHMENT_NAME = "rooster.png";
+const EMBED_COLOR = 0x323338;
 
 export type TimetableView = {
   components: APIActionRowComponent<APIButtonComponent>[];
   files?: AttachmentBuilder[];
+  embeds?: APIEmbed[];
   content?: string;
 };
+
+function formatDayTitle(dayKey: string, timezone: string): string {
+  const [y, m, d] = dayKey.split("-").map(Number);
+  const date = toZonedTime(new Date(y, m - 1, d, 12, 0, 0), timezone);
+  const jsDay = date.getDay();
+  const labelIndex = jsDay === 0 ? 5 : jsDay - 1;
+  const label = DAY_LABELS[labelIndex] ?? format(date, "EEE");
+  return `${label} ${format(date, "d/M")}`;
+}
+
+function buildDayEmbed(dayKey: string, timezone: string): APIEmbed {
+  return new EmbedBuilder()
+    .setColor(EMBED_COLOR)
+    .setTitle(formatDayTitle(dayKey, timezone))
+    .setImage(`attachment://${PNG_ATTACHMENT_NAME}`)
+    .toJSON();
+}
 
 function buildDayButtons(
   timetable: GuildTimetable,
@@ -75,13 +96,13 @@ export async function buildTimetableView(
 
   const dayEvents = timetable.eventsByDay.get(dayKey) ?? [];
   if (dayEvents.length === 0) {
-    return { content: "Geen lessen op deze dag.", components };
+    return { content: "Geen lessen op deze dag.", components, embeds: [] };
   }
 
   const png = await renderTimetablePng(timetable, dayKey);
   const files = [new AttachmentBuilder(png, { name: PNG_ATTACHMENT_NAME })];
 
-  return { components, files };
+  return { components, files, embeds: [buildDayEmbed(dayKey, timetable.guildTimezone)] };
 }
 
 export function toTimetableReply(view: TimetableView) {
@@ -89,12 +110,16 @@ export function toTimetableReply(view: TimetableView) {
     content?: string;
     components: TimetableView["components"];
     files: AttachmentBuilder[];
+    embeds?: APIEmbed[];
   } = {
     components: view.components,
     files: view.files ?? [],
   };
   if (view.content !== undefined) {
     payload.content = view.content;
+  }
+  if (view.embeds !== undefined) {
+    payload.embeds = view.embeds;
   }
   return payload;
 }

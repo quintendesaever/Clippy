@@ -5,29 +5,31 @@ import { supabase } from "../supabase.js";
 import { shortLocation, truncateText } from "./eventUtils.js";
 import type { GuildTimetable, TimetableEvent } from "./types.js";
 
-// Sized for Discord inline display (~550–800px): wide enough for event labels, fonts that fit card width.
-const WIDTH = 1500;
+// ~880px wide: close to mobile chat width so Discord scales less aggressively.
+const WIDTH = 880;
 const HOUR_MIN = 8;
 const HOUR_MAX = 20;
-const HEADER_HEIGHT = 40;
-const ROW_HEIGHT = 96;
-const ROW_GAP = 12;
-const OUTER_PAD = 32;
-const GRID_INSET_X = 24;
-const HEADER_BODY_GAP = 10;
+const HEADER_HEIGHT = 32;
+const ROW_HEIGHT = 76;
+const ROW_GAP = 8;
+const OUTER_PAD_X = 20;
+const OUTER_PAD_TOP = 20;
+const OUTER_PAD_BOTTOM = 8;
+const GRID_INSET_X = 16;
+const HEADER_BODY_GAP = 6;
 const FONT = "system-ui,-apple-system,sans-serif";
 
-const CARD_RADIUS = 12;
-const CARD_INNER_PAD = 14;
-const AVATAR_SIZE = 44;
-const AVATAR_OVERLAP = 12;
+const CARD_RADIUS = 10;
+const CARD_INNER_PAD = 10;
+const AVATAR_SIZE = 36;
+const AVATAR_OVERLAP = 10;
 const AVATAR_BORDER = 2;
 
-const TITLE_FONT_SIZE = 20;
-const SUBTITLE_FONT_SIZE = 15;
-const HOUR_LABEL_FONT_SIZE = 14;
-const TITLE_LINE_HEIGHT = 24;
-const SUBTITLE_GAP = 6;
+const TITLE_FONT_SIZE = 17;
+const SUBTITLE_FONT_SIZE = 13;
+const HOUR_LABEL_FONT_SIZE = 12;
+const TITLE_LINE_HEIGHT = 20;
+const SUBTITLE_GAP = 4;
 
 const TYPE_LABELS: Record<string, string> = {
   H: "Hoorcollege",
@@ -42,9 +44,9 @@ const TYPE_LABELS: Record<string, string> = {
 const THEME = {
   dark: "#1C1D22",
   card: "#323338",
-  border: "#2d303e",
-  textMuted: "#6b7280",
-  white: "#ffffff",
+  border: "#3f4147",
+  textMuted: "#949ba4",
+  white: "#dbdee1",
 } as const;
 
 type CardBounds = { x: number; y: number; width: number; height: number };
@@ -364,8 +366,8 @@ async function loadAvatarDataUrls(
 
 function buildDefs(): string {
   return `<defs>
-    <filter id="cardShadow" x="-8%" y="-12%" width="116%" height="130%">
-      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.35"/>
+    <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.2"/>
     </filter>
   </defs>`;
 }
@@ -379,7 +381,7 @@ function buildHourHeader(layout: TimelineLayout): string[] {
   for (let i = 0; i < layout.hourCount; i++) {
     const x = layout.gridInset + (i + 0.5) * layout.colWidth;
     parts.push(
-      `<text x="${x}" y="${HEADER_HEIGHT / 2 + HOUR_LABEL_FONT_SIZE * 0.35}" fill="${THEME.textMuted}" font-size="${HOUR_LABEL_FONT_SIZE}" font-weight="500" text-anchor="middle" font-family="${FONT}">${formatHourLabel(layout.hourStart + i)}</text>`
+      `<text x="${x}" y="${HEADER_HEIGHT / 2 + HOUR_LABEL_FONT_SIZE * 0.35}" fill="${THEME.textMuted}" font-size="${HOUR_LABEL_FONT_SIZE}" font-weight="400" text-anchor="middle" font-family="${FONT}">${formatHourLabel(layout.hourStart + i)}</text>`
     );
   }
 
@@ -454,7 +456,6 @@ function buildActivityCard(
     `<g filter="url(#cardShadow)" clip-path="url(#${clipId})">`,
     `<rect x="${x}" y="${y}" width="${width}" height="${height}" fill="${THEME.card}"/>`,
     `</g>`,
-    `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${radius}" ry="${radius}" fill="none" stroke="${THEME.border}" stroke-width="1"/>`,
     ...avatarParts,
     ...buildTextLines(textX, x, y, width, height, cy, title, subtitle, `${clipId}-text`),
   ];
@@ -517,9 +518,9 @@ function buildTimelineSvg(
   const rowCount = Math.max(packedRows.length, 1);
   const layout = createLayout(dayEvents, timetable.guildTimezone);
   const rowsHeight = rowCount * ROW_HEIGHT + Math.max(0, rowCount - 1) * ROW_GAP;
-  const contentHeight = HEADER_HEIGHT + HEADER_BODY_GAP + rowsHeight + HEADER_BODY_GAP;
-  const svgWidth = WIDTH + 2 * OUTER_PAD;
-  const svgHeight = contentHeight + 2 * OUTER_PAD;
+  const contentHeight = HEADER_HEIGHT + HEADER_BODY_GAP + rowsHeight;
+  const svgWidth = WIDTH + 2 * OUTER_PAD_X;
+  const svgHeight = contentHeight + OUTER_PAD_TOP + OUTER_PAD_BOTTOM;
 
   const inner: string[] = [...buildHourHeader(layout)];
 
@@ -530,7 +531,7 @@ function buildTimelineSvg(
   const parts: string[] = [
     buildDefs(),
     `<rect width="100%" height="100%" fill="${THEME.dark}"/>`,
-    `<g transform="translate(${OUTER_PAD}, ${OUTER_PAD})">`,
+    `<g transform="translate(${OUTER_PAD_X}, ${OUTER_PAD_TOP})">`,
     ...inner,
     `</g>`,
   ];

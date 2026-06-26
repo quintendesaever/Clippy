@@ -27,6 +27,7 @@ const timetable: Command = {
         content: `Kon rooster niet laden: ${message}`,
         components: [],
         files: [],
+        embeds: [],
       });
     }
   },
