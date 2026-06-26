@@ -614,23 +614,10 @@ a:hover {
 }
 
 .weekTimelineGrid {
-  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--timeline-day-gap);
   width: 100%;
-}
-
-.weekTimelineGrid::before {
-  content: "";
-  position: absolute;
-  left: 72px;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: color-mix(in srgb, var(--color-border) 35%, transparent);
-  pointer-events: none;
-  z-index: 0;
 }
 
 .weekTimelineHeader {
@@ -657,9 +644,22 @@ a:hover {
 }
 
 .weekTimelineDaySection {
+  position: relative;
   display: grid;
   grid-template-columns: 72px 1fr;
   row-gap: var(--timeline-row-gap);
+}
+
+.weekTimelineDaySection::before {
+  content: "";
+  position: absolute;
+  left: 72px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: color-mix(in srgb, var(--color-border) 35%, transparent);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .weekTimelineDayLabel {
