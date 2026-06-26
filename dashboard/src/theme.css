@@ -23,11 +23,11 @@
 
   --row-height: 92px;
   --row-gap: 8px;
-  --timeline-row-height: 56px;
+  --timeline-row-height: 50px;
   --timeline-row-gap: 4px;
   --header-height: 32px;
-  --avatar-size: 42px;
-  --avatar-overlap: 10px;
+  --avatar-size: 36px;
+  --avatar-overlap: 8px;
 
   --avail-green: #3d8b5a;
   --avail-olive: #5a6640;

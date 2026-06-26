@@ -626,6 +626,9 @@ a:hover {
 }
 
 .weekTimelineGrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--timeline-row-gap);
   width: 100%;
 }
 
@@ -655,6 +658,7 @@ a:hover {
 .weekTimelineDaySection {
   display: grid;
   grid-template-columns: 72px 1fr;
+  row-gap: var(--timeline-row-gap);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -691,16 +695,11 @@ a:hover {
   position: relative;
   height: var(--timeline-row-height);
   background: var(--color-bg);
-  margin-bottom: var(--timeline-row-gap);
 }
 
 .weekTimelineTrackEmpty {
   min-height: 40px;
   height: 40px;
-}
-
-.weekTimelineDaySection .weekTimelineTrack:last-child {
-  margin-bottom: 0;
 }
 
 .timelineHourHeader {
