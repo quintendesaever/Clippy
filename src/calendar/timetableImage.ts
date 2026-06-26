@@ -40,8 +40,8 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const THEME = {
-  dark: "#0b0c10",
-  card: "#1a1d26",
+  dark: "#1C1D22",
+  card: "#323338",
   border: "#2d303e",
   textMuted: "#6b7280",
   white: "#ffffff",
