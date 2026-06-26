@@ -11,6 +11,8 @@ import {
   handleVoiceStateLeave,
   recordMemberCountSnapshot,
 } from "./stats/liveHandlers.js";
+import { ensureGuild } from "./stats/helpers.js";
+import { syncGuildMembers } from "./stats/members.js";
 import { startF1ReminderJob } from "./f1/reminderJob.js";
 import { handleTimetableButton } from "./calendar/timetableInteractions.js";
 
@@ -56,6 +58,8 @@ client.once("clientReady", async () => {
 
   const guild = client.guilds.cache.get(guildId);
   if (guild) {
+    ensureGuild(guildId).catch((err) => console.error("stats: ensure guild:", err));
+    syncGuildMembers(guild).catch((err) => console.error("stats: sync members:", err));
     recordMemberCountSnapshot(guildId, guild.memberCount).catch((err) =>
       console.error("stats: member count snapshot:", err)
     );

@@ -1,11 +1,22 @@
 import type { Message, MessageReaction, PartialMessageReaction, VoiceState } from "discord.js";
 import { supabase } from "../supabase.js";
-import { getGuildTimezone } from "./helpers.js";
+import { ensureChannel } from "./channels.js";
+import { ensureGuild, getGuildTimezone } from "./helpers.js";
 import { buildMessageRow, buildReactionRows } from "./messageRow.js";
+import { upsertMember } from "./members.js";
+
+function channelNameFromMessage(message: Message): string | undefined {
+  const channel = message.channel;
+  return "name" in channel && typeof channel.name === "string" ? channel.name : undefined;
+}
 
 export async function handleMessageCreate(message: Message): Promise<void> {
   const guildId = message.guildId;
   if (!guildId) return;
+
+  await ensureGuild(guildId);
+  await ensureChannel(guildId, message.channelId, channelNameFromMessage(message));
+  await upsertMember(guildId, message.author.id, message.author.avatar);
 
   const timezone = await getGuildTimezone(guildId);
   const row = buildMessageRow(message, timezone);
@@ -168,6 +179,10 @@ export async function handleVoiceStateJoin(state: VoiceState): Promise<void> {
   const channelId = state.channelId;
   if (!guildId || !channelId || !state.member?.id) return;
 
+  await ensureGuild(guildId);
+  await ensureChannel(guildId, channelId, state.channel?.name);
+  await upsertMember(guildId, state.member.id, state.member.user.avatar);
+
   await supabase.from("voice_sessions").insert({
     guild_id: guildId,
     channel_id: channelId,
@@ -205,6 +220,7 @@ export async function recordMemberCountSnapshot(
   guildId: string,
   memberCount: number
 ): Promise<void> {
+  await ensureGuild(guildId);
   await supabase.from("member_count_snapshots").insert({
     guild_id: guildId,
     recorded_at: new Date().toISOString(),

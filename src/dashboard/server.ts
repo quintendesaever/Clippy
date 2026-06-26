@@ -4,7 +4,8 @@ import express, { type NextFunction, type Request, type Response } from "express
 import cookieSession from "cookie-session";
 import { supabase } from "../supabase.js";
 import { getDashboardUrl, getGuildId } from "../config.js";
-import { getGuildTimezone } from "../stats/helpers.js";
+import { ensureGuild, getGuildTimezone } from "../stats/helpers.js";
+import { upsertMember } from "../stats/members.js";
 import { getGuildCalendarMembers } from "../calendar/memberCalendars.js";
 import { colorForInitials } from "../calendar/eventUtils.js";
 import { getGuildTimetableForDates } from "../calendar/timetableService.js";
@@ -192,6 +193,9 @@ export function createDashboardApp(): express.Express {
     if (!timezone) {
       timezone = await getGuildTimezone(guildId);
     }
+
+    await ensureGuild(guildId);
+    await upsertMember(guildId, userId, session.user!.avatar);
 
     const payload = {
       guild_id: guildId,

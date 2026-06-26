@@ -1,5 +1,7 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
 import { supabase } from "../../supabase.js";
+import { ensureGuild } from "../../stats/helpers.js";
+import { syncGuildMembers } from "../../stats/members.js";
 import type { Command } from "../../types/command.js";
 
 export const setTimezone: Command = {
@@ -22,6 +24,11 @@ export const setTimezone: Command = {
       sub
         .setName("sync-channels")
         .setDescription("Sync Discord channel names to the stats database")
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName("sync-members")
+        .setDescription("Sync Discord member avatars to the members database table")
     ),
   async execute(interaction) {
     if (!interaction.isChatInputCommand() || !interaction.guildId || !interaction.guild) return;
@@ -118,7 +125,38 @@ export const setTimezone: Command = {
         reply += ` Removed **${staleIds.length}** deleted channel(s).`;
       }
       await interaction.editReply(reply);
+      return;
     }
+
+    if (sub === "sync-members") {
+      await interaction.deferReply({ ephemeral: true });
+
+      try {
+        const guild = interaction.guild;
+        await ensureGuild(guild.id);
+        const result = await syncGuildMembers(guild);
+
+        if (result.error) {
+          await interaction.editReply(`Failed to sync members: ${result.error}`);
+          return;
+        }
+
+        await interaction.editReply(
+          `Synced **${result.count}** member(s) to the database (user IDs and avatar hashes).`
+        );
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        await interaction.editReply(
+          `Failed to sync members: ${message}\n\nIf this mentions privileged intents, enable **Server Members Intent** in the Discord Developer Portal.`
+        );
+      }
+      return;
+    }
+
+    await interaction.reply({
+      content: "Unknown stats subcommand. Redeploy the bot if you recently added new options.",
+      ephemeral: true,
+    });
   },
 };
 

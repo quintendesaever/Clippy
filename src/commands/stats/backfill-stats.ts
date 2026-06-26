@@ -5,9 +5,11 @@ import {
   type TextChannel,
   type Message,
 } from "discord.js";
-import type { Command } from "../../types/command.js";
 import { supabase } from "../../supabase.js";
+import type { Command } from "../../types/command.js";
+import { ensureChannel } from "../../stats/channels.js";
 import { ensureGuildAndGetTimezone } from "../../stats/helpers.js";
+import { upsertMember } from "../../stats/members.js";
 import { buildMessageRow, buildReactionRows, type MessageRowInsert, type ReactionRowInsert } from "../../stats/messageRow.js";
 
 const FETCH_LIMIT = 100;
@@ -45,6 +47,8 @@ export const backfillStats: Command = {
 
     for (const channel of channels.values()) {
       try {
+        await ensureChannel(guildId, channel.id, channel.name);
+
         const { data: syncRow } = await supabase
           .from("guild_channel_sync_state")
           .select("last_processed_message_id")
@@ -92,6 +96,16 @@ export const backfillStats: Command = {
           }
 
           if (rows.length > 0) {
+            const authors = new Map<string, string | null>();
+            for (const msg of messageArray) {
+              if (!msg.author.bot) {
+                authors.set(msg.author.id, msg.author.avatar);
+              }
+            }
+            for (const [userId, avatar] of authors) {
+              await upsertMember(guildId, userId, avatar);
+            }
+
             for (let i = 0; i < rows.length; i += INSERT_CHUNK) {
               const chunk = rows.slice(i, i + INSERT_CHUNK);
               const { data: inserted, error: insertError } = await supabase

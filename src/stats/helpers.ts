@@ -13,15 +13,20 @@ export async function getGuildTimezone(guildId: string): Promise<string> {
   return data?.timezone ?? DEFAULT_TIMEZONE;
 }
 
-export async function ensureGuildAndGetTimezone(guildId: string): Promise<string> {
+export async function ensureGuild(guildId: string): Promise<void> {
   const tz = await getGuildTimezone(guildId);
-  if (tz === DEFAULT_TIMEZONE) {
-    await supabase.from("guilds").upsert(
-      { guild_id: guildId, timezone: DEFAULT_TIMEZONE, updated_at: new Date().toISOString() },
-      { onConflict: "guild_id" }
-    );
+  const { error } = await supabase.from("guilds").upsert(
+    { guild_id: guildId, timezone: tz, updated_at: new Date().toISOString() },
+    { onConflict: "guild_id" }
+  );
+  if (error) {
+    console.error("stats: ensure guild:", error.message);
   }
-  return tz;
+}
+
+export async function ensureGuildAndGetTimezone(guildId: string): Promise<string> {
+  await ensureGuild(guildId);
+  return getGuildTimezone(guildId);
 }
 
 export function toLocalHourAndDay(

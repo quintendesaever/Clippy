@@ -1,4 +1,6 @@
 import { supabase } from "../supabase.js";
+import { ensureChannel } from "../stats/channels.js";
+import { ensureGuild } from "../stats/helpers.js";
 
 export type F1ReminderSettings = {
   guild_id: string;
@@ -45,6 +47,11 @@ export async function upsertF1ReminderSettings(
     ...partial,
     updated_at: new Date().toISOString(),
   };
+
+  await ensureGuild(payload.guild_id);
+  if (payload.channel_id) {
+    await ensureChannel(payload.guild_id, payload.channel_id);
+  }
 
   const { data, error } = await supabase
     .from(TABLE_NAME)
