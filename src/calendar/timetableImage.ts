@@ -176,20 +176,23 @@ function buildTextLines(
 ): string[] {
   const textMaxWidth = cardWidth - (textX - cardX) - CARD_INNER_PAD;
   const titleLines = wrapText(title, textMaxWidth, TITLE_FONT_SIZE, TITLE_MAX_LINES);
+  if (titleLines.length === 0 || (titleLines.length === 1 && titleLines[0] === "")) {
+    return [];
+  }
+
   const titleBlockHeight = titleLines.length * TITLE_LINE_HEIGHT;
-  const titleStartY = cy - titleBlockHeight / 2 + TITLE_FONT_SIZE * 0.35;
+  const blockTopY = cy - titleBlockHeight / 2;
+  const tspans = titleLines
+    .map((line, index) => {
+      const dy = index === 0 ? 0 : TITLE_LINE_HEIGHT;
+      return `<tspan x="${textX}" dy="${dy}">${escapeXml(line)}</tspan>`;
+    })
+    .join("");
 
-  const parts: string[] = [
+  return [
     `<clipPath id="${textClipId}"><rect x="${textX}" y="${cardY}" width="${Math.max(textMaxWidth, 0)}" height="${cardHeight}"/></clipPath>`,
+    `<text x="${textX}" y="${blockTopY}" fill="${THEME.white}" font-size="${TITLE_FONT_SIZE}" font-weight="400" font-family="${FONT}" dominant-baseline="hanging" clip-path="url(#${textClipId})">${tspans}</text>`,
   ];
-
-  titleLines.forEach((line, index) => {
-    parts.push(
-      `<text x="${textX}" y="${titleStartY + index * TITLE_LINE_HEIGHT}" fill="${THEME.white}" font-size="${TITLE_FONT_SIZE}" font-weight="400" font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(line)}</text>`
-    );
-  });
-
-  return parts;
 }
 
 function cardBounds(
