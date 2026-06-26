@@ -293,10 +293,14 @@ function buildActivityCard(
     cardId
   );
 
+  const borderWidth = 1;
+  const innerRadius = Math.max(radius - borderWidth, 0);
+
   return [
-    `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${radius}" ry="${radius}" fill="${THEME.card}" stroke="${THEME.border}" stroke-width="1"/>`,
+    `<rect x="${x + borderWidth}" y="${y + borderWidth}" width="${width - borderWidth * 2}" height="${height - borderWidth * 2}" rx="${innerRadius}" ry="${innerRadius}" fill="${THEME.card}"/>`,
     ...avatarParts,
     ...buildTextLines(textX, x, y, width, height, cy, title, textClipId),
+    `<rect x="${x + 0.5}" y="${y + 0.5}" width="${width - 1}" height="${height - 1}" rx="${radius}" ry="${radius}" fill="none" stroke="${THEME.border}" stroke-width="${borderWidth}"/>`,
   ];
 }
 
