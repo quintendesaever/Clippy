@@ -13,14 +13,6 @@ import { formatDayMonth } from "../lib/dates";
 
 const BAR_AREA_HEIGHT = 100;
 
-const LEGEND_ITEMS = [
-  { color: "var(--avail-green)", label: "≤ 2" },
-  { color: "var(--avail-olive)", label: "3–4" },
-  { color: "var(--avail-brown)", label: "5–6" },
-  { color: "var(--avail-red-muted)", label: "7–8" },
-  { color: "var(--avail-red)", label: "9+" },
-] as const;
-
 function slotLabel(slot: BusySlot): string {
   return `${formatMinutes(slot.startMinutes)}–${formatMinutes(slot.endMinutes)} · ${slot.busyCount} bezet`;
 }
@@ -83,24 +75,14 @@ export default function WeekAvailabilityChart({
                 );
               })}
             </div>
+            <div className="availabilityDayColumnAxis">
+              {hours.map((hour) => (
+                <span key={hour} className="availabilityChartHour">
+                  {hour}
+                </span>
+              ))}
+            </div>
           </div>
-        ))}
-      </div>
-
-      <div className="availabilityWeekAxis">
-        {hours.map((hour) => (
-          <span key={hour} className="availabilityChartHour">
-            {hour}
-          </span>
-        ))}
-      </div>
-
-      <div className="availabilityColorLegend" aria-hidden="true">
-        {LEGEND_ITEMS.map((item) => (
-          <span key={item.label} className="availabilityColorLegendItem">
-            <span className="availabilityColorLegendSwatch" style={{ backgroundColor: item.color }} />
-            {item.label}
-          </span>
         ))}
       </div>
     </div>
