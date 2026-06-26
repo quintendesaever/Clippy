@@ -3,6 +3,8 @@ import { getCalendars, getTimetable } from "../api";
 import AppShell from "../components/AppShell";
 import EventPopup from "../components/EventPopup";
 import MemberFilter from "../components/MemberFilter";
+import PageLayout from "../components/PageLayout";
+import PagePanel from "../components/PagePanel";
 import TimelineDay from "../components/TimelineDay";
 import WeekGrid from "../components/WeekGrid";
 import WeekNav from "../components/WeekNav";
@@ -101,91 +103,95 @@ export default function Timetable({ user }: { user: DiscordUser }) {
     setWeekStart(toISODate(new Date(weekMonday.getTime() + delta * 7 * 86400000)));
   }
 
+  const title = tab === "shared" ? "Gedeeld rooster" : "Mijn rooster";
+  const subtitle = `Week van ${formatDayMonth(weekStart)} – ${formatDayMonth(dayDates[5])}`;
+
   return (
     <AppShell user={user}>
-      <div className="pageTabs">
-        <button
-          type="button"
-          className={`tab ${tab === "shared" ? "tabActive" : ""}`}
-          onClick={() => setTab("shared")}
-        >
-          Gedeeld rooster
-        </button>
-        <button
-          type="button"
-          className={`tab ${tab === "personal" ? "tabActive" : ""}`}
-          onClick={() => setTab("personal")}
-        >
-          Mijn rooster
-        </button>
-      </div>
+      <PageLayout
+        title={title}
+        subtitle={subtitle}
+        actions={
+          <>
+            <div className="topBarTabs">
+              <button
+                type="button"
+                className={`topBarTab ${tab === "shared" ? "topBarTabActive" : ""}`}
+                onClick={() => setTab("shared")}
+              >
+                Gedeeld
+              </button>
+              <button
+                type="button"
+                className={`topBarTab ${tab === "personal" ? "topBarTabActive" : ""}`}
+                onClick={() => setTab("personal")}
+              >
+                Mijn rooster
+              </button>
+            </div>
+            <WeekNav
+              onPrev={() => shiftWeek(-1)}
+              onThisWeek={() => setWeekStart(toISODate(getWeekMonday(new Date())))}
+              onNext={() => shiftWeek(1)}
+            />
+          </>
+        }
+      >
+        {error && <p className="errorMsg">{error}</p>}
+        {loading && <p className="timetableLoading">Rooster laden…</p>}
 
-      <header className="timetablePageHeader">
-        <h1 className="timetablePageTitle">
-          {tab === "shared" ? "Gedeeld rooster" : "Mijn rooster"} — week van{" "}
-          {formatDayMonth(weekStart)}
-        </h1>
-        <WeekNav
-          onPrev={() => shiftWeek(-1)}
-          onThisWeek={() => setWeekStart(toISODate(getWeekMonday(new Date())))}
-          onNext={() => shiftWeek(1)}
-        />
-      </header>
+        {!loading && tab === "shared" && (
+          <PagePanel>
+            <MemberFilter calendars={calendars} selected={selected} onToggle={toggleMember} />
 
-      {error && <p className="errorMsg">{error}</p>}
-      {loading && <p className="timetableLoading">Rooster laden…</p>}
+            {calendars.length === 0 && (
+              <p className="timetableEmpty">Nog geen kalenders gekoppeld.</p>
+            )}
+            {calendars.length > 0 && selectedCalendars.length === 0 && (
+              <p className="timetableEmpty">Selecteer minstens één lid.</p>
+            )}
 
-      {!loading && tab === "shared" && (
-        <>
-          <MemberFilter calendars={calendars} selected={selected} onToggle={toggleMember} />
+            {selectedCalendars.length > 0 &&
+              dayDates.map((day, i) => (
+                <TimelineDay
+                  key={day}
+                  dayKey={day}
+                  dayLabel={DAY_LABELS[i]}
+                  events={sharedEventsByDay.get(day) ?? []}
+                  timezone={timezone}
+                  avatarByUser={avatarByUser}
+                  onEventClick={setPopupEvent}
+                />
+              ))}
 
-          {calendars.length === 0 && (
-            <p className="timetableEmpty">Nog geen kalenders gekoppeld.</p>
-          )}
-          {calendars.length > 0 && selectedCalendars.length === 0 && (
-            <p className="timetableEmpty">Selecteer minstens één lid.</p>
-          )}
+            <div className="timetableLegend">
+              <span>
+                <strong>H</strong> = Hoorcollege · <strong>P</strong> = Practicum · <strong>W</strong> =
+                Werkcollege
+              </span>
+              <span>Tijden in {timezone}</span>
+            </div>
+          </PagePanel>
+        )}
 
-          {selectedCalendars.length > 0 &&
-            dayDates.map((day, i) => (
-              <TimelineDay
-                key={day}
-                dayKey={day}
-                dayLabel={DAY_LABELS[i]}
-                events={sharedEventsByDay.get(day) ?? []}
-                timezone={timezone}
-                avatarByUser={avatarByUser}
+        {!loading && tab === "personal" && (
+          <PagePanel>
+            {personalEvents.length === 0 ? (
+              <p className="timetableEmpty">
+                Geen lessen deze week, of geen kalender gekoppeld.
+              </p>
+            ) : (
+              <WeekGrid
+                dayDates={dayDates}
+                events={personalEvents}
+                userId={user.id}
+                userAvatar={user.avatar}
                 onEventClick={setPopupEvent}
               />
-            ))}
-
-          <div className="timetableLegend">
-            <span>
-              <strong>H</strong> = Hoorcollege · <strong>P</strong> = Practicum · <strong>W</strong> =
-              Werkcollege
-            </span>
-            <span>Tijden in {timezone}</span>
-          </div>
-        </>
-      )}
-
-      {!loading && tab === "personal" && (
-        <>
-          {personalEvents.length === 0 ? (
-            <p className="timetableEmpty">
-              Geen lessen deze week, of geen kalender gekoppeld.
-            </p>
-          ) : (
-            <WeekGrid
-              dayDates={dayDates}
-              events={personalEvents}
-              userId={user.id}
-              userAvatar={user.avatar}
-              onEventClick={setPopupEvent}
-            />
-          )}
-        </>
-      )}
+            )}
+          </PagePanel>
+        )}
+      </PageLayout>
 
       {popupEvent && <EventPopup event={popupEvent} onClose={() => setPopupEvent(null)} />}
     </AppShell>

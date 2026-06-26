@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { deleteCalendar, getCalendar, saveCalendar } from "../api";
 import AppShell from "../components/AppShell";
 import Button from "../components/Button";
+import PageLayout from "../components/PageLayout";
+import PagePanel from "../components/PagePanel";
 import type { CalendarEntry, DiscordUser } from "../types";
 
 export default function Settings({ user }: { user: DiscordUser }) {
@@ -79,67 +81,65 @@ export default function Settings({ user }: { user: DiscordUser }) {
     }
   }
 
-  if (loading) {
-    return (
-      <AppShell user={user} narrow>
-        <p className="timetableLoading">Laden…</p>
-      </AppShell>
-    );
-  }
-
   return (
-    <AppShell user={user} narrow>
-      <section className="card">
-        <h2 className="cardTitle">Mijn kalender</h2>
-        <p className="cardHint">
-          Koppel je ICS-kalender voor het gedeelde rooster. Bekijk het op{" "}
-          <Link to="/timetable">het rooster</Link> of via <code>/timetable</code> in Discord.
-        </p>
-        <form onSubmit={handleSave} className="form">
-          <label className="formLabel">
-            Initialen
-            <input
-              className="formInput"
-              value={initials}
-              onChange={(e) => setInitials(e.target.value)}
-              placeholder="bv. QD"
-              maxLength={32}
-              required
-            />
-          </label>
-          <label className="formLabel">
-            ICS-URL
-            <input
-              className="formInput"
-              type="url"
-              value={icsUrl}
-              onChange={(e) => setIcsUrl(e.target.value)}
-              placeholder="https://…/calendar.ics"
-            />
-          </label>
-          <label className="formLabel">
-            Tijdzone (optioneel)
-            <input
-              className="formInput"
-              value={timezone}
-              onChange={(e) => setTimezone(e.target.value)}
-              placeholder="bv. Europe/Brussels"
-            />
-          </label>
-          <div className="formActions">
-            <Button type="submit" disabled={saving}>
-              {saving ? "Opslaan…" : "Opslaan"}
-            </Button>
-            {existing && (
-              <Button variant="secondary" onClick={handleRemove} disabled={saving}>
-                Verwijderen
-              </Button>
-            )}
-          </div>
-        </form>
-        {message && <p className="successMsg">{message}</p>}
-        {error && <p className="errorMsg">{error}</p>}
-      </section>
+    <AppShell user={user}>
+      <PageLayout title="Instellingen" subtitle="Kalender koppelen">
+        {loading ? (
+          <p className="timetableLoading">Laden…</p>
+        ) : (
+          <PagePanel className="pagePanelNarrow">
+            <h2 className="cardTitle">Mijn kalender</h2>
+            <p className="cardHint">
+              Koppel je ICS-kalender voor het gedeelde rooster. Bekijk het op{" "}
+              <Link to="/timetable">het rooster</Link> of via <code>/timetable</code> in Discord.
+            </p>
+            <form onSubmit={handleSave} className="form">
+              <label className="formLabel">
+                Initialen
+                <input
+                  className="formInput"
+                  value={initials}
+                  onChange={(e) => setInitials(e.target.value)}
+                  placeholder="bv. QD"
+                  maxLength={32}
+                  required
+                />
+              </label>
+              <label className="formLabel">
+                ICS-URL
+                <input
+                  className="formInput"
+                  type="url"
+                  value={icsUrl}
+                  onChange={(e) => setIcsUrl(e.target.value)}
+                  placeholder="https://…/calendar.ics"
+                />
+              </label>
+              <label className="formLabel">
+                Tijdzone (optioneel)
+                <input
+                  className="formInput"
+                  value={timezone}
+                  onChange={(e) => setTimezone(e.target.value)}
+                  placeholder="bv. Europe/Brussels"
+                />
+              </label>
+              <div className="formActions">
+                <Button type="submit" disabled={saving}>
+                  {saving ? "Opslaan…" : "Opslaan"}
+                </Button>
+                {existing && (
+                  <Button variant="secondary" onClick={handleRemove} disabled={saving}>
+                    Verwijderen
+                  </Button>
+                )}
+              </div>
+            </form>
+            {message && <p className="successMsg">{message}</p>}
+            {error && <p className="errorMsg">{error}</p>}
+          </PagePanel>
+        )}
+      </PageLayout>
     </AppShell>
   );
 }
