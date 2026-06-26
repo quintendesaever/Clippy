@@ -4,11 +4,26 @@ import {
   computeBusySlots,
   DEFAULT_HOUR_END,
   DEFAULT_HOUR_START,
+  formatMinutes,
+  hourLabels,
+  type BusySlot,
   type DayAvailabilityInput,
 } from "../lib/availability";
 import { formatDayMonth } from "../lib/dates";
 
 const BAR_AREA_HEIGHT = 100;
+
+const LEGEND_ITEMS = [
+  { color: "var(--avail-green)", label: "≤ 2" },
+  { color: "var(--avail-olive)", label: "3–4" },
+  { color: "var(--avail-brown)", label: "5–6" },
+  { color: "var(--avail-red-muted)", label: "7–8" },
+  { color: "var(--avail-red)", label: "9+" },
+] as const;
+
+function slotLabel(slot: BusySlot): string {
+  return `${formatMinutes(slot.startMinutes)}–${formatMinutes(slot.endMinutes)} · ${slot.busyCount} bezet`;
+}
 
 type WeekAvailabilityChartProps = {
   days: DayAvailabilityInput[];
@@ -31,6 +46,8 @@ export default function WeekAvailabilityChart({
     return Math.max(1, ...counts, 0);
   }, [slotsByDay]);
 
+  const hours = hourLabels(hourStart, hourEnd);
+
   if (days.length === 0) return null;
 
   return (
@@ -47,9 +64,14 @@ export default function WeekAvailabilityChart({
                   slot.busyCount > 0
                     ? Math.max(6, (slot.busyCount / maxCount) * BAR_AREA_HEIGHT)
                     : 0;
+                const label = slotLabel(slot);
                 return (
-                  <div key={slot.startMinutes} className="availabilityChartBarWrap">
-                    <span className="availabilityChartBarLabel">{slot.busyCount}</span>
+                  <div
+                    key={slot.startMinutes}
+                    className="availabilityChartBarWrap"
+                    title={label}
+                    aria-label={label}
+                  >
                     <div
                       className="availabilityChartBar"
                       style={{
@@ -62,6 +84,23 @@ export default function WeekAvailabilityChart({
               })}
             </div>
           </div>
+        ))}
+      </div>
+
+      <div className="availabilityWeekAxis">
+        {hours.map((hour) => (
+          <span key={hour} className="availabilityChartHour">
+            {hour}
+          </span>
+        ))}
+      </div>
+
+      <div className="availabilityColorLegend" aria-hidden="true">
+        {LEGEND_ITEMS.map((item) => (
+          <span key={item.label} className="availabilityColorLegendItem">
+            <span className="availabilityColorLegendSwatch" style={{ backgroundColor: item.color }} />
+            {item.label}
+          </span>
         ))}
       </div>
     </div>
