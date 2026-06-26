@@ -2,7 +2,7 @@ import { toZonedTime } from "date-fns-tz";
 import sharp from "sharp";
 import { getGuildId } from "../config.js";
 import { supabase } from "../supabase.js";
-import { shortLocation, truncateText } from "./eventUtils.js";
+import { truncateText } from "./eventUtils.js";
 import type { GuildTimetable, TimetableEvent } from "./types.js";
 
 // ~880px wide: close to mobile chat width so Discord scales less aggressively.
@@ -12,10 +12,10 @@ const HOUR_MAX = 20;
 const HEADER_HEIGHT = 32;
 const ROW_HEIGHT = 76;
 const ROW_GAP = 8;
-const OUTER_PAD_X = 20;
-const OUTER_PAD_TOP = 20;
+const OUTER_PAD_X = 10;
+const OUTER_PAD_TOP = 10;
 const OUTER_PAD_BOTTOM = 8;
-const GRID_INSET_X = 16;
+const GRID_INSET_X = 10;
 const HEADER_BODY_GAP = 6;
 const FONT = "system-ui,-apple-system,sans-serif";
 
@@ -46,6 +46,7 @@ const THEME = {
   card: "#323338",
   border: "#3f4147",
   textMuted: "#949ba4",
+  hourLabel: "#5A64EA",
   white: "#dbdee1",
 } as const;
 
@@ -189,9 +190,14 @@ function buildTextLines(
 ): string[] {
   const textMaxWidth = cardWidth - (textX - cardX) - CARD_INNER_PAD;
   const titleLines = wrapText(title, textMaxWidth, TITLE_FONT_SIZE, 2);
-  const subtitleLines = wrapText(subtitle, textMaxWidth, SUBTITLE_FONT_SIZE, 1);
+  const hasSubtitle = subtitle.trim().length > 0;
+  const subtitleLines = hasSubtitle
+    ? wrapText(subtitle, textMaxWidth, SUBTITLE_FONT_SIZE, 1)
+    : [];
   const titleBlockHeight = titleLines.length * TITLE_LINE_HEIGHT;
-  const titleStartY = cy - (titleBlockHeight + SUBTITLE_FONT_SIZE + SUBTITLE_GAP) / 2 + TITLE_FONT_SIZE * 0.85;
+  const titleStartY = hasSubtitle
+    ? cy - (titleBlockHeight + SUBTITLE_FONT_SIZE + SUBTITLE_GAP) / 2 + TITLE_FONT_SIZE * 0.85
+    : cy - titleBlockHeight / 2 + TITLE_FONT_SIZE * 0.35;
 
   const parts: string[] = [
     `<clipPath id="${textClipId}"><rect x="${textX}" y="${cardY}" width="${Math.max(textMaxWidth, 0)}" height="${cardHeight}"/></clipPath>`,
@@ -203,11 +209,13 @@ function buildTextLines(
     );
   });
 
-  subtitleLines.forEach((line) => {
-    parts.push(
-      `<text x="${textX}" y="${titleStartY + titleBlockHeight + SUBTITLE_GAP}" fill="${THEME.textMuted}" font-size="${SUBTITLE_FONT_SIZE}" font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(line)}</text>`
-    );
-  });
+  if (hasSubtitle) {
+    subtitleLines.forEach((line) => {
+      parts.push(
+        `<text x="${textX}" y="${titleStartY + titleBlockHeight + SUBTITLE_GAP}" fill="${THEME.textMuted}" font-size="${SUBTITLE_FONT_SIZE}" font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(line)}</text>`
+      );
+    });
+  }
 
   return parts;
 }
@@ -231,9 +239,7 @@ function cardBounds(
 }
 
 function buildEventSubtitle(event: TimetableEvent): string {
-  const typeLabel = event.typeBadges.map((badge) => TYPE_LABELS[badge] ?? badge).join(" · ");
-  const location = shortLocation(event.location);
-  return [typeLabel, location].filter(Boolean).join(" · ");
+  return event.typeBadges.map((badge) => TYPE_LABELS[badge] ?? badge).join(" · ");
 }
 
 function clipEventToGrid(
@@ -381,7 +387,7 @@ function buildHourHeader(layout: TimelineLayout): string[] {
   for (let i = 0; i < layout.hourCount; i++) {
     const x = layout.gridInset + (i + 0.5) * layout.colWidth;
     parts.push(
-      `<text x="${x}" y="${HEADER_HEIGHT / 2 + HOUR_LABEL_FONT_SIZE * 0.35}" fill="${THEME.textMuted}" font-size="${HOUR_LABEL_FONT_SIZE}" font-weight="400" text-anchor="middle" font-family="${FONT}">${formatHourLabel(layout.hourStart + i)}</text>`
+      `<text x="${x}" y="${HEADER_HEIGHT / 2 + HOUR_LABEL_FONT_SIZE * 0.35}" fill="${THEME.hourLabel}" font-size="${HOUR_LABEL_FONT_SIZE}" font-weight="400" text-anchor="middle" font-family="${FONT}">${formatHourLabel(layout.hourStart + i)}</text>`
     );
   }
 
