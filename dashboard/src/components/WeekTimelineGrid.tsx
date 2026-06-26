@@ -9,10 +9,14 @@ import {
   type LayoutEvent,
   type RenderCard,
 } from "@shared/timetable/layout";
-import { GRID_INSET_X, TIMETABLE_WIDTH } from "@shared/timetable/theme";
+import { TIMETABLE_WIDTH } from "@shared/timetable/theme";
+import { DEFAULT_HOUR_END, DEFAULT_HOUR_START } from "../lib/availability";
 import { formatDayMonth } from "../lib/dates";
 import type { TimetableEventDto } from "../types";
 import EventCard from "./EventCard";
+
+const DASHBOARD_GRID_INSET = 0;
+const FIXED_HOUR_RANGE = { hourStart: DEFAULT_HOUR_START, hourEnd: DEFAULT_HOUR_END };
 
 export type WeekTimelineDay = {
   dayKey: string;
@@ -56,11 +60,9 @@ function cardPositionPercent(
 
   const left = timeToPercent(times.startHour, times.startMinute, layout);
   const right = timeToPercent(times.endHour, times.endMinute, layout);
-  const insetPct = (GRID_INSET_X / TIMETABLE_WIDTH) * 100;
-  const trackPct = 100 - 2 * insetPct;
   return {
-    leftPercent: insetPct + (left / 100) * trackPct,
-    widthPercent: ((right - left) / 100) * trackPct,
+    leftPercent: left,
+    widthPercent: right - left,
   };
 }
 
@@ -73,12 +75,19 @@ export default function WeekTimelineGrid({
   const allEvents = useMemo(() => days.flatMap((d) => d.events), [days]);
 
   const layout = useMemo(
-    () => createTimelineLayout(toLayoutEvents(allEvents), timezone, TIMETABLE_WIDTH, GRID_INSET_X),
+    () =>
+      createTimelineLayout(
+        toLayoutEvents(allEvents),
+        timezone,
+        TIMETABLE_WIDTH,
+        DASHBOARD_GRID_INSET,
+        FIXED_HOUR_RANGE
+      ),
     [allEvents, timezone]
   );
 
   const hours = useMemo(
-    () => Array.from({ length: layout.hourCount }, (_, i) => layout.hourStart + i),
+    () => Array.from({ length: layout.hourCount + 1 }, (_, i) => layout.hourStart + i),
     [layout]
   );
 
@@ -109,21 +118,12 @@ export default function WeekTimelineGrid({
     if (ev) onEventClick(ev);
   }
 
-  const insetPct = (GRID_INSET_X / TIMETABLE_WIDTH) * 100;
-  const trackPct = 100 - 2 * insetPct;
-
   return (
     <div className="weekTimelineGridWrap">
       <div className="weekTimelineGrid">
         <div className="weekTimelineHeader">
           <div className="weekTimelineCorner" />
-          <div
-            className="weekTimelineHourHeader"
-            style={{
-              paddingLeft: `${insetPct}%`,
-              paddingRight: `${insetPct}%`,
-            }}
-          >
+          <div className="weekTimelineHourHeader">
             {hours.map((hour) => (
               <div key={hour} className="timelineHourLabel">
                 {formatHourLabel(hour)}
@@ -143,31 +143,29 @@ export default function WeekTimelineGrid({
                 key={rowIndex}
                 className={`weekTimelineTrack${day.isEmpty ? " weekTimelineTrackEmpty" : ""}`}
               >
-                  {Array.from({ length: layout.hourCount + 1 }, (_, i) => (
-                    <div
-                      key={i}
-                      className="timelineGridLine"
-                      style={{
-                        left: `${insetPct + (i / layout.hourCount) * trackPct}%`,
-                      }}
+                {Array.from({ length: layout.hourCount + 1 }, (_, i) => (
+                  <div
+                    key={i}
+                    className="timelineGridLine"
+                    style={{ left: `${(i / layout.hourCount) * 100}%` }}
+                  />
+                ))}
+                {row.map((card, cardIndex) => {
+                  const pos = cardPositionPercent(card, timezone, layout);
+                  if (!pos) return null;
+                  return (
+                    <EventCard
+                      key={`${card.startMs}-${cardIndex}`}
+                      title={card.title}
+                      userIds={card.userIds}
+                      avatarByUser={avatarByUser}
+                      leftPercent={pos.leftPercent}
+                      widthPercent={pos.widthPercent}
+                      onClick={() => handleCardClick(card, day.eventLookup)}
                     />
-                  ))}
-                  {row.map((card, cardIndex) => {
-                    const pos = cardPositionPercent(card, timezone, layout);
-                    if (!pos) return null;
-                    return (
-                      <EventCard
-                        key={`${card.startMs}-${cardIndex}`}
-                        title={card.title}
-                        userIds={card.userIds}
-                        avatarByUser={avatarByUser}
-                        leftPercent={pos.leftPercent}
-                        widthPercent={pos.widthPercent}
-                        onClick={() => handleCardClick(card, day.eventLookup)}
-                      />
-                    );
-                  })}
-                </div>
+                  );
+                })}
+              </div>
             ))}
           </div>
         ))}

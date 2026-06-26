@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { getMe } from "./api";
 import type { MeResponse } from "./types";
 import Login from "./pages/Login";
+import MyTimetable from "./pages/MyTimetable";
 import Settings from "./pages/Settings";
 import Timetable from "./pages/Timetable";
 
@@ -11,6 +12,7 @@ function AuthedRoutes({ me }: { me: MeResponse }) {
     <Routes>
       <Route path="/" element={<Navigate to="/timetable" replace />} />
       <Route path="/timetable" element={<Timetable user={me.user} />} />
+      <Route path="/my-timetable" element={<MyTimetable user={me.user} />} />
       <Route path="/settings" element={<Settings user={me.user} />} />
       <Route path="*" element={<Navigate to="/timetable" replace />} />
     </Routes>

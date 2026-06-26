@@ -9,6 +9,8 @@ import {
 } from "../lib/availability";
 import { formatDayMonth } from "../lib/dates";
 
+const BAR_AREA_HEIGHT = 100;
+
 type WeekAvailabilityChartProps = {
   days: DayAvailabilityInput[];
   hourStart?: number;
@@ -31,7 +33,6 @@ export default function WeekAvailabilityChart({
   }, [slotsByDay]);
 
   const hours = hourLabels(hourStart, hourEnd);
-  const hourCount = hours.length;
 
   if (days.length === 0) return null;
 
@@ -44,22 +45,18 @@ export default function WeekAvailabilityChart({
               {day.dayLabel} {formatDayMonth(day.dayKey)}
             </div>
             <div className="availabilityChartBars availabilityDayColumnBars">
-              {Array.from({ length: hourCount + 1 }, (_, i) => (
-                <div
-                  key={i}
-                  className="availabilityGridLine"
-                  style={{ left: `${(i / hourCount) * 100}%` }}
-                />
-              ))}
               {day.slots.map((slot) => {
-                const heightPct = (slot.busyCount / maxCount) * 100;
+                const barHeight =
+                  slot.busyCount > 0
+                    ? Math.max(6, (slot.busyCount / maxCount) * BAR_AREA_HEIGHT)
+                    : 0;
                 return (
                   <div key={slot.startMinutes} className="availabilityChartBarWrap">
                     <span className="availabilityChartBarLabel">{slot.busyCount}</span>
                     <div
                       className="availabilityChartBar"
                       style={{
-                        height: `${Math.max(heightPct, slot.busyCount > 0 ? 8 : 0)}%`,
+                        height: `${barHeight}px`,
                         backgroundColor: barColor(slot.busyCount),
                       }}
                     />
@@ -78,10 +75,6 @@ export default function WeekAvailabilityChart({
           </span>
         ))}
       </div>
-
-      <p className="availabilityCaption">
-        Staafhoogte = aantal bezette personen per half uur.
-      </p>
     </div>
   );
 }

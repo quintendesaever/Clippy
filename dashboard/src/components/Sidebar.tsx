@@ -23,6 +23,14 @@ function SettingsIcon() {
   );
 }
 
+function UserIcon() {
+  return (
+    <svg className="sidebarNavIcon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path d="M10 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 14.5a4 4 0 0 1 8 0v.25A1.25 1.25 0 0 1 12.75 16h-5.5A1.25 1.25 0 0 1 6 14.75V14.5Z" />
+    </svg>
+  );
+}
+
 function LogoIcon() {
   return (
     <svg className="sidebarLogoIcon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -54,6 +62,13 @@ export default function Sidebar({ user }: { user: DiscordUser }) {
         >
           <CalendarIcon />
           Rooster
+        </Link>
+        <Link
+          to="/my-timetable"
+          className={`sidebarLink ${location.pathname === "/my-timetable" ? "sidebarLinkActive" : ""}`}
+        >
+          <UserIcon />
+          Mijn rooster
         </Link>
         <Link
           to="/settings"

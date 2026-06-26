@@ -54,13 +54,19 @@ export function computeDisplayHourRange(
   return { hourStart, hourEnd };
 }
 
+export type FixedHourRange = {
+  hourStart: number;
+  hourEnd: number;
+};
+
 export function createTimelineLayout(
   events: LayoutEvent[],
   timezone: string,
   width: number,
-  gridInset: number
+  gridInset: number,
+  fixedRange?: FixedHourRange
 ): TimelineLayout {
-  const { hourStart, hourEnd } = computeDisplayHourRange(events, timezone);
+  const { hourStart, hourEnd } = fixedRange ?? computeDisplayHourRange(events, timezone);
   const hourCount = hourEnd - hourStart;
   return {
     hourStart,

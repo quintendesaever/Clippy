@@ -96,9 +96,25 @@ a:hover {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 0.75rem;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.timetableWeekNav {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.weekNavIconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
 }
 
 .pagePanel {
@@ -426,12 +442,6 @@ a:hover {
   color: var(--color-text);
 }
 
-.timetableWeekNav {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
 .timetableEmpty,
 .timetableLoading {
   color: var(--color-text-muted);
@@ -523,9 +533,8 @@ a:hover {
 
 /* Availability chart */
 .availabilityChart {
-  margin-bottom: 1.25rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
 .availabilityWeek {
@@ -551,7 +560,6 @@ a:hover {
 
 .availabilityDayColumnBars {
   flex: 1;
-  position: relative;
 }
 
 .availabilityWeekAxis {
@@ -564,22 +572,10 @@ a:hover {
 .availabilityChartBars {
   display: flex;
   align-items: flex-end;
-  gap: 3px;
-  height: 140px;
+  gap: 1px;
+  height: 120px;
   border-bottom: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
   padding-bottom: 0.25rem;
-  position: relative;
-}
-
-.availabilityGridLine {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: var(--color-border);
-  opacity: 0.35;
-  pointer-events: none;
-  z-index: 0;
 }
 
 .availabilityChartBarWrap {
@@ -590,8 +586,6 @@ a:hover {
   justify-content: flex-end;
   height: 100%;
   min-width: 0;
-  position: relative;
-  z-index: 1;
 }
 
 .availabilityChartBarLabel {
@@ -603,7 +597,6 @@ a:hover {
 
 .availabilityChartBar {
   width: 100%;
-  max-width: 2.25rem;
   min-height: 0;
   border-radius: 4px 4px 0 0;
   transition: filter 0.15s ease;
@@ -618,16 +611,10 @@ a:hover {
   color: var(--color-text-muted);
 }
 
-.availabilityCaption {
-  margin: 0.65rem 0 0;
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-}
-
 /* Week timeline grid */
 .weekTimelineGridWrap {
   overflow-x: auto;
-  margin-top: 0.75rem;
+  margin-top: 0;
   border-radius: var(--radius-sm);
 }
 
@@ -651,6 +638,11 @@ a:hover {
   grid-auto-columns: 1fr;
   height: var(--header-height);
   background: var(--color-bg);
+}
+
+.weekTimelineTrack .eventCard {
+  top: 3px;
+  height: calc(100% - 6px);
 }
 
 .weekTimelineDaySection {
@@ -726,7 +718,7 @@ a:hover {
   bottom: 0;
   width: 1px;
   background: var(--color-border);
-  opacity: 0.15;
+  opacity: 0.3;
   pointer-events: none;
 }
 
