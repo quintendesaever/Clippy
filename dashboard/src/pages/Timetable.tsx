@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { getCalendars, getTimetable } from "../api";
 import AppShell from "../components/AppShell";
-import AvailabilityChart from "../components/AvailabilityChart";
 import EventPopup from "../components/EventPopup";
 import MemberFilter from "../components/MemberFilter";
 import PageLayout from "../components/PageLayout";
 import PagePanel from "../components/PagePanel";
-import TimelineDay from "../components/TimelineDay";
+import WeekAvailabilityChart from "../components/WeekAvailabilityChart";
 import WeekGrid from "../components/WeekGrid";
 import WeekNav from "../components/WeekNav";
+import WeekTimelineGrid from "../components/WeekTimelineGrid";
 import {
   DAY_LABELS,
   formatDayMonth,
@@ -89,6 +89,16 @@ export default function Timetable({ user }: { user: DiscordUser }) {
     return byDay;
   }, [dayDates, eventsByUser, selectedCalendars]);
 
+  const weekDays = useMemo(
+    () =>
+      dayDates.map((day, i) => ({
+        dayKey: day,
+        dayLabel: DAY_LABELS[i],
+        events: sharedEventsByDay.get(day) ?? [],
+      })),
+    [dayDates, sharedEventsByDay]
+  );
+
   const personalEvents = eventsByUser[user.id] ?? [];
 
   function toggleMember(userId: string) {
@@ -152,27 +162,17 @@ export default function Timetable({ user }: { user: DiscordUser }) {
               <p className="timetableEmpty">Selecteer minstens één lid.</p>
             )}
 
-            {selectedCalendars.length > 0 &&
-              dayDates.map((day, i) => {
-                const dayEvents = sharedEventsByDay.get(day) ?? [];
-                return (
-                  <div key={day} className="timelineDayBlock">
-                    <div className="timelineDayLabel">
-                      {DAY_LABELS[i]} {formatDayMonth(day)}
-                    </div>
-                    <AvailabilityChart events={dayEvents} />
-                    <TimelineDay
-                      dayKey={day}
-                      dayLabel={DAY_LABELS[i]}
-                      events={dayEvents}
-                      timezone={timezone}
-                      avatarByUser={avatarByUser}
-                      onEventClick={setPopupEvent}
-                      hideLabel
-                    />
-                  </div>
-                );
-              })}
+            {selectedCalendars.length > 0 && (
+              <>
+                <WeekAvailabilityChart days={weekDays} />
+                <WeekTimelineGrid
+                  days={weekDays}
+                  timezone={timezone}
+                  avatarByUser={avatarByUser}
+                  onEventClick={setPopupEvent}
+                />
+              </>
+            )}
 
             <div className="timetableLegend">
               <span>

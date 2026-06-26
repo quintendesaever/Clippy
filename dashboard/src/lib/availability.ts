@@ -99,4 +99,39 @@ export function hourLabels(hourStart: number, hourEnd: number): number[] {
   return Array.from({ length: hourEnd - hourStart + 1 }, (_, i) => hourStart + i);
 }
 
+export type DayAvailabilityInput = {
+  dayKey: string;
+  dayLabel: string;
+  events: TimetableEventDto[];
+};
+
+export type WeekBestWindow = {
+  dayKey: string;
+  dayLabel: string;
+  range: TimeRange;
+};
+
+export function computeWeekBestWindows(
+  days: DayAvailabilityInput[],
+  maxBusy = 2,
+  hourStart = DEFAULT_HOUR_START,
+  hourEnd = DEFAULT_HOUR_END
+): WeekBestWindow[] {
+  const results: WeekBestWindow[] = [];
+
+  for (const day of days) {
+    const slots = computeBusySlots(day.events, hourStart, hourEnd);
+    const windows = findBestWindows(slots, maxBusy);
+    for (const range of windows) {
+      results.push({ dayKey: day.dayKey, dayLabel: day.dayLabel, range });
+    }
+  }
+
+  return results.sort((a, b) => {
+    const dayDiff = a.dayKey.localeCompare(b.dayKey);
+    if (dayDiff !== 0) return dayDiff;
+    return a.range.startMinutes - b.range.startMinutes;
+  });
+}
+
 export { DEFAULT_HOUR_START, DEFAULT_HOUR_END, SLOT_MINUTES };

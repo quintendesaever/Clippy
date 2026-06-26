@@ -519,11 +519,35 @@ a:hover {
   border-bottom: 1px solid var(--color-border);
 }
 
-.timelineDay .availabilityChart {
-  margin-top: 0.25rem;
+.availabilityWeek {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.5rem;
+  overflow-x: auto;
 }
 
-.availabilityChartPlot {
+.availabilityDayColumn {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.availabilityDayColumnLabel {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.availabilityDayColumnBars {
+  flex: 1;
+}
+
+.availabilityWeekAxis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.35rem;
   padding: 0 0.25rem;
 }
 
@@ -565,15 +589,9 @@ a:hover {
   filter: brightness(1.12);
 }
 
-.availabilityChartAxis {
-  display: grid;
-  margin-top: 0.35rem;
-}
-
 .availabilityChartHour {
   font-size: 0.75rem;
   color: var(--color-text-muted);
-  justify-self: start;
 }
 
 .availabilityBestWindows {
@@ -619,40 +637,79 @@ a:hover {
   color: var(--color-text-muted);
 }
 
-/* Timeline day */
-.timelineDayBlock {
-  margin-bottom: 1.75rem;
-}
-
-.timelineDayBlock:last-child {
-  margin-bottom: 0;
-}
-
-.timelineDayBlock > .timelineDayLabel {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-text);
-  margin-bottom: 0.75rem;
-}
-
-.timelineDay {
-  margin-bottom: 1.5rem;
-}
-
-.timelineDayLabel {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-text);
-  margin-bottom: 0.5rem;
-}
-
-.timelineDayScroll {
+/* Week timeline grid */
+.weekTimelineGridWrap {
   overflow-x: auto;
+  margin-top: 1.25rem;
   border-radius: var(--radius-sm);
 }
 
-.timelineDayInner {
-  min-width: 600px;
+.weekTimelineGrid {
+  min-width: 720px;
+}
+
+.weekTimelineHeader {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.weekTimelineCorner {
+  background: var(--color-bg);
+}
+
+.weekTimelineHourHeader {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  height: var(--header-height);
+  background: var(--color-bg);
+}
+
+.weekTimelineDaySection {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.weekTimelineDaySection:last-child {
+  border-bottom: none;
+}
+
+.weekTimelineDayLabel {
+  grid-column: 1;
+  grid-row: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  padding: 0.5rem 0.35rem;
+  background: var(--color-bg);
+  border-right: 1px solid var(--color-border);
+}
+
+.weekTimelineDayName {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.weekTimelineDayDate {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.weekTimelineTrack {
+  grid-column: 2;
+  position: relative;
+  height: var(--row-height);
+  background: var(--color-bg);
+  margin-bottom: var(--row-gap);
+}
+
+.weekTimelineDaySection .weekTimelineTrack:last-child {
+  margin-bottom: 0;
 }
 
 .timelineHourHeader {
@@ -669,17 +726,6 @@ a:hover {
   justify-content: center;
   font-size: 0.75rem;
   color: var(--color-text-muted);
-}
-
-.timelineRow {
-  position: relative;
-  height: var(--row-height);
-  background: var(--color-bg);
-  margin-bottom: var(--row-gap);
-}
-
-.timelineRow:last-child {
-  margin-bottom: 0;
 }
 
 .timelineGridLine {
