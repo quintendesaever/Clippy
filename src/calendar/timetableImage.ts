@@ -10,7 +10,7 @@ const WIDTH = 880;
 const HOUR_MIN = 8;
 const HOUR_MAX = 20;
 const HEADER_HEIGHT = 32;
-const ROW_HEIGHT = 76;
+const ROW_HEIGHT = 92;
 const ROW_GAP = 8;
 const OUTER_PAD_X = 10;
 const OUTER_PAD_TOP = 10;
@@ -21,32 +21,20 @@ const FONT = "system-ui,-apple-system,sans-serif";
 
 const CARD_RADIUS = 10;
 const CARD_INNER_PAD = 10;
-const AVATAR_SIZE = 36;
+const AVATAR_SIZE = 42;
 const AVATAR_OVERLAP = 10;
 const AVATAR_BORDER = 2;
 
-const TITLE_FONT_SIZE = 17;
-const SUBTITLE_FONT_SIZE = 13;
+const TITLE_FONT_SIZE = 20;
 const HOUR_LABEL_FONT_SIZE = 12;
-const TITLE_LINE_HEIGHT = 20;
-const SUBTITLE_GAP = 4;
-
-const TYPE_LABELS: Record<string, string> = {
-  H: "Hoorcollege",
-  P: "Practicum",
-  W: "Werkcollege",
-  L: "Les",
-  G: "Groepswerk",
-  E: "Exercise",
-  S: "Seminar",
-};
+const TITLE_LINE_HEIGHT = 24;
+const TITLE_MAX_LINES = 3;
 
 const THEME = {
   dark: "#1C1D22",
   card: "#323338",
   border: "#3f4147",
   textMuted: "#949ba4",
-  hourLabel: "#5A64EA",
   white: "#dbdee1",
 } as const;
 
@@ -56,7 +44,6 @@ type RenderCard = {
   start: Date;
   end: Date;
   title: string;
-  subtitle: string;
   userIds: string[];
   startMs: number;
   endMs: number;
@@ -185,19 +172,12 @@ function buildTextLines(
   cardHeight: number,
   cy: number,
   title: string,
-  subtitle: string,
   textClipId: string
 ): string[] {
   const textMaxWidth = cardWidth - (textX - cardX) - CARD_INNER_PAD;
-  const titleLines = wrapText(title, textMaxWidth, TITLE_FONT_SIZE, 2);
-  const hasSubtitle = subtitle.trim().length > 0;
-  const subtitleLines = hasSubtitle
-    ? wrapText(subtitle, textMaxWidth, SUBTITLE_FONT_SIZE, 1)
-    : [];
+  const titleLines = wrapText(title, textMaxWidth, TITLE_FONT_SIZE, TITLE_MAX_LINES);
   const titleBlockHeight = titleLines.length * TITLE_LINE_HEIGHT;
-  const titleStartY = hasSubtitle
-    ? cy - (titleBlockHeight + SUBTITLE_FONT_SIZE + SUBTITLE_GAP) / 2 + TITLE_FONT_SIZE * 0.85
-    : cy - titleBlockHeight / 2 + TITLE_FONT_SIZE * 0.35;
+  const titleStartY = cy - titleBlockHeight / 2 + TITLE_FONT_SIZE * 0.35;
 
   const parts: string[] = [
     `<clipPath id="${textClipId}"><rect x="${textX}" y="${cardY}" width="${Math.max(textMaxWidth, 0)}" height="${cardHeight}"/></clipPath>`,
@@ -208,14 +188,6 @@ function buildTextLines(
       `<text x="${textX}" y="${titleStartY + index * TITLE_LINE_HEIGHT}" fill="${THEME.white}" font-size="${TITLE_FONT_SIZE}" font-weight="400" font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(line)}</text>`
     );
   });
-
-  if (hasSubtitle) {
-    subtitleLines.forEach((line) => {
-      parts.push(
-        `<text x="${textX}" y="${titleStartY + titleBlockHeight + SUBTITLE_GAP}" fill="${THEME.textMuted}" font-size="${SUBTITLE_FONT_SIZE}" font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(line)}</text>`
-      );
-    });
-  }
 
   return parts;
 }
@@ -236,10 +208,6 @@ function cardBounds(
     width: Math.max(endX - x, 2),
     height: ROW_HEIGHT,
   };
-}
-
-function buildEventSubtitle(event: TimetableEvent): string {
-  return event.typeBadges.map((badge) => TYPE_LABELS[badge] ?? badge).join(" · ");
 }
 
 function clipEventToGrid(
@@ -288,7 +256,6 @@ function groupDayEvents(events: TimetableEvent[]): RenderCard[] {
       start: event.start,
       end: event.end,
       title: event.title,
-      subtitle: buildEventSubtitle(event),
       userIds: [event.userId],
       startMs: event.start.getTime(),
       endMs: event.end.getTime(),
@@ -387,7 +354,7 @@ function buildHourHeader(layout: TimelineLayout): string[] {
   for (let i = 0; i < layout.hourCount; i++) {
     const x = layout.gridInset + (i + 0.5) * layout.colWidth;
     parts.push(
-      `<text x="${x}" y="${HEADER_HEIGHT / 2 + HOUR_LABEL_FONT_SIZE * 0.35}" fill="${THEME.hourLabel}" font-size="${HOUR_LABEL_FONT_SIZE}" font-weight="400" text-anchor="middle" font-family="${FONT}">${formatHourLabel(layout.hourStart + i)}</text>`
+      `<text x="${x}" y="${HEADER_HEIGHT / 2 + HOUR_LABEL_FONT_SIZE * 0.35}" fill="${THEME.textMuted}" font-size="${HOUR_LABEL_FONT_SIZE}" font-weight="400" text-anchor="middle" font-family="${FONT}">${formatHourLabel(layout.hourStart + i)}</text>`
     );
   }
 
@@ -439,7 +406,6 @@ function buildAvatarStack(
 function buildActivityCard(
   bounds: CardBounds,
   title: string,
-  subtitle: string,
   avatarUserIds: string[],
   avatarDataUrls: Map<string, string>,
   cardId: string
@@ -463,7 +429,7 @@ function buildActivityCard(
     `<rect x="${x}" y="${y}" width="${width}" height="${height}" fill="${THEME.card}"/>`,
     `</g>`,
     ...avatarParts,
-    ...buildTextLines(textX, x, y, width, height, cy, title, subtitle, `${clipId}-text`),
+    ...buildTextLines(textX, x, y, width, height, cy, title, `${clipId}-text`),
   ];
 }
 
@@ -490,7 +456,6 @@ function buildRowCards(
     return buildActivityCard(
       bounds,
       card.title,
-      card.subtitle,
       card.userIds,
       avatarDataUrls,
       `${rowIndex}-${card.startMs}-${cardIndex}`
