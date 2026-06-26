@@ -181,17 +181,18 @@ function buildTextLines(
   }
 
   const titleBlockHeight = titleLines.length * TITLE_LINE_HEIGHT;
-  const blockTopY = cy - titleBlockHeight / 2;
-  const tspans = titleLines
-    .map((line, index) => {
-      const dy = index === 0 ? 0 : TITLE_LINE_HEIGHT;
-      return `<tspan x="${textX}" dy="${dy}">${escapeXml(line)}</tspan>`;
-    })
-    .join("");
+  const blockTop = cy - titleBlockHeight / 2;
+  const baselineOffset = TITLE_FONT_SIZE * 0.35;
+
+  const lineTexts = titleLines.map((line, index) => {
+    const slotCy = blockTop + index * TITLE_LINE_HEIGHT + TITLE_LINE_HEIGHT / 2;
+    const lineY = slotCy + baselineOffset;
+    return `<text x="${textX}" y="${lineY}" fill="${THEME.white}" font-size="${TITLE_FONT_SIZE}" font-weight="400" font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(line)}</text>`;
+  });
 
   return [
     `<clipPath id="${textClipId}"><rect x="${textX}" y="${cardY}" width="${Math.max(textMaxWidth, 0)}" height="${cardHeight}"/></clipPath>`,
-    `<text x="${textX}" y="${blockTopY}" fill="${THEME.white}" font-size="${TITLE_FONT_SIZE}" font-weight="400" font-family="${FONT}" dominant-baseline="hanging" clip-path="url(#${textClipId})">${tspans}</text>`,
+    ...lineTexts,
   ];
 }
 
