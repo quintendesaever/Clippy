@@ -20,6 +20,7 @@ type TimelineDayProps = {
   timezone: string;
   avatarByUser: Map<string, string | null>;
   onEventClick: (event: TimetableEventDto) => void;
+  hideLabel?: boolean;
 };
 
 function toLayoutEvents(events: TimetableEventDto[]): LayoutEvent[] {
@@ -39,6 +40,7 @@ export default function TimelineDay({
   timezone,
   avatarByUser,
   onEventClick,
+  hideLabel = false,
 }: TimelineDayProps) {
   const layoutEvents = useMemo(() => toLayoutEvents(events), [events]);
   const layout = useMemo(
@@ -71,9 +73,11 @@ export default function TimelineDay({
   if (events.length === 0) {
     return (
       <section className="timelineDay">
-        <div className="timelineDayLabel">
-          {dayLabel} {formatDayMonth(dayKey)}
-        </div>
+        {!hideLabel && (
+          <div className="timelineDayLabel">
+            {dayLabel} {formatDayMonth(dayKey)}
+          </div>
+        )}
         <p className="timetableEmpty">Geen lessen.</p>
       </section>
     );
@@ -81,9 +85,11 @@ export default function TimelineDay({
 
   return (
     <section className="timelineDay">
-      <div className="timelineDayLabel">
-        {dayLabel} {formatDayMonth(dayKey)}
-      </div>
+      {!hideLabel && (
+        <div className="timelineDayLabel">
+          {dayLabel} {formatDayMonth(dayKey)}
+        </div>
+      )}
       <div className="timelineDayScroll">
         <div className="timelineDayInner">
           <div

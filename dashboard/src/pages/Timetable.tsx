@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getCalendars, getTimetable } from "../api";
 import AppShell from "../components/AppShell";
+import AvailabilityChart from "../components/AvailabilityChart";
 import EventPopup from "../components/EventPopup";
 import MemberFilter from "../components/MemberFilter";
 import PageLayout from "../components/PageLayout";
@@ -152,17 +153,26 @@ export default function Timetable({ user }: { user: DiscordUser }) {
             )}
 
             {selectedCalendars.length > 0 &&
-              dayDates.map((day, i) => (
-                <TimelineDay
-                  key={day}
-                  dayKey={day}
-                  dayLabel={DAY_LABELS[i]}
-                  events={sharedEventsByDay.get(day) ?? []}
-                  timezone={timezone}
-                  avatarByUser={avatarByUser}
-                  onEventClick={setPopupEvent}
-                />
-              ))}
+              dayDates.map((day, i) => {
+                const dayEvents = sharedEventsByDay.get(day) ?? [];
+                return (
+                  <div key={day} className="timelineDayBlock">
+                    <div className="timelineDayLabel">
+                      {DAY_LABELS[i]} {formatDayMonth(day)}
+                    </div>
+                    <AvailabilityChart events={dayEvents} />
+                    <TimelineDay
+                      dayKey={day}
+                      dayLabel={DAY_LABELS[i]}
+                      events={dayEvents}
+                      timezone={timezone}
+                      avatarByUser={avatarByUser}
+                      onEventClick={setPopupEvent}
+                      hideLabel
+                    />
+                  </div>
+                );
+              })}
 
             <div className="timetableLegend">
               <span>

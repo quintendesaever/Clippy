@@ -26,4 +26,12 @@
   --header-height: 32px;
   --avatar-size: 42px;
   --avatar-overlap: 10px;
+
+  --avail-green: #3d8b5a;
+  --avail-olive: #5a6640;
+  --avail-brown: #8b5a40;
+  --avail-red-muted: #a84848;
+  --avail-red: #d64550;
+  --avail-pill-bg: #b8e6c8;
+  --avail-pill-text: #1a2e22;
 }
