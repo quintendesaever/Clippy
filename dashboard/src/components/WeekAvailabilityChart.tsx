@@ -4,7 +4,6 @@ import {
   computeBusySlots,
   DEFAULT_HOUR_END,
   DEFAULT_HOUR_START,
-  hourLabels,
   type DayAvailabilityInput,
 } from "../lib/availability";
 import { formatDayMonth } from "../lib/dates";
@@ -31,8 +30,6 @@ export default function WeekAvailabilityChart({
     const counts = slotsByDay.flatMap((d) => d.slots.map((s) => s.busyCount));
     return Math.max(1, ...counts, 0);
   }, [slotsByDay]);
-
-  const hours = hourLabels(hourStart, hourEnd);
 
   if (days.length === 0) return null;
 
@@ -65,14 +62,6 @@ export default function WeekAvailabilityChart({
               })}
             </div>
           </div>
-        ))}
-      </div>
-
-      <div className="availabilityWeekAxis">
-        {hours.map((hour) => (
-          <span key={hour} className="availabilityChartHour">
-            {hour}
-          </span>
         ))}
       </div>
     </div>
