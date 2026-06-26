@@ -628,7 +628,7 @@ a:hover {
 .weekTimelineGrid {
   display: flex;
   flex-direction: column;
-  gap: var(--timeline-row-gap);
+  gap: var(--timeline-day-gap);
   width: 100%;
 }
 
@@ -659,11 +659,6 @@ a:hover {
   display: grid;
   grid-template-columns: 72px 1fr;
   row-gap: var(--timeline-row-gap);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.weekTimelineDaySection:last-child {
-  border-bottom: none;
 }
 
 .weekTimelineDayLabel {
