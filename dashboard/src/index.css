@@ -787,7 +787,6 @@ a:hover {
 .weekGridWrap {
   overflow-x: auto;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
 }
 
 .weekGrid {
@@ -799,25 +798,38 @@ a:hover {
 
 .weekGridCorner {
   background: var(--color-bg);
-  min-width: 56px;
+  min-width: 72px;
   min-height: var(--header-height);
   border-bottom: 1px solid var(--color-border);
 }
 
 .weekGridDayHeader {
-  padding: 0.4rem 0.35rem;
+  position: relative;
+  padding: 0.5rem 0.35rem;
   font-size: 0.8125rem;
-  font-weight: 500;
   background: var(--color-bg);
   display: flex;
   flex-direction: column;
   align-items: center;
-  border-left: 1px solid var(--color-border);
+  justify-content: flex-start;
+  gap: 0.1rem;
   border-bottom: 1px solid var(--color-border);
+}
+
+.weekGridDayHeader::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.5rem;
+  width: 1px;
+  height: 2.5rem;
+  background: var(--color-border);
+  pointer-events: none;
 }
 
 .weekGridDayName {
   font-weight: 600;
+  color: var(--color-text);
 }
 
 .weekGridDayDate {
@@ -826,12 +838,15 @@ a:hover {
 }
 
 .weekGridTimeLabel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 0.2rem 0.35rem;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: var(--color-text-muted);
   background: var(--color-bg);
-  border-top: 1px solid var(--color-border);
-  text-align: right;
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 30%, transparent);
+  text-align: center;
 }
 
 .weekGridDayColumn {
@@ -840,34 +855,16 @@ a:hover {
   background-image: repeating-linear-gradient(
     to bottom,
     transparent 0,
-    transparent 43px,
-    color-mix(in srgb, var(--color-border) 15%, transparent) 43px,
-    color-mix(in srgb, var(--color-border) 15%, transparent) 44px
+    transparent calc(var(--timeline-row-height) - 1px),
+    color-mix(in srgb, var(--color-border) 30%, transparent) calc(var(--timeline-row-height) - 1px),
+    color-mix(in srgb, var(--color-border) 30%, transparent) var(--timeline-row-height)
   );
-  border-left: 1px solid color-mix(in srgb, var(--color-border) 30%, transparent);
 }
 
-.weekGridEvent {
-  position: absolute;
-  left: 2px;
-  right: 2px;
-  border-radius: var(--radius-md);
-  padding: 0.3rem 0.45rem;
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.75rem;
-  border: 1px solid var(--color-border);
-  cursor: pointer;
-  overflow: hidden;
-  background: var(--color-card);
-  color: var(--color-text);
-  font-family: inherit;
-  text-align: left;
-}
-
-.weekGridEvent:hover {
-  filter: brightness(1.06);
+.weekGridDayColumn .eventCard {
+  left: 4px;
+  right: 4px;
+  width: auto;
 }
 
 .weekGridEventBody {
@@ -877,16 +874,10 @@ a:hover {
   min-width: 0;
 }
 
-.weekGridEventTitle {
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .weekGridEventTime {
   font-size: 0.7rem;
   color: var(--color-text-muted);
+  line-height: 1.2;
 }
 
 /* Event popup */

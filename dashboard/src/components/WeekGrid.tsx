@@ -4,7 +4,7 @@ import { UserAvatar } from "./Avatar";
 
 const HOUR_START = 8;
 const HOUR_END = 22;
-const ROW_HEIGHT_PX = 44;
+const ROW_HEIGHT_PX = 64;
 
 type WeekGridProps = {
   dayDates: string[];
@@ -28,7 +28,7 @@ export default function WeekGrid({
       <div
         className="weekGrid"
         style={{
-          gridTemplateColumns: `56px repeat(${dayDates.length}, minmax(100px, 1fr))`,
+          gridTemplateColumns: `72px repeat(${dayDates.length}, minmax(100px, 1fr))`,
           gridTemplateRows: `32px repeat(${hourCount}, ${ROW_HEIGHT_PX}px)`,
         }}
       >
@@ -70,18 +70,18 @@ export default function WeekGrid({
                 const startMin = start.getHours() * 60 + start.getMinutes() - HOUR_START * 60;
                 const endMin = end.getHours() * 60 + end.getMinutes() - HOUR_START * 60;
                 const top = Math.max(0, (startMin / 60) * ROW_HEIGHT_PX);
-                const height = Math.max(28, ((endMin - startMin) / 60) * ROW_HEIGHT_PX);
+                const height = Math.max(36, ((endMin - startMin) / 60) * ROW_HEIGHT_PX);
                 return (
                   <button
                     key={`${ev.start}-${ev.title}`}
                     type="button"
-                    className="weekGridEvent"
+                    className="eventCard weekGridEvent"
                     style={{ top: `${top}px`, height: `${height}px` }}
                     onClick={() => onEventClick(ev)}
                   >
-                    <UserAvatar userId={userId} avatar={userAvatar} size="sm" />
+                    <UserAvatar userId={userId} avatar={userAvatar} size="md" />
                     <span className="weekGridEventBody">
-                      <span className="weekGridEventTitle">{ev.title}</span>
+                      <span className="eventCardTitle">{ev.title}</span>
                       <span className="weekGridEventTime">
                         {formatTime(ev.start)}–{formatTime(ev.end)}
                       </span>
