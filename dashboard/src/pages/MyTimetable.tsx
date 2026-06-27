@@ -1,3 +1,4 @@
+import { withoutEmptySaturday } from "@shared/timetable/weekDays";
 import { useMemo, useState } from "react";
 import AppShell from "../components/AppShell";
 import EventPopup from "../components/EventPopup";
@@ -5,6 +6,7 @@ import PagePanel from "../components/PagePanel";
 import WeekGrid from "../components/WeekGrid";
 import WeekNav from "../components/WeekNav";
 import { useWeekTimetable } from "../hooks/useWeekTimetable";
+import { eventDayKey } from "../lib/dates";
 import type { DiscordUser, TimetableEventDto } from "../types";
 
 export default function MyTimetable({ user }: { user: DiscordUser }) {
@@ -22,6 +24,14 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
   const personalEvents = useMemo(
     () => eventsByUser[user.id] ?? [],
     [eventsByUser, user.id]
+  );
+
+  const visibleDayDates = useMemo(
+    () =>
+      withoutEmptySaturday(dayDates, (day) =>
+        personalEvents.some((ev) => eventDayKey(ev.start) === day)
+      ),
+    [dayDates, personalEvents]
   );
 
   return (
@@ -48,7 +58,7 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
                   </p>
                 ) : (
                   <WeekGrid
-                    dayDates={dayDates}
+                    dayDates={visibleDayDates}
                     events={personalEvents}
                     userId={user.id}
                     userAvatar={user.avatar}

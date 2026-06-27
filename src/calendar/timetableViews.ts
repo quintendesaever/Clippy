@@ -43,7 +43,12 @@ function buildDayButtons(
     return makeDayButton(dayKey, label);
   });
 
-  const secondRow: ButtonBuilder[] = [buttons[5]];
+  const showSaturday = (timetable.eventsByDay.get(dayKeys[5]) ?? []).length > 0;
+  const rows: APIActionRowComponent<APIButtonComponent>[] = [
+    new ActionRowBuilder<ButtonBuilder>().addComponents(buttons.slice(0, 5)).toJSON(),
+  ];
+
+  const secondRow: ButtonBuilder[] = showSaturday ? [buttons[5]] : [];
   const publicDashboardUrl = getPublicDashboardUrl();
   if (publicDashboardUrl) {
     secondRow.push(
@@ -53,11 +58,11 @@ function buildDayButtons(
         .setURL(`${publicDashboardUrl}/timetable`)
     );
   }
+  if (secondRow.length > 0) {
+    rows.push(new ActionRowBuilder<ButtonBuilder>().addComponents(secondRow).toJSON());
+  }
 
-  return [
-    new ActionRowBuilder<ButtonBuilder>().addComponents(buttons.slice(0, 5)).toJSON(),
-    new ActionRowBuilder<ButtonBuilder>().addComponents(secondRow).toJSON(),
-  ];
+  return rows;
 }
 
 export async function buildTimetableView(

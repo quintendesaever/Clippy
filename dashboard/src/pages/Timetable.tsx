@@ -1,3 +1,4 @@
+import { withoutEmptySaturday } from "@shared/timetable/weekDays";
 import { useEffect, useMemo, useState } from "react";
 import { getCalendars } from "../api";
 import AppShell from "../components/AppShell";
@@ -76,6 +77,11 @@ export default function Timetable({ user }: { user: DiscordUser }) {
     [dayDates, sharedEventsByDay]
   );
 
+  const visibleWeekDays = useMemo(
+    () => withoutEmptySaturday(weekDays, (d) => d.events.length > 0),
+    [weekDays]
+  );
+
   function toggleMember(userId: string) {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -114,14 +120,14 @@ export default function Timetable({ user }: { user: DiscordUser }) {
 
               {selectedCalendars.length > 0 && (
                 <PagePanel>
-                  <WeekAvailabilityChart days={weekDays} />
+                  <WeekAvailabilityChart days={visibleWeekDays} />
                 </PagePanel>
               )}
 
               {selectedCalendars.length > 0 && (
                 <PagePanel>
                   <WeekTimelineGrid
-                    days={weekDays}
+                    days={visibleWeekDays}
                     timezone={timezone}
                     avatarByUser={avatarByUser}
                     onEventClick={setPopupEvent}

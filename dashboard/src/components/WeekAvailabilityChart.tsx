@@ -44,7 +44,10 @@ export default function WeekAvailabilityChart({
 
   return (
     <div className="availabilityChart availabilityWeekChart">
-      <div className="availabilityWeek">
+      <div
+        className="availabilityWeek"
+        style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
+      >
         {slotsByDay.map((day) => (
           <div key={day.dayKey} className="availabilityDayColumn">
             <div className="availabilityDayColumnLabel">

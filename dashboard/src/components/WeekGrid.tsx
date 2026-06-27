@@ -28,7 +28,7 @@ export default function WeekGrid({
       <div
         className="weekGrid"
         style={{
-          gridTemplateColumns: `56px repeat(6, minmax(100px, 1fr))`,
+          gridTemplateColumns: `56px repeat(${dayDates.length}, minmax(100px, 1fr))`,
           gridTemplateRows: `32px repeat(${hourCount}, ${ROW_HEIGHT_PX}px)`,
         }}
       >
