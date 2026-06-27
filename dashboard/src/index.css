@@ -684,7 +684,7 @@ a:hover {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0.1rem;
   padding: 0.5rem 0.35rem;
   background: var(--color-bg);
@@ -694,8 +694,7 @@ a:hover {
   content: "";
   position: absolute;
   right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0.5rem;
   width: 1px;
   height: 2.5rem;
   background: var(--color-border);
