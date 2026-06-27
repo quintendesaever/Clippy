@@ -84,19 +84,4 @@ export function colorForTypeBadge(badge: string): string {
   return TYPE_BADGE_COLORS[badge.toUpperCase()] ?? "#6366f1";
 }
 
-const ROOM_CODE_PATTERN = /\b([A-Z]{3,6}\.\d+\.\d+)\b/g;
-
-export function shortLocation(location: string | undefined): string | undefined {
-  if (!location?.trim()) return undefined;
-  const matches = [...location.matchAll(ROOM_CODE_PATTERN)].map((m) => m[1]);
-  const unique = [...new Set(matches)];
-  if (unique.length > 0) return unique.join(" + ");
-  const trimmed = location.trim();
-  if (trimmed.length <= 24) return trimmed;
-  return `${trimmed.slice(0, 23)}…`;
-}
-
-export function truncateText(text: string, maxLen: number): string {
-  if (text.length <= maxLen) return text;
-  return `${text.slice(0, maxLen - 1)}…`;
-}
+export { descriptionPreview, shortLocation, truncateText } from "../../shared/timetable/eventMeta.js";

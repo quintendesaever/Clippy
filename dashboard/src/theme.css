@@ -27,6 +27,7 @@
   --timeline-row-gap: 4px;
   --timeline-day-gap: calc(var(--timeline-row-gap) * 4);
   --header-height: 32px;
+  --week-grid-header-height: 52px;
   --avatar-size: 36px;
   --avatar-overlap: 8px;
 

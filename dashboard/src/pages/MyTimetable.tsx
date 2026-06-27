@@ -60,8 +60,6 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
                   <WeekGrid
                     dayDates={visibleDayDates}
                     events={personalEvents}
-                    userId={user.id}
-                    userAvatar={user.avatar}
                     onEventClick={setPopupEvent}
                   />
                 )}

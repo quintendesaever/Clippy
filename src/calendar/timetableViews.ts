@@ -125,5 +125,6 @@ export function serializeEventForApi(event: TimetableEvent) {
     end: event.end.toISOString(),
     allDay: event.allDay,
     location: event.location ?? null,
+    description: event.description ?? null,
   };
 }

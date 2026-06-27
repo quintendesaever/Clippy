@@ -40,6 +40,12 @@ export default function EventPopup({ event, onClose }: EventPopupProps) {
               <dd>{event.location}</dd>
             </>
           )}
+          {event.description && (
+            <>
+              <dt>Opmerkingen</dt>
+              <dd className="eventPopupDescription">{event.description}</dd>
+            </>
+          )}
         </dl>
       </div>
     </div>

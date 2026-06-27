@@ -799,7 +799,7 @@ a:hover {
 .weekGridCorner {
   background: var(--color-bg);
   min-width: 72px;
-  min-height: var(--header-height);
+  min-height: var(--week-grid-header-height, 52px);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -814,6 +814,8 @@ a:hover {
   justify-content: flex-start;
   gap: 0.1rem;
   border-bottom: 1px solid var(--color-border);
+  overflow: visible;
+  min-height: var(--week-grid-header-height, 52px);
 }
 
 .weekGridDayHeader::after {
@@ -865,6 +867,13 @@ a:hover {
   left: 4px;
   right: 4px;
   width: auto;
+  align-items: flex-start;
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+}
+
+.weekGridDayColumn .eventCardTitle {
+  -webkit-line-clamp: 2;
 }
 
 .weekGridEventBody {
@@ -872,12 +881,22 @@ a:hover {
   flex-direction: column;
   gap: 0.1rem;
   min-width: 0;
+  width: 100%;
 }
 
 .weekGridEventTime {
   font-size: 0.7rem;
   color: var(--color-text-muted);
   line-height: 1.2;
+}
+
+.weekGridEventMeta {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Event popup */
@@ -936,6 +955,10 @@ a:hover {
 
 .eventPopupBody dd {
   margin: 0.15rem 0 0;
+}
+
+.eventPopupDescription {
+  white-space: pre-wrap;
 }
 
 /* Mobile sidebar */

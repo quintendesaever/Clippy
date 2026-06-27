@@ -1,5 +1,6 @@
 import nodeIcal from "node-ical";
 import type { CalendarResponse, ParameterValue, VEvent } from "node-ical";
+import { normalizeIcsDescription } from "../../shared/timetable/eventMeta.js";
 import { parseActivitySummary } from "./eventUtils.js";
 import type { TimetableEvent } from "./types.js";
 
@@ -35,7 +36,8 @@ function mapInstanceToEvent(
   start: Date,
   end: Date | null,
   allDay: boolean,
-  location?: string
+  location?: string,
+  description?: string
 ): TimetableEvent {
   const resolvedEnd =
     end ?? new Date(start.getTime() + (allDay ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000));
@@ -52,6 +54,7 @@ function mapInstanceToEvent(
     end: resolvedEnd,
     allDay,
     location: location?.trim() || undefined,
+    description: normalizeIcsDescription(description),
   };
 }
 
@@ -75,6 +78,7 @@ export function parseIcsEvents(
 
     const summary = paramValueToString(component.summary) ?? "Untitled";
     const location = paramValueToString(component.location);
+    const description = paramValueToString(component.description);
 
     if (component.rrule) {
       const instances = nodeIcal.expandRecurringEvent(component, {
@@ -95,7 +99,8 @@ export function parseIcsEvents(
             start,
             end,
             Boolean(instance.isFullDay),
-            location
+            location,
+            description
           )
         );
       }
@@ -113,7 +118,9 @@ export function parseIcsEvents(
       continue;
     }
 
-    events.push(mapInstanceToEvent(userId, initials, summary, start, effectiveEnd, allDay, location));
+    events.push(
+      mapInstanceToEvent(userId, initials, summary, start, effectiveEnd, allDay, location, description)
+    );
   }
 
   return events.sort((a, b) => a.start.getTime() - b.start.getTime());

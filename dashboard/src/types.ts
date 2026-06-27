@@ -45,6 +45,7 @@ export interface TimetableEventDto {
   end: string;
   allDay: boolean;
   location: string | null;
+  description: string | null;
 }
 
 export interface TimetableMemberDto {

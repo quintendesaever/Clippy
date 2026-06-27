@@ -15,6 +15,7 @@ export type TimetableEvent = {
   end: Date;
   allDay: boolean;
   location?: string;
+  description?: string;
 };
 
 export type MemberLoadResult = {
