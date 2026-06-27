@@ -23,7 +23,7 @@
 
   --row-height: 92px;
   --row-gap: 8px;
-  --timeline-row-height: 50px;
+  --timeline-row-height: 64px;
   --timeline-row-gap: 4px;
   --timeline-day-gap: calc(var(--timeline-row-gap) * 4);
   --header-height: 32px;

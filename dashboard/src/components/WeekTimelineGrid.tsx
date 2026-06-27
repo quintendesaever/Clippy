@@ -138,11 +138,8 @@ export default function WeekTimelineGrid({
               <span className="weekTimelineDayName">{day.dayLabel}</span>
               <span className="weekTimelineDayDate">{formatDayMonth(day.dayKey)}</span>
             </div>
-            {day.packedRows.map((row, rowIndex) => (
-              <div
-                key={rowIndex}
-                className={`weekTimelineTrack${day.isEmpty ? " weekTimelineTrackEmpty" : ""}`}
-              >
+            <div className="weekTimelineDayBody">
+              <div className="weekTimelineGridOverlay" aria-hidden>
                 {Array.from({ length: layout.hourCount + 1 }, (_, i) => (
                   <div
                     key={i}
@@ -150,23 +147,30 @@ export default function WeekTimelineGrid({
                     style={{ left: `${(i / layout.hourCount) * 100}%` }}
                   />
                 ))}
-                {row.map((card, cardIndex) => {
-                  const pos = cardPositionPercent(card, timezone, layout);
-                  if (!pos) return null;
-                  return (
-                    <EventCard
-                      key={`${card.startMs}-${cardIndex}`}
-                      title={card.title}
-                      userIds={card.userIds}
-                      avatarByUser={avatarByUser}
-                      leftPercent={pos.leftPercent}
-                      widthPercent={pos.widthPercent}
-                      onClick={() => handleCardClick(card, day.eventLookup)}
-                    />
-                  );
-                })}
               </div>
-            ))}
+              {day.packedRows.map((row, rowIndex) => (
+                <div
+                  key={rowIndex}
+                  className={`weekTimelineTrack${day.isEmpty ? " weekTimelineTrackEmpty" : ""}`}
+                >
+                  {row.map((card, cardIndex) => {
+                    const pos = cardPositionPercent(card, timezone, layout);
+                    if (!pos) return null;
+                    return (
+                      <EventCard
+                        key={`${card.startMs}-${cardIndex}`}
+                        title={card.title}
+                        userIds={card.userIds}
+                        avatarByUser={avatarByUser}
+                        leftPercent={pos.leftPercent}
+                        widthPercent={pos.widthPercent}
+                        onClick={() => handleCardClick(card, day.eventLookup)}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
           </div>
         ))}
       </div>

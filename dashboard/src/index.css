@@ -638,15 +638,30 @@ a:hover {
 }
 
 .weekTimelineTrack .eventCard {
-  top: 2px;
-  height: calc(100% - 4px);
+  top: 4px;
+  height: calc(100% - 8px);
 }
 
 .weekTimelineDaySection {
   position: relative;
   display: grid;
   grid-template-columns: 72px 1fr;
-  row-gap: var(--timeline-row-gap);
+}
+
+.weekTimelineDayBody {
+  grid-column: 2;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--timeline-row-gap);
+  background: var(--color-bg);
+}
+
+.weekTimelineGridOverlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
 }
 
 .weekTimelineDaySection::before {
@@ -699,10 +714,9 @@ a:hover {
 }
 
 .weekTimelineTrack {
-  grid-column: 2;
   position: relative;
+  z-index: 1;
   height: var(--timeline-row-height);
-  background: var(--color-bg);
 }
 
 .weekTimelineTrackEmpty {
