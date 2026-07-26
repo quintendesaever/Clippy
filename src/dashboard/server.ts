@@ -1,11 +1,16 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import crypto from "node:crypto";
 import express, { type NextFunction, type Request, type Response } from "express";
 import cookieSession from "cookie-session";
+import rateLimit from "express-rate-limit";
+import helmet from "helmet";
+import type { Client } from "discord.js";
 import { supabase } from "../supabase.js";
 import { getDashboardUrl, getGuildId } from "../config.js";
 import { ensureGuild, getGuildTimezone } from "../stats/helpers.js";
 import { upsertMember } from "../stats/members.js";
+import { assertIcsUrlSafe } from "../calendar/icsFetcher.js";
 import { getGuildCalendarMembers } from "../calendar/memberCalendars.js";
 import { getGuildTimetableForDates } from "../calendar/timetableService.js";
 import { serializeEventForApi } from "../calendar/timetableViews.js";
@@ -17,6 +22,7 @@ const CLIENT_ID = process.env.CLIENT_ID?.trim();
 const CLIENT_SECRET = process.env.CLIENT_SECRET?.trim();
 const SESSION_SECRET = process.env.SESSION_SECRET?.trim();
 const DASHBOARD_URL = getDashboardUrl();
+const GUILD_RECHECK_MS = 15 * 60 * 1000;
 
 const DISCORD_API = "https://discord.com/api/v10";
 
@@ -36,7 +42,10 @@ interface SessionData {
   state?: string;
   user?: DiscordUser;
   guildVerified?: boolean;
+  guildCheckedAt?: number;
 }
+
+let discordClient: Client | null = null;
 
 async function discordUserApi<T>(accessToken: string, apiPath: string): Promise<T> {
   const res = await fetch(`${DISCORD_API}${apiPath}`, {
@@ -51,13 +60,45 @@ async function userIsGuildMember(accessToken: string, guildId: string): Promise<
   return guilds.some((g) => g.id === guildId);
 }
 
+async function botConfirmsGuildMember(userId: string): Promise<boolean | null> {
+  const guildId = getGuildId();
+  const guild = discordClient?.guilds.cache.get(guildId);
+  if (!guild) return null;
+  try {
+    await guild.members.fetch(userId);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function requireSession(req: Request, res: Response, next: NextFunction): void {
   const session = req.session as SessionData;
   if (!session?.user || !session.guildVerified) {
     res.status(401).json({ error: "Not authenticated" });
     return;
   }
-  next();
+
+  const now = Date.now();
+  const checkedAt = session.guildCheckedAt ?? 0;
+  if (now - checkedAt < GUILD_RECHECK_MS) {
+    next();
+    return;
+  }
+
+  void (async () => {
+    const member = await botConfirmsGuildMember(session.user!.id);
+    if (member === false) {
+      req.session = null;
+      res.status(401).json({ error: "Not a guild member" });
+      return;
+    }
+    // member === true, or null (bot/guild not ready) — refresh timestamp only on success
+    if (member === true) {
+      session.guildCheckedAt = now;
+    }
+    next();
+  })();
 }
 
 export function createDashboardApp(): express.Express {
@@ -67,6 +108,24 @@ export function createDashboardApp(): express.Express {
 
   const app = express();
   app.set("trust proxy", 1);
+
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", "https://cdn.discordapp.com", "data:"],
+          connectSrc: ["'self'"],
+          frameAncestors: ["'none'"],
+          objectSrc: ["'none'"],
+          baseUri: ["'self'"],
+        },
+      },
+      crossOriginEmbedderPolicy: false,
+    })
+  );
 
   app.use(
     cookieSession({
@@ -79,14 +138,29 @@ export function createDashboardApp(): express.Express {
     })
   );
 
-  app.use(express.json());
+  app.use(express.json({ limit: "32kb" }));
+
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  const apiLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 120,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  app.use("/api/auth", authLimiter);
+  app.use("/api/", apiLimiter);
 
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true });
   });
 
   app.get("/api/auth/discord", (req: Request, res: Response) => {
-    const state = Math.random().toString(36).slice(2);
+    const state = crypto.randomBytes(24).toString("hex");
     (req.session as SessionData).state = state;
     const redirectUri = `${DASHBOARD_URL}/api/auth/callback`;
     const url = new URL("https://discord.com/api/oauth2/authorize");
@@ -138,6 +212,7 @@ export function createDashboardApp(): express.Express {
 
     session.user = user;
     session.guildVerified = true;
+    session.guildCheckedAt = Date.now();
     res.redirect("/settings");
   });
 
@@ -185,6 +260,15 @@ export function createDashboardApp(): express.Express {
       typeof req.body?.ics_url === "string" && req.body.ics_url.trim()
         ? req.body.ics_url.trim()
         : null;
+    if (icsUrl) {
+      try {
+        await assertIcsUrlSafe(icsUrl);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Invalid ICS URL";
+        res.status(400).json({ error: message });
+        return;
+      }
+    }
     let timezone =
       typeof req.body?.timezone === "string" && req.body.timezone.trim()
         ? req.body.timezone.trim()
@@ -247,7 +331,6 @@ export function createDashboardApp(): express.Express {
           user_id: row.user_id,
           initials: row.initials,
           timezone: row.timezone,
-          ics_url: row.ics_url,
           avatar_hash: avatarByUser.get(row.user_id) ?? null,
         })),
       });
@@ -330,7 +413,8 @@ export function createDashboardApp(): express.Express {
   return app;
 }
 
-export function startDashboardServer(): void {
+export function startDashboardServer(client: Client): void {
+  discordClient = client;
   const app = createDashboardApp();
   app.listen(DASHBOARD_PORT, "0.0.0.0", () => {
     console.log(`Dashboard listening on http://0.0.0.0:${DASHBOARD_PORT}`);

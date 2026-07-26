@@ -23,11 +23,13 @@ export async function getGuildMemberCalendars(guildId: string): Promise<MemberCa
 }
 
 export async function getGuildCalendarMembers(guildId: string): Promise<
-  { user_id: string; initials: string; timezone: string; ics_url: string | null }[]
+  { user_id: string; initials: string; timezone: string }[]
 > {
+  // Do not select ics_url — private calendar links are bearer secrets and must
+  // only be returned to the owning user via GET /api/calendar.
   const { data, error } = await supabase
     .from("member_calendars")
-    .select("user_id, initials, timezone, ics_url")
+    .select("user_id, initials, timezone")
     .eq("guild_id", guildId)
     .order("initials");
 

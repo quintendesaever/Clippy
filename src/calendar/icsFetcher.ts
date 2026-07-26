@@ -4,6 +4,7 @@ import net from "node:net";
 const FETCH_TIMEOUT_MS = 10_000;
 const MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
 const CACHE_TTL_MS = 20 * 60 * 1000;
+const MAX_REDIRECTS = 5;
 
 type CacheEntry = {
   body: string;
@@ -20,9 +21,32 @@ function isPrivateIpv4(ip: string): boolean {
   if (a === 127) return true;
   if (a === 0) return true;
   if (a === 169 && b === 254) return true;
+  if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
   if (a === 172 && b >= 16 && b <= 31) return true;
   if (a === 192 && b === 168) return true;
   return false;
+}
+
+function isBlockedIp(ip: string): boolean {
+  const version = net.isIP(ip);
+  if (version === 4) return isPrivateIpv4(ip);
+  if (version === 6) {
+    const normalized = ip.toLowerCase();
+    if (normalized === "::" || normalized === "::1") return true;
+
+    // IPv4-mapped IPv6 (::ffff:a.b.c.d)
+    const mapped = normalized.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+    if (mapped) return isPrivateIpv4(mapped[1]!);
+
+    const firstHex = Number.parseInt(normalized.split(":")[0] || "0", 16);
+    if (Number.isNaN(firstHex)) return true;
+    // Unique local fc00::/7
+    if ((firstHex & 0xfe00) === 0xfc00) return true;
+    // Link-local fe80::/10
+    if ((firstHex & 0xffc0) === 0xfe80) return true;
+    return false;
+  }
+  return true;
 }
 
 function isBlockedHostname(hostname: string): boolean {
@@ -30,19 +54,12 @@ function isBlockedHostname(hostname: string): boolean {
   if (!host) return true;
   if (host === "localhost" || host.endsWith(".localhost")) return true;
   if (host === "0.0.0.0") return true;
-
-  const ipVersion = net.isIP(host);
-  if (ipVersion === 4) return isPrivateIpv4(host);
-  if (ipVersion === 6) {
-    const normalized = host.toLowerCase();
-    if (normalized === "::1") return true;
-    if (normalized.startsWith("fc") || normalized.startsWith("fd")) return true;
-    if (normalized.startsWith("fe80")) return true;
-  }
+  if (net.isIP(host)) return isBlockedIp(host);
   return false;
 }
 
-async function assertUrlSafe(urlString: string): Promise<URL> {
+/** Validates scheme/host/DNS before storing or fetching an ICS URL. */
+export async function assertIcsUrlSafe(urlString: string): Promise<URL> {
   let url: URL;
   try {
     url = new URL(urlString);
@@ -65,7 +82,7 @@ async function assertUrlSafe(urlString: string): Promise<URL> {
     throw new Error("ICS URL host could not be resolved");
   }
   for (const addr of addresses) {
-    if (isBlockedHostname(addr.address)) {
+    if (isBlockedIp(addr.address)) {
       throw new Error("ICS URL resolves to a blocked address");
     }
   }
@@ -101,6 +118,38 @@ async function readResponseBody(res: Response): Promise<string> {
   return Buffer.concat(chunks).toString("utf8");
 }
 
+async function fetchWithSafeRedirects(
+  initialUrl: string,
+  signal: AbortSignal
+): Promise<Response> {
+  let currentUrl = (await assertIcsUrlSafe(initialUrl)).toString();
+
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    const res = await fetch(currentUrl, {
+      signal,
+      headers: { Accept: "text/calendar, text/plain, */*" },
+      redirect: "manual",
+    });
+
+    if (res.status >= 300 && res.status < 400) {
+      const location = res.headers.get("location");
+      if (!location) {
+        throw new Error("ICS fetch redirect missing Location");
+      }
+      // Drop redirect body so the connection can be reused.
+      await res.body?.cancel().catch(() => undefined);
+
+      const nextUrl = new URL(location, currentUrl).toString();
+      currentUrl = (await assertIcsUrlSafe(nextUrl)).toString();
+      continue;
+    }
+
+    return res;
+  }
+
+  throw new Error("ICS fetch too many redirects");
+}
+
 export async function fetchIcsContent(urlString: string): Promise<string> {
   const now = Date.now();
   const cached = cache.get(urlString);
@@ -108,16 +157,11 @@ export async function fetchIcsContent(urlString: string): Promise<string> {
     return cached.body;
   }
 
-  const url = await assertUrlSafe(urlString);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
   try {
-    const res = await fetch(url.toString(), {
-      signal: controller.signal,
-      headers: { Accept: "text/calendar, text/plain, */*" },
-      redirect: "follow",
-    });
+    const res = await fetchWithSafeRedirects(urlString, controller.signal);
 
     if (!res.ok) {
       throw new Error(`ICS fetch failed (${res.status})`);

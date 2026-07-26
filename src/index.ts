@@ -71,7 +71,7 @@ client.once("clientReady", async () => {
 
   if (process.env.CLIENT_SECRET?.trim() && process.env.SESSION_SECRET?.trim()) {
     const { startDashboardServer } = await import("./dashboard/server.js");
-    startDashboardServer();
+    startDashboardServer(client);
   }
 });
 

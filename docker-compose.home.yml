@@ -1,0 +1,44 @@
+# Home server: HTTPS via Cloudflare Tunnel (no open ports)
+# Usage: docker compose -f docker-compose.yml -f docker-compose.home.yml up -d --build
+#
+# Before running:
+# 1. Set DASHBOARD_URL=https://dashboard.clippybot.be in .env
+# 2. Set CLOUDFLARE_TUNNEL_TOKEN in .env
+# 3. Cloudflare tunnel routes:
+#    - dashboard.clippybot.be → http://clippy:3000
+#    - monitor.clippybot.be  → http://beszel-proxy:8090  (Beszel on network `edge`)
+#    - cam.clippybot.be      → http://motioneye:8765    (MotionEye on network `edge`)
+#
+# Requires: docker network create edge
+
+services:
+  clippy:
+    ports: []
+    expose:
+      - "3000"
+
+  cloudflared:
+    # Pinned manifest list digest (not floating :latest)
+    image: cloudflare/cloudflared@sha256:e39ee8da81ad5e05d77f38d2f51c60ca51bf2a8450ac3abab50c17fdb91d91bf
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+      # Required for `cloudflared tunnel ready` healthcheck
+      TUNNEL_METRICS: 127.0.0.1:60123
+    healthcheck:
+      # Exec form — official image is distroless (no shell)
+      test: ["CMD", "cloudflared", "tunnel", "--metrics", "127.0.0.1:60123", "ready"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      - clippy
+    networks:
+      - default
+      - edge
+
+networks:
+  edge:
+    external: true

@@ -43,37 +43,37 @@ Discord bot with Supabase stats tracking and a web settings dashboard.
    npm run build:dashboard
    ```
 
-## Production deploy (Ubuntu server)
+## Production deploy (home server + Cloudflare Tunnel)
 
-**Server:** `ssh root@91.99.237.148`  
+**Server:** `ssh quinten@192.168.0.106` (home LAN)  
 **Dashboard:** `https://dashboard.clippybot.be`
 
 ### Prerequisites
 
 - Docker Engine + Docker Compose plugin on the server
-- DNS A record: `dashboard.clippybot.be` → `91.99.237.148`
+- Cloudflare Tunnel route: `dashboard.clippybot.be` → `http://clippy:3000`
+- `CLOUDFLARE_TUNNEL_TOKEN` in `.env`
 - Discord OAuth redirect URI: `https://dashboard.clippybot.be/api/auth/callback`
 
 ### Deploy
 
 ```bash
-ssh root@91.99.237.148
-git clone git@github.com:RageMonke/ClippyBotV3.git /opt/ClippyBotV3
+ssh quinten@192.168.0.106
 cd /opt/ClippyBotV3
 cp .env.example .env
 # Edit .env with all secrets; set DASHBOARD_URL=https://dashboard.clippybot.be
 
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
-docker compose exec clippy node dist/deploy-commands.js
+docker compose -f docker-compose.yml -f docker-compose.home.yml up -d --build
+docker compose exec clippy node dist/src/deploy-commands.js
 ```
 
 ### Updates
 
-On the server (after deploy key is configured):
+On the server:
 
 ```bash
-ssh root@91.99.237.148
-/opt/ClippyBotV3/scripts/deploy.sh
+ssh quinten@192.168.0.106
+/opt/ClippyBotV3/scripts/deploy-home.sh
 ```
 
 Or manually:
@@ -81,8 +81,15 @@ Or manually:
 ```bash
 cd /opt/ClippyBotV3
 git pull origin main
+docker compose -f docker-compose.yml -f docker-compose.home.yml up -d --build
+```
+
+### Legacy Hetzner deploy (Caddy + Let's Encrypt)
+
+```bash
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 ```
+
 
 ## Environment variables
 

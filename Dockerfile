@@ -19,7 +19,8 @@ RUN npm run build
 # Production stage
 FROM node:22-alpine
 
-RUN apk add --no-cache fontconfig ttf-dejavu wget
+RUN apk add --no-cache fontconfig ttf-dejavu wget \
+  && addgroup -S clippy && adduser -S clippy -G clippy
 
 WORKDIR /app
 
@@ -29,6 +30,9 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/dashboard/dist ./dashboard/dist
+
+RUN chown -R clippy:clippy /app
+USER clippy
 
 EXPOSE 3000
 

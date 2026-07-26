@@ -27,7 +27,6 @@ export interface CalendarMember {
   user_id: string;
   initials: string;
   timezone: string;
-  ics_url: string | null;
   avatar_hash: string | null;
 }
 
