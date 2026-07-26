@@ -13,7 +13,8 @@
 
 services:
   clippy:
-    ports: []
+    # Compose merges lists; !reset clears base "3000:3000" publish
+    ports: !reset []
     expose:
       - "3000"
 
