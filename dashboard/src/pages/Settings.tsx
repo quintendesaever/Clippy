@@ -5,6 +5,7 @@ import AppShell from "../components/AppShell";
 import Button from "../components/Button";
 import PageLayout from "../components/PageLayout";
 import PagePanel from "../components/PagePanel";
+import { useTheme, type ThemePreference } from "../hooks/useTheme";
 import type { CalendarEntry, DiscordUser } from "../types";
 
 const TIMEZONE_OPTIONS = [
@@ -18,7 +19,14 @@ const TIMEZONE_OPTIONS = [
 
 const DEFAULT_TIMEZONE = TIMEZONE_OPTIONS[0];
 
+const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
+  { value: "dark", label: "Donker" },
+  { value: "light", label: "Licht" },
+  { value: "system", label: "Systeem" },
+];
+
 export default function Settings({ user }: { user: DiscordUser }) {
+  const { preference, setPreference } = useTheme();
   const [initials, setInitials] = useState("");
   const [icsUrl, setIcsUrl] = useState("");
   const [timezone, setTimezone] = useState<string>(DEFAULT_TIMEZONE);
@@ -106,7 +114,25 @@ export default function Settings({ user }: { user: DiscordUser }) {
 
   return (
     <AppShell user={user}>
-      <PageLayout title="Instellingen" subtitle="Kalender koppelen">
+      <PageLayout title="Instellingen" subtitle="Weergave en kalender">
+        <PagePanel className="pagePanelNarrow">
+          <h2 className="cardTitle">Weergave</h2>
+          <p className="cardHint">Kies een thema voor het dashboard.</p>
+          <div className="topBarTabs themePicker" role="radiogroup" aria-label="Thema">
+            {THEME_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={preference === option.value}
+                className={`topBarTab ${preference === option.value ? "topBarTabActive" : ""}`}
+                onClick={() => setPreference(option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </PagePanel>
         {loading ? (
           <p className="timetableLoading">Laden…</p>
         ) : (

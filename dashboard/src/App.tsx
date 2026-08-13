@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { getMe } from "./api";
+import { ThemeProvider } from "./hooks/useTheme";
 import type { MeResponse } from "./types";
 import Login from "./pages/Login";
 import MyTimetable from "./pages/MyTimetable";
@@ -28,7 +29,7 @@ function GuestRoutes() {
   );
 }
 
-export default function App() {
+function AppRoutes() {
   const [me, setMe] = useState<MeResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -51,5 +52,13 @@ export default function App() {
     <BrowserRouter>
       {me ? <AuthedRoutes me={me} /> : <GuestRoutes />}
     </BrowserRouter>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppRoutes />
+    </ThemeProvider>
   );
 }

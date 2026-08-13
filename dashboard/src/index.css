@@ -466,6 +466,10 @@ select.formSelect {
   cursor: pointer;
 }
 
+[data-theme="light"] select.formSelect {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%235c5e66' d='M1.41 0L6 4.58 10.59 0 12 1.41l-6 6-6-6z'/%3E%3C/svg%3E");
+}
+
 .formCheckLabel {
   display: flex;
   align-items: flex-start;
@@ -629,6 +633,15 @@ select.formSelect {
 .topBarTabActive {
   background: var(--color-card);
   color: var(--color-text);
+}
+
+.themePicker {
+  width: 100%;
+}
+
+.themePicker .topBarTab {
+  flex: 1;
+  text-align: center;
 }
 
 .timetableLayoutToggle {
@@ -797,6 +810,10 @@ select.formSelect {
 
 .availabilityChartBarWrap:hover .availabilityChartBar {
   filter: brightness(1.12);
+}
+
+[data-theme="light"] .availabilityChartBarWrap:hover .availabilityChartBar {
+  filter: brightness(0.94);
 }
 
 /* Week timeline grid */
@@ -993,6 +1010,10 @@ select.formSelect {
 
 .eventCard:hover {
   filter: brightness(1.06);
+}
+
+[data-theme="light"] .eventCard:hover {
+  filter: brightness(0.97);
 }
 
 .eventCardText {
@@ -1205,6 +1226,10 @@ select.formSelect {
 
 .agendaCard:hover {
   filter: brightness(1.06);
+}
+
+[data-theme="light"] .agendaCard:hover {
+  filter: brightness(0.97);
 }
 
 .agendaCardText {
