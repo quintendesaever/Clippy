@@ -1,7 +1,6 @@
 import Button from "./Button";
 
 type WeekNavProps = {
-  weekLabel?: string;
   onPrev: () => void;
   onThisWeek: () => void;
   onNext: () => void;
@@ -31,7 +30,7 @@ function ChevronRightIcon() {
   );
 }
 
-export default function WeekNav({ weekLabel, onPrev, onThisWeek, onNext }: WeekNavProps) {
+export default function WeekNav({ onPrev, onThisWeek, onNext }: WeekNavProps) {
   return (
     <div className="timetableWeekNav">
       <Button
@@ -43,7 +42,6 @@ export default function WeekNav({ weekLabel, onPrev, onThisWeek, onNext }: WeekN
       >
         <ChevronLeftIcon />
       </Button>
-      {weekLabel && <span className="weekNavRange">{weekLabel}</span>}
       <Button variant="secondary" size="small" className="weekNavThisWeek" onClick={onThisWeek}>
         Deze week
       </Button>

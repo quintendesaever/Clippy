@@ -101,6 +101,57 @@ a:hover {
   overflow-y: auto;
 }
 
+.timetablePage .pageLayoutContent {
+  padding-bottom: 7.5rem;
+}
+
+.timetablePage {
+  --timeline-row-height: calc(64px * var(--tt-font-scale, 1));
+  --header-height: calc(32px * var(--tt-font-scale, 1));
+  --week-grid-header-height: calc(52px * var(--tt-font-scale, 1));
+  --timeline-day-gap: calc(16px * var(--tt-font-scale, 1));
+  --timeline-day-padding-y: calc(6px * var(--tt-font-scale, 1));
+}
+
+.timetablePage .pagePanel {
+  background: var(--color-bg-page);
+}
+
+.timetableFontSizeControls {
+  position: fixed;
+  right: max(0.75rem, env(safe-area-inset-right, 0px));
+  bottom: 1rem;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.timetableFontSizeBtn {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--shadow-panel);
+}
+
+.timetableFontSizeBtn:hover:not(:disabled) {
+  background: var(--color-border);
+}
+
+.timetableFontSizeBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .timetableToolbar {
   display: flex;
   flex-wrap: wrap;
@@ -127,13 +178,6 @@ a:hover {
   gap: 0.5rem;
   flex-wrap: wrap;
   align-items: center;
-}
-
-.weekNavRange {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-text);
-  white-space: nowrap;
 }
 
 .weekNavIconBtn {
@@ -188,10 +232,11 @@ a:hover {
 }
 
 .sidebarLogoIcon {
-  width: 1.35rem;
-  height: 1.35rem;
-  color: var(--color-accent);
+  width: 1.75rem;
+  height: 1.75rem;
+  object-fit: contain;
   flex-shrink: 0;
+  display: block;
 }
 
 .sidebarNav {
@@ -575,13 +620,19 @@ select.formSelect {
 }
 
 .timetableLayoutToggle {
-  align-self: center;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.timetableLayoutBtnActive {
+  background: var(--color-card);
 }
 
 .timetableEmpty,
 .timetableLoading {
   color: var(--color-text-muted);
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--tt-font-scale, 1));
 }
 
 .timetableLegend {
@@ -736,6 +787,7 @@ select.formSelect {
   overflow: hidden;
   margin-top: 0;
   border-radius: var(--radius-sm);
+  background: var(--color-bg-page);
 }
 
 .weekTimelineGridWrapScroll {
@@ -747,37 +799,23 @@ select.formSelect {
   min-width: 880px;
 }
 
-.weekTimelineGridWrapScroll .weekTimelineCorner,
-.weekTimelineGridWrapScroll .weekTimelineDayLabel {
-  position: sticky;
-  left: 0;
-  z-index: 3;
-}
-
-.weekTimelineGridWrapScroll .weekTimelineCorner {
-  z-index: 4;
-  background: var(--color-bg);
-}
-
-.weekTimelineGridWrapScroll .weekTimelineDayLabel {
-  background: var(--timeline-day-bg);
-}
-
 .weekTimelineGrid {
   display: flex;
   flex-direction: column;
   gap: var(--timeline-day-gap);
   width: 100%;
+  background: var(--color-bg-page);
 }
 
 .weekTimelineHeader {
   display: grid;
   grid-template-columns: 72px 1fr;
   border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-page);
 }
 
 .weekTimelineCorner {
-  background: var(--color-bg);
+  background: var(--color-bg-page);
 }
 
 .weekTimelineHourHeader {
@@ -785,7 +823,7 @@ select.formSelect {
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
   height: var(--header-height);
-  background: var(--color-bg);
+  background: var(--color-bg-page);
 }
 
 .weekTimelineTrack .eventCard {
@@ -869,13 +907,13 @@ select.formSelect {
 }
 
 .weekTimelineDayName {
-  font-size: 0.8125rem;
+  font-size: calc(0.8125rem * var(--tt-font-scale, 1));
   font-weight: 600;
   color: var(--color-text);
 }
 
 .weekTimelineDayDate {
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--tt-font-scale, 1));
   color: var(--color-text-muted);
 }
 
@@ -886,14 +924,14 @@ select.formSelect {
 }
 
 .weekTimelineTrackEmpty {
-  min-height: 40px;
-  height: 40px;
+  min-height: calc(40px * var(--tt-font-scale, 1));
+  height: calc(40px * var(--tt-font-scale, 1));
 }
 
 .timelineHourHeader {
   display: grid;
   height: var(--header-height);
-  background: var(--color-bg);
+  background: var(--color-bg-page);
   border-bottom: 1px solid var(--color-border);
   position: relative;
 }
@@ -902,7 +940,7 @@ select.formSelect {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--tt-font-scale, 1));
   color: var(--color-text-muted);
 }
 
@@ -946,20 +984,21 @@ select.formSelect {
   gap: 0.1rem;
   min-width: 0;
   flex: 1;
+  overflow: hidden;
 }
 
 .eventCardTitle {
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--tt-font-scale, 1));
   font-weight: 400;
   overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
   line-height: 1.3;
 }
 
 .eventCardTime {
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--tt-font-scale, 1));
   color: var(--color-text-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -977,11 +1016,11 @@ select.formSelect {
   display: grid;
   width: max-content;
   min-width: 100%;
-  background: var(--color-bg);
+  background: var(--color-bg-page);
 }
 
 .weekGridCorner {
-  background: var(--color-bg);
+  background: var(--color-bg-page);
   min-width: 72px;
   min-height: var(--week-grid-header-height, 52px);
   border-bottom: 1px solid var(--color-border);
@@ -990,8 +1029,8 @@ select.formSelect {
 .weekGridDayHeader {
   position: relative;
   padding: 0.5rem 0.35rem;
-  font-size: 0.8125rem;
-  background: var(--color-bg);
+  font-size: calc(0.8125rem * var(--tt-font-scale, 1));
+  background: var(--color-bg-page);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1019,7 +1058,7 @@ select.formSelect {
 }
 
 .weekGridDayDate {
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--tt-font-scale, 1));
   color: var(--color-text-muted);
 }
 
@@ -1028,16 +1067,16 @@ select.formSelect {
   align-items: center;
   justify-content: center;
   padding: 0.2rem 0.35rem;
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--tt-font-scale, 1));
   color: var(--color-text-muted);
-  background: var(--color-bg);
+  background: var(--color-bg-page);
   border-top: 1px solid color-mix(in srgb, var(--color-border) 30%, transparent);
   text-align: center;
 }
 
 .weekGridDayColumn {
   position: relative;
-  background: var(--color-bg);
+  background: var(--color-bg-page);
   background-image: repeating-linear-gradient(
     to bottom,
     transparent 0,
@@ -1051,43 +1090,49 @@ select.formSelect {
   left: 4px;
   right: 4px;
   width: auto;
-  align-items: flex-start;
-  padding-top: 0.35rem;
-  padding-bottom: 0.35rem;
+  align-items: stretch;
+  padding: calc(0.4rem * var(--tt-font-scale, 1)) calc(0.55rem * var(--tt-font-scale, 1));
+  border: 1px solid color-mix(in srgb, var(--course-color, var(--color-border)) 35%, var(--color-border));
+  background: color-mix(in srgb, var(--course-color, var(--color-card)) 22%, var(--color-card));
 }
 
 .weekGridDayColumn .eventCardTitle {
-  -webkit-line-clamp: 1;
+  -webkit-line-clamp: 4;
+  font-weight: 600;
+  font-size: calc(0.8125rem * var(--tt-font-scale, 1));
+  overflow-wrap: anywhere;
 }
 
 .weekGridEventBody {
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: calc(0.2rem * var(--tt-font-scale, 1));
   min-width: 0;
   width: 100%;
 }
 
 .weekGridEventTime {
-  font-size: 0.7rem;
+  font-size: calc(0.7rem * var(--tt-font-scale, 1));
   color: var(--color-text-muted);
   line-height: 1.2;
 }
 
 .weekGridEventMeta {
-  font-size: 0.7rem;
+  font-size: calc(0.7rem * var(--tt-font-scale, 1));
   color: var(--color-text-muted);
-  line-height: 1.2;
+  line-height: 1.25;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 /* Week agenda (mobile) */
 .weekAgenda {
   display: flex;
   flex-direction: column;
-  gap: 1.35rem;
+  gap: calc(1.35rem * var(--tt-font-scale, 1));
 }
 
 .weekAgendaDay {
@@ -1099,7 +1144,7 @@ select.formSelect {
   align-items: baseline;
   gap: 0.45rem;
   margin: 0 0 0.55rem;
-  font-size: 0.9375rem;
+  font-size: calc(0.9375rem * var(--tt-font-scale, 1));
   font-weight: 600;
   color: var(--color-text);
 }
@@ -1111,23 +1156,23 @@ select.formSelect {
 .weekAgendaList {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: calc(0.5rem * var(--tt-font-scale, 1));
 }
 
 .weekAgendaEmpty {
   margin: 0;
   padding: 0.15rem 0.1rem;
   color: var(--color-text-muted);
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--tt-font-scale, 1));
 }
 
 .agendaCard {
   display: flex;
   align-items: flex-start;
-  gap: 0.75rem;
+  gap: calc(0.75rem * var(--tt-font-scale, 1));
   width: 100%;
-  min-height: 56px;
-  padding: 0.7rem 0.85rem;
+  min-height: calc(56px * var(--tt-font-scale, 1));
+  padding: calc(0.7rem * var(--tt-font-scale, 1)) 0.85rem;
   background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -1151,7 +1196,7 @@ select.formSelect {
 }
 
 .agendaCardTitle {
-  font-size: 0.9375rem;
+  font-size: calc(0.9375rem * var(--tt-font-scale, 1));
   font-weight: 500;
   line-height: 1.3;
   overflow: hidden;
@@ -1161,7 +1206,7 @@ select.formSelect {
 }
 
 .agendaCardTime {
-  font-size: 0.8125rem;
+  font-size: calc(0.8125rem * var(--tt-font-scale, 1));
   color: var(--color-text-muted);
   line-height: 1.3;
 }
@@ -1338,8 +1383,9 @@ select.formSelect {
     flex-wrap: nowrap;
     flex: unset;
     justify-content: stretch;
-    gap: 0;
-    padding: 0.25rem 0.35rem env(safe-area-inset-bottom, 0px);
+    align-items: stretch;
+    gap: 0.15rem;
+    padding: 0.4rem 0.35rem calc(0.5rem + env(safe-area-inset-bottom, 0px));
     background: var(--color-bg-elevated);
     border-top: 1px solid var(--color-border);
     z-index: 20;
@@ -1354,8 +1400,8 @@ select.formSelect {
     flex-direction: column;
     justify-content: center;
     gap: 0.2rem;
-    min-height: var(--mobile-tabbar-height);
-    padding: 0.35rem 0.25rem;
+    min-height: unset;
+    padding: 0.45rem 0.25rem 0.4rem;
     border-radius: var(--radius-sm);
     font-size: 0.6875rem;
     text-align: center;
@@ -1400,6 +1446,14 @@ select.formSelect {
     padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
   }
 
+  .timetablePage .pageLayoutContent {
+    padding-bottom: 7rem;
+  }
+
+  .timetableFontSizeControls {
+    bottom: calc(var(--mobile-tabbar-height) + env(safe-area-inset-bottom, 0px) + 0.75rem);
+  }
+
   .topBarActions {
     width: 100%;
   }
@@ -1419,8 +1473,7 @@ select.formSelect {
   .timetableToolbar {
     display: grid;
     grid-template:
-      "range toggle prev next" auto
-      "thisweek toggle prev next" auto
+      "toggle thisweek prev next" auto
       "chips chips chips chips" auto / 1fr auto auto auto;
     align-items: center;
     column-gap: 0.4rem;
@@ -1436,17 +1489,9 @@ select.formSelect {
     width: auto;
   }
 
-  .timetableToolbar .weekNavRange,
-  .timetablePage .weekNavRange {
-    grid-area: range;
-    text-align: left;
-    align-self: end;
-  }
-
   .timetableToolbar .weekNavThisWeek,
   .timetablePage .weekNavThisWeek {
     grid-area: thisweek;
-    justify-self: start;
   }
 
   .timetableToolbar .weekNavPrev,
@@ -1463,11 +1508,11 @@ select.formSelect {
     grid-area: toggle;
     width: auto;
     justify-content: flex-start;
+    justify-self: start;
     align-self: center;
   }
 
-  .timetableLayoutToggle .topBarTab {
-    flex: none;
+  .timetablePage .timetableToolbar .btnSmall {
     min-height: 44px;
   }
 
@@ -1503,7 +1548,6 @@ select.formSelect {
 
   .timetablePage .weekNavIconBtn {
     min-width: 44px;
-    min-height: 44px;
   }
 
   .eventPopupOverlay {

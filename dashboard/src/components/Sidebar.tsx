@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { logout } from "../api";
 import type { DiscordUser } from "../types";
 import { UserAvatar } from "./Avatar";
+import clippyLogo from "../assets/logoicon_clippy_01@2x.png";
 
 function CalendarIcon() {
   return (
@@ -33,9 +34,7 @@ function UserIcon() {
 
 function LogoIcon() {
   return (
-    <svg className="sidebarLogoIcon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M8 3a2 2 0 0 0-2 2v14l7-3.5L20 19V5a2 2 0 0 0-2-2H8Z" />
-    </svg>
+    <img className="sidebarLogoIcon" src={clippyLogo} alt="" width={28} height={28} />
   );
 }
 

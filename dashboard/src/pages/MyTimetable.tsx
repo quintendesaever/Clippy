@@ -3,13 +3,15 @@ import { useMemo, useState } from "react";
 import AppShell from "../components/AppShell";
 import EventPopup from "../components/EventPopup";
 import PagePanel from "../components/PagePanel";
+import TimetableFontSizeControls from "../components/TimetableFontSizeControls";
 import TimetableLayoutToggle from "../components/TimetableLayoutToggle";
 import WeekAgendaList from "../components/WeekAgendaList";
 import WeekGrid from "../components/WeekGrid";
 import WeekNav from "../components/WeekNav";
+import { useTimetableFontScale } from "../hooks/useTimetableFontScale";
 import { useTimetableLayout } from "../hooks/useTimetableLayout";
 import { useWeekTimetable } from "../hooks/useWeekTimetable";
-import { DAY_LABELS, eventDayKey, formatWeekRange } from "../lib/dates";
+import { DAY_LABELS, eventDayKey } from "../lib/dates";
 import type { DiscordUser, TimetableEventDto } from "../types";
 
 export default function MyTimetable({ user }: { user: DiscordUser }) {
@@ -22,6 +24,7 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
     goToThisWeek,
   } = useWeekTimetable();
   const { layout, setLayout, showToggle, useAgenda } = useTimetableLayout();
+  const { scale, decrease, increase, canDecrease, canIncrease } = useTimetableFontScale();
 
   const [popupEvent, setPopupEvent] = useState<TimetableEventDto | null>(null);
 
@@ -48,11 +51,6 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
     [visibleDayDates, dayDates, personalEvents]
   );
 
-  const weekLabel = formatWeekRange(
-    dayDates[0],
-    visibleDayDates[visibleDayDates.length - 1] ?? dayDates[4]
-  );
-
   const avatarByUser = useMemo(
     () => new Map<string, string | null>([[user.id, user.avatar]]),
     [user.avatar, user.id]
@@ -60,7 +58,10 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
 
   return (
     <AppShell user={user}>
-      <div className="pageLayout timetablePage">
+      <div
+        className="pageLayout timetablePage"
+        style={{ "--tt-font-scale": scale } as React.CSSProperties}
+      >
         <div className="pageLayoutContent">
           {error && <p className="errorMsg">{error}</p>}
           {loading && <p className="timetableLoading">Rooster laden…</p>}
@@ -69,7 +70,6 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
             <>
               <div className="timetableToolbar">
                 <WeekNav
-                  weekLabel={weekLabel}
                   onPrev={() => shiftWeek(-1)}
                   onThisWeek={goToThisWeek}
                   onNext={() => shiftWeek(1)}
@@ -101,12 +101,19 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
                     dayDates={visibleDayDates}
                     events={personalEvents}
                     onEventClick={setPopupEvent}
+                    scale={scale}
                   />
                 )}
               </PagePanel>
             </>
           )}
         </div>
+        <TimetableFontSizeControls
+          onDecrease={decrease}
+          onIncrease={increase}
+          canDecrease={canDecrease}
+          canIncrease={canIncrease}
+        />
       </div>
 
       {popupEvent && <EventPopup event={popupEvent} onClose={() => setPopupEvent(null)} />}

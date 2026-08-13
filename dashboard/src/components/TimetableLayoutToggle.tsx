@@ -1,4 +1,5 @@
 import type { TimetableLayout } from "../hooks/useTimetableLayout";
+import Button from "./Button";
 
 type TimetableLayoutToggleProps = {
   value: TimetableLayout;
@@ -7,23 +8,25 @@ type TimetableLayoutToggleProps = {
 
 export default function TimetableLayoutToggle({ value, onChange }: TimetableLayoutToggleProps) {
   return (
-    <div className="topBarTabs timetableLayoutToggle" role="group" aria-label="Weergave">
-      <button
-        type="button"
-        className={`topBarTab ${value === "agenda" ? "topBarTabActive" : ""}`}
+    <div className="timetableLayoutToggle" role="group" aria-label="Weergave">
+      <Button
+        variant="secondary"
+        size="small"
+        className={value === "agenda" ? "timetableLayoutBtnActive" : ""}
         onClick={() => onChange("agenda")}
         aria-pressed={value === "agenda"}
       >
         Lijst
-      </button>
-      <button
-        type="button"
-        className={`topBarTab ${value === "timeline" ? "topBarTabActive" : ""}`}
+      </Button>
+      <Button
+        variant="secondary"
+        size="small"
+        className={value === "timeline" ? "timetableLayoutBtnActive" : ""}
         onClick={() => onChange("timeline")}
         aria-pressed={value === "timeline"}
       >
         Tijdlijn
-      </button>
+      </Button>
     </div>
   );
 }

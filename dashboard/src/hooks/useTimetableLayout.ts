@@ -7,9 +7,9 @@ const STORAGE_KEY = "clippy.timetableLayout";
 
 function readLayout(): TimetableLayout {
   try {
-    return localStorage.getItem(STORAGE_KEY) === "timeline" ? "timeline" : "agenda";
+    return localStorage.getItem(STORAGE_KEY) === "agenda" ? "agenda" : "timeline";
   } catch {
-    return "agenda";
+    return "timeline";
   }
 }
 

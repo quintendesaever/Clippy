@@ -14,7 +14,7 @@
   --font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --sidebar-width: 240px;
   --mobile-topbar-height: 52px;
-  --mobile-tabbar-height: 56px;
+  --mobile-tabbar-height: 64px;
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -28,7 +28,7 @@
   --timeline-row-height: 64px;
   --timeline-row-gap: 0px;
   --timeline-day-gap: 16px;
-  --timeline-day-bg: #1c1d22;
+  --timeline-day-bg: var(--color-bg-page);
   --timeline-day-padding-y: 6px;
   --timeline-card-gutter: 4px;
   --header-height: 32px;
