@@ -14,7 +14,7 @@ import WeekTimelineGrid from "../components/WeekTimelineGrid";
 import { useTimetableFontScale } from "../hooks/useTimetableFontScale";
 import { useTimetableLayout } from "../hooks/useTimetableLayout";
 import { useWeekTimetable } from "../hooks/useWeekTimetable";
-import { DAY_LABELS } from "../lib/dates";
+import { DAY_LABELS, formatWeekRange } from "../lib/dates";
 import type { CalendarMember, DiscordUser, TimetableEventDto } from "../types";
 
 export default function Timetable({ user }: { user: DiscordUser }) {
@@ -121,6 +121,9 @@ export default function Timetable({ user }: { user: DiscordUser }) {
                 {showToggle && (
                   <TimetableLayoutToggle value={layout} onChange={setLayout} />
                 )}
+                <span className="timetableWeekLabel">
+                  {formatWeekRange(dayDates[0], dayDates[dayDates.length - 1])}
+                </span>
                 <MemberFilter calendars={calendars} selected={selected} onToggle={toggleMember} />
               </div>
 

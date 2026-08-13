@@ -114,7 +114,7 @@ a:hover {
 }
 
 .timetablePage .pagePanel {
-  background: var(--color-bg-page);
+  background: var(--color-bg);
 }
 
 .timetableFontSizeControls {
@@ -154,7 +154,7 @@ a:hover {
 
 .timetableToolbar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-start;
   gap: 0.75rem 1rem;
@@ -162,15 +162,25 @@ a:hover {
 }
 
 .timetableToolbar .memberFilter {
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
   order: 1;
 }
 
+.timetableWeekLabel {
+  flex: 1;
+  min-width: 0;
+  order: 2;
+  text-align: center;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.2;
+}
+
 .timetableToolbar .timetableWeekNav {
   flex-shrink: 0;
-  margin-left: auto;
-  order: 2;
+  order: 3;
 }
 
 .timetableWeekNav {
@@ -787,7 +797,7 @@ select.formSelect {
   overflow: hidden;
   margin-top: 0;
   border-radius: var(--radius-sm);
-  background: var(--color-bg-page);
+  background: transparent;
 }
 
 .weekTimelineGridWrapScroll {
@@ -804,18 +814,18 @@ select.formSelect {
   flex-direction: column;
   gap: var(--timeline-day-gap);
   width: 100%;
-  background: var(--color-bg-page);
+  background: transparent;
 }
 
 .weekTimelineHeader {
   display: grid;
   grid-template-columns: 72px 1fr;
   border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg-page);
+  background: transparent;
 }
 
 .weekTimelineCorner {
-  background: var(--color-bg-page);
+  background: transparent;
 }
 
 .weekTimelineHourHeader {
@@ -823,7 +833,7 @@ select.formSelect {
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
   height: var(--header-height);
-  background: var(--color-bg-page);
+  background: transparent;
 }
 
 .weekTimelineTrack .eventCard {
@@ -835,7 +845,7 @@ select.formSelect {
   position: relative;
   display: grid;
   grid-template-columns: 72px 1fr;
-  background: var(--timeline-day-bg);
+  background: transparent;
   border-radius: var(--radius-sm);
 }
 
@@ -931,7 +941,7 @@ select.formSelect {
 .timelineHourHeader {
   display: grid;
   height: var(--header-height);
-  background: var(--color-bg-page);
+  background: transparent;
   border-bottom: 1px solid var(--color-border);
   position: relative;
 }
@@ -1097,7 +1107,10 @@ select.formSelect {
 }
 
 .weekGridDayColumn .eventCardTitle {
-  -webkit-line-clamp: 4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  white-space: normal;
   font-weight: 600;
   font-size: calc(0.8125rem * var(--tt-font-scale, 1));
   overflow-wrap: anywhere;
@@ -1106,7 +1119,7 @@ select.formSelect {
 .weekGridEventBody {
   display: flex;
   flex-direction: column;
-  gap: calc(0.2rem * var(--tt-font-scale, 1));
+  gap: calc(0.4rem * var(--tt-font-scale, 1));
   min-width: 0;
   width: 100%;
 }
@@ -1462,23 +1475,25 @@ select.formSelect {
     padding: 1rem;
   }
 
-  .timetablePage .pagePanel {
-    background: none;
-    border: none;
-    box-shadow: none;
-    padding: 0;
-    border-radius: 0;
-  }
-
   .timetableToolbar {
     display: grid;
     grid-template:
-      "toggle thisweek prev next" auto
-      "chips chips chips chips" auto / 1fr auto auto auto;
+      "toggle week thisweek prev next" auto
+      "chips chips chips chips chips" auto / auto 1fr auto auto auto;
     align-items: center;
     column-gap: 0.4rem;
     row-gap: 0.2rem;
     margin-bottom: 0.85rem;
+  }
+
+  .timetableWeekLabel {
+    grid-area: week;
+    flex: unset;
+    min-width: 0;
+    justify-self: center;
+    align-self: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .timetableToolbar .timetableWeekNav,

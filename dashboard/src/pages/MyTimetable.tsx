@@ -11,7 +11,7 @@ import WeekNav from "../components/WeekNav";
 import { useTimetableFontScale } from "../hooks/useTimetableFontScale";
 import { useTimetableLayout } from "../hooks/useTimetableLayout";
 import { useWeekTimetable } from "../hooks/useWeekTimetable";
-import { DAY_LABELS, eventDayKey } from "../lib/dates";
+import { DAY_LABELS, eventDayKey, formatWeekRange } from "../lib/dates";
 import type { DiscordUser, TimetableEventDto } from "../types";
 
 export default function MyTimetable({ user }: { user: DiscordUser }) {
@@ -77,6 +77,9 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
                 {showToggle && (
                   <TimetableLayoutToggle value={layout} onChange={setLayout} />
                 )}
+                <span className="timetableWeekLabel">
+                  {formatWeekRange(dayDates[0], dayDates[dayDates.length - 1])}
+                </span>
               </div>
 
               <PagePanel>
