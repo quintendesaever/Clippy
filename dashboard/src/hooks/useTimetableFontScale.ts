@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 const STORAGE_KEY = "clippy.timetableFontScale";
-const STEPS = [0.85, 1, 1.15, 1.3, 1.5] as const;
+const STEPS = [0.55, 0.7, 0.85, 1, 1.15, 1.3, 1.5] as const;
 const DEFAULT_SCALE = 1;
 
 export type TimetableFontScale = (typeof STEPS)[number];

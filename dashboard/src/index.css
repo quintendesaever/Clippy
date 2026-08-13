@@ -1026,11 +1026,11 @@ select.formSelect {
   display: grid;
   width: max-content;
   min-width: 100%;
-  background: var(--color-bg-page);
+  background: transparent;
 }
 
 .weekGridCorner {
-  background: var(--color-bg-page);
+  background: transparent;
   min-width: 72px;
   min-height: var(--week-grid-header-height, 52px);
   border-bottom: 1px solid var(--color-border);
@@ -1040,7 +1040,7 @@ select.formSelect {
   position: relative;
   padding: 0.5rem 0.35rem;
   font-size: calc(0.8125rem * var(--tt-font-scale, 1));
-  background: var(--color-bg-page);
+  background: transparent;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1079,14 +1079,14 @@ select.formSelect {
   padding: 0.2rem 0.35rem;
   font-size: calc(0.75rem * var(--tt-font-scale, 1));
   color: var(--color-text-muted);
-  background: var(--color-bg-page);
+  background: transparent;
   border-top: 1px solid color-mix(in srgb, var(--color-border) 30%, transparent);
   text-align: center;
 }
 
 .weekGridDayColumn {
   position: relative;
-  background: var(--color-bg-page);
+  background: transparent;
   background-image: repeating-linear-gradient(
     to bottom,
     transparent 0,
