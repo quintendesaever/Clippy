@@ -111,6 +111,8 @@ a:hover {
   --week-grid-header-height: calc(52px * var(--tt-font-scale, 1));
   --timeline-day-gap: calc(16px * var(--tt-font-scale, 1));
   --timeline-day-padding-y: calc(6px * var(--tt-font-scale, 1));
+  --avatar-size: calc(36px * var(--tt-font-scale, 1));
+  --avatar-overlap: calc(8px * var(--tt-font-scale, 1));
 }
 
 .timetablePage .pagePanel {
@@ -123,8 +125,8 @@ a:hover {
   bottom: 1rem;
   z-index: 25;
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  flex-direction: row;
+  gap: 0.4rem;
 }
 
 .timetableFontSizeBtn {
@@ -699,6 +701,11 @@ select.formSelect {
 .avatarSm {
   width: 24px;
   height: 24px;
+}
+
+.weekAgenda .avatarSm {
+  width: calc(24px * var(--tt-font-scale, 1));
+  height: calc(24px * var(--tt-font-scale, 1));
 }
 
 .avatarMd {
