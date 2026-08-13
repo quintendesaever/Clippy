@@ -6,6 +6,8 @@ export type MemberCalendar = {
   show_location: boolean;
 };
 
+export type TimetableEventSource = "ics" | "activity";
+
 export type TimetableEvent = {
   userId: string;
   initials: string;
@@ -17,6 +19,9 @@ export type TimetableEvent = {
   allDay: boolean;
   location?: string;
   description?: string;
+  source: TimetableEventSource;
+  id?: string;
+  createdBy?: string;
 };
 
 export type MemberLoadResult = {

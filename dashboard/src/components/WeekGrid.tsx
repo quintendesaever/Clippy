@@ -8,22 +8,42 @@ const HOUR_START = 8;
 const HOUR_END = 22;
 const BASE_ROW_HEIGHT_PX = 64;
 const BASE_MIN_EVENT_HEIGHT_PX = 36;
+const ACTIVITY_COLOR = "#f0b232";
 
 type WeekGridProps = {
   dayDates: string[];
   events: TimetableEventDto[];
   onEventClick: (event: TimetableEventDto) => void;
+  onEmptySlotClick?: (dayKey: string, hour: number, minute: number) => void;
   scale?: number;
 };
 
-export default function WeekGrid({ dayDates, events, onEventClick, scale = 1 }: WeekGridProps) {
+export default function WeekGrid({
+  dayDates,
+  events,
+  onEventClick,
+  onEmptySlotClick,
+  scale = 1,
+}: WeekGridProps) {
   const hourCount = HOUR_END - HOUR_START;
   const rowHeight = BASE_ROW_HEIGHT_PX * scale;
   const minEventHeight = BASE_MIN_EVENT_HEIGHT_PX * scale;
   const colorsByCourse = useMemo(
-    () => courseColorMap(events.map((ev) => ev.title)),
+    () => courseColorMap(events.filter((ev) => ev.source !== "activity").map((ev) => ev.title)),
     [events]
   );
+
+  function handleColumnClick(day: string, e: React.MouseEvent<HTMLDivElement>) {
+    if (!onEmptySlotClick) return;
+    if ((e.target as HTMLElement).closest(".weekGridEvent")) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (rect.height <= 0) return;
+    const ratio = Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height));
+    const totalMinutes = hourCount * 60;
+    const minutesFromStart = Math.round((ratio * totalMinutes) / 30) * 30;
+    const absolute = HOUR_START * 60 + minutesFromStart;
+    onEmptySlotClick(day, Math.floor(absolute / 60), absolute % 60);
+  }
 
   return (
     <div className="weekGridWrap">
@@ -59,12 +79,13 @@ export default function WeekGrid({ dayDates, events, onEventClick, scale = 1 }: 
           return (
             <div
               key={day}
-              className="weekGridDayColumn"
+              className={`weekGridDayColumn${onEmptySlotClick ? " weekGridDayColumnClickable" : ""}`}
               style={{
                 gridColumn: dayIndex + 2,
                 gridRow: `2 / ${hourCount + 2}`,
                 height: hourCount * rowHeight,
               }}
+              onClick={onEmptySlotClick ? (e) => handleColumnClick(day, e) : undefined}
             >
               {dayEvents.map((ev) => {
                 const start = new Date(ev.start);
@@ -79,12 +100,15 @@ export default function WeekGrid({ dayDates, events, onEventClick, scale = 1 }: 
                 const descriptionLine = ev.description
                   ? descriptionPreview(ev.description, 80)
                   : undefined;
-                const courseColor = colorsByCourse.get(courseKeyFromTitle(ev.title)) ?? "#5865f2";
+                const isActivity = ev.source === "activity";
+                const courseColor = isActivity
+                  ? ACTIVITY_COLOR
+                  : (colorsByCourse.get(courseKeyFromTitle(ev.title)) ?? "#5865f2");
                 return (
                   <button
-                    key={`${ev.start}-${ev.title}`}
+                    key={`${ev.source ?? "ics"}-${ev.id ?? ev.start}-${ev.title}`}
                     type="button"
-                    className="eventCard weekGridEvent"
+                    className={`eventCard weekGridEvent${isActivity ? " eventCardActivity" : ""}`}
                     style={
                       {
                         top: `${top}px`,

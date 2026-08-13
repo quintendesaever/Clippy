@@ -1,6 +1,11 @@
 import { withoutEmptySaturday } from "@shared/timetable/weekDays";
 import { useMemo, useState } from "react";
+import ActivityForm, {
+  prefillFromSlot,
+  type ActivityFormPrefill,
+} from "../components/ActivityForm";
 import AppShell from "../components/AppShell";
+import Button from "../components/Button";
 import EventPopup from "../components/EventPopup";
 import PagePanel from "../components/PagePanel";
 import TimetableFontSizeControls from "../components/TimetableFontSizeControls";
@@ -18,20 +23,28 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
   const {
     dayDates,
     eventsByUser,
+    activities,
     loading,
     error,
     shiftWeek,
     goToThisWeek,
+    refetch,
   } = useWeekTimetable();
   const { layout, setLayout, showToggle, useAgenda } = useTimetableLayout();
   const { scale, decrease, increase, canDecrease, canIncrease } = useTimetableFontScale();
 
   const [popupEvent, setPopupEvent] = useState<TimetableEventDto | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState<"create" | "edit">("create");
+  const [editEvent, setEditEvent] = useState<TimetableEventDto | null>(null);
+  const [formPrefill, setFormPrefill] = useState<ActivityFormPrefill | null>(null);
 
-  const personalEvents = useMemo(
-    () => eventsByUser[user.id] ?? [],
-    [eventsByUser, user.id]
-  );
+  const personalEvents = useMemo(() => {
+    const mine = eventsByUser[user.id] ?? [];
+    return [...mine, ...activities].sort(
+      (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()
+    );
+  }, [activities, eventsByUser, user.id]);
 
   const visibleDayDates = useMemo(
     () =>
@@ -51,10 +64,29 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
     [visibleDayDates, dayDates, personalEvents]
   );
 
-  const avatarByUser = useMemo(
-    () => new Map<string, string | null>([[user.id, user.avatar]]),
-    [user.avatar, user.id]
-  );
+  const avatarByUser = useMemo(() => {
+    const map = new Map<string, string | null>([[user.id, user.avatar]]);
+    for (const activity of activities) {
+      if (!map.has(activity.userId)) {
+        map.set(activity.userId, null);
+      }
+    }
+    return map;
+  }, [activities, user.avatar, user.id]);
+
+  function openCreate(prefill?: ActivityFormPrefill | null) {
+    setFormMode("create");
+    setEditEvent(null);
+    setFormPrefill(prefill ?? null);
+    setFormOpen(true);
+  }
+
+  function openEdit(event: TimetableEventDto) {
+    setFormMode("edit");
+    setEditEvent(event);
+    setFormPrefill(null);
+    setFormOpen(true);
+  }
 
   return (
     <AppShell user={user}>
@@ -80,13 +112,17 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
                 <span className="timetableWeekLabel">
                   {formatWeekRange(dayDates[0], dayDates[dayDates.length - 1])}
                 </span>
+                <Button size="small" onClick={() => openCreate()}>
+                  Activiteit toevoegen
+                </Button>
               </div>
 
               <PagePanel>
                 {useAgenda ? (
                   personalEvents.length === 0 ? (
                     <p className="timetableEmpty">
-                      Geen lessen deze week, of geen kalender gekoppeld.
+                      Geen lessen of activiteiten deze week. Koppel een kalender of voeg een
+                      activiteit toe.
                     </p>
                   ) : (
                     <WeekAgendaList
@@ -95,15 +131,14 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
                       onEventClick={setPopupEvent}
                     />
                   )
-                ) : personalEvents.length === 0 ? (
-                  <p className="timetableEmpty">
-                    Geen lessen deze week, of geen kalender gekoppeld.
-                  </p>
                 ) : (
                   <WeekGrid
-                    dayDates={visibleDayDates}
+                    dayDates={visibleDayDates.length > 0 ? visibleDayDates : dayDates}
                     events={personalEvents}
                     onEventClick={setPopupEvent}
+                    onEmptySlotClick={(dayKey, hour, minute) =>
+                      openCreate(prefillFromSlot(dayKey, hour, minute))
+                    }
                     scale={scale}
                   />
                 )}
@@ -119,7 +154,27 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
         />
       </div>
 
-      {popupEvent && <EventPopup event={popupEvent} onClose={() => setPopupEvent(null)} />}
+      {popupEvent && (
+        <EventPopup
+          event={popupEvent}
+          currentUserId={user.id}
+          onClose={() => setPopupEvent(null)}
+          onEdit={openEdit}
+          onDeleted={refetch}
+        />
+      )}
+      {formOpen && (
+        <ActivityForm
+          mode={formMode}
+          initial={editEvent}
+          prefill={formPrefill}
+          onClose={() => setFormOpen(false)}
+          onSaved={() => {
+            setFormOpen(false);
+            refetch();
+          }}
+        />
+      )}
     </AppShell>
   );
 }

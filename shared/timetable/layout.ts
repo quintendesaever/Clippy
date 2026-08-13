@@ -7,6 +7,8 @@ export type LayoutEvent = {
   title: string;
   userId: string;
   allDay: boolean;
+  /** Distinguishes ICS lessons from shared activities when merging cards. */
+  source?: "ics" | "activity";
 };
 
 export type RenderCard = {
@@ -16,6 +18,7 @@ export type RenderCard = {
   userIds: string[];
   startMs: number;
   endMs: number;
+  source: "ics" | "activity";
 };
 
 export type TimelineLayout = {
@@ -120,7 +123,8 @@ export function groupDayEvents(events: LayoutEvent[]): RenderCard[] {
   for (const event of events) {
     if (event.allDay) continue;
 
-    const key = `${event.start.getTime()}|${event.end.getTime()}|${event.title.toLowerCase()}`;
+    const source = event.source ?? "ics";
+    const key = `${source}|${event.start.getTime()}|${event.end.getTime()}|${event.title.toLowerCase()}`;
     const existing = groups.get(key);
     if (existing) {
       if (!existing.userIds.includes(event.userId)) {
@@ -136,6 +140,7 @@ export function groupDayEvents(events: LayoutEvent[]): RenderCard[] {
       userIds: [event.userId],
       startMs: event.start.getTime(),
       endMs: event.end.getTime(),
+      source,
     });
   }
 

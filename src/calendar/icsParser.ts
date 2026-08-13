@@ -56,6 +56,7 @@ function mapInstanceToEvent(
     allDay,
     location: location?.trim() || undefined,
     description: normalizedDescription,
+    source: "ics",
   };
 }
 

@@ -19,6 +19,10 @@ type AgendaItem = {
   event: TimetableEventDto;
 };
 
+function eventSource(ev: TimetableEventDto): "ics" | "activity" {
+  return ev.source ?? "ics";
+}
+
 function toLayoutEvents(events: TimetableEventDto[]): LayoutEvent[] {
   return events.map((ev) => ({
     start: new Date(ev.start),
@@ -26,13 +30,21 @@ function toLayoutEvents(events: TimetableEventDto[]): LayoutEvent[] {
     title: ev.title,
     userId: ev.userId,
     allDay: ev.allDay,
+    source: eventSource(ev),
   }));
 }
 
-function findEvent(events: TimetableEventDto[], title: string, startMs: number, endMs: number) {
+function findEvent(
+  events: TimetableEventDto[],
+  title: string,
+  startMs: number,
+  endMs: number,
+  source: "ics" | "activity"
+) {
   return events.find(
     (ev) =>
       !ev.allDay &&
+      eventSource(ev) === source &&
       ev.title.toLowerCase() === title.toLowerCase() &&
       new Date(ev.start).getTime() === startMs &&
       new Date(ev.end).getTime() === endMs
@@ -43,7 +55,7 @@ function groupAllDayEvents(events: TimetableEventDto[]): AgendaItem[] {
   const groups = new Map<string, AgendaItem>();
   for (const ev of events) {
     if (!ev.allDay) continue;
-    const key = `${ev.start}|${ev.end}|${ev.title.toLowerCase()}`;
+    const key = `${eventSource(ev)}|${ev.start}|${ev.end}|${ev.title.toLowerCase()}`;
     const existing = groups.get(key);
     if (existing) {
       if (!existing.userIds.includes(ev.userId)) existing.userIds.push(ev.userId);
@@ -62,11 +74,11 @@ function groupAllDayEvents(events: TimetableEventDto[]): AgendaItem[] {
 
 function timedAgendaItems(events: TimetableEventDto[]): AgendaItem[] {
   return groupDayEvents(toLayoutEvents(events)).flatMap((card) => {
-    const ev = findEvent(events, card.title, card.startMs, card.endMs);
+    const ev = findEvent(events, card.title, card.startMs, card.endMs, card.source);
     if (!ev) return [];
     return [
       {
-        key: `${card.startMs}-${card.title}`,
+        key: `${card.source}-${card.startMs}-${card.title}`,
         title: card.title,
         timeLabel: `${formatTime(ev.start)}–${formatTime(ev.end)}`,
         userIds: card.userIds,
@@ -101,14 +113,14 @@ export default function WeekAgendaList({
         >
           <h2 className="weekAgendaDayHeader">{formatAgendaDay(day.dayKey)}</h2>
           {day.items.length === 0 ? (
-            <p className="weekAgendaEmpty">Geen lessen</p>
+            <p className="weekAgendaEmpty">Geen lessen of activiteiten</p>
           ) : (
             <div className="weekAgendaList">
               {day.items.map((item) => (
                 <button
                   key={item.key}
                   type="button"
-                  className="agendaCard"
+                  className={`agendaCard${item.event.source === "activity" ? " agendaCardActivity" : ""}`}
                   onClick={() => onEventClick(item.event)}
                 >
                   <AvatarStack userIds={item.userIds} avatarByUser={avatarByUser} size="sm" />

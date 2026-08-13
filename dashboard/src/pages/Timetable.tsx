@@ -1,7 +1,12 @@
 import { withoutEmptySaturday } from "@shared/timetable/weekDays";
 import { useEffect, useMemo, useState } from "react";
 import { getCalendars } from "../api";
+import ActivityForm, {
+  prefillFromSlot,
+  type ActivityFormPrefill,
+} from "../components/ActivityForm";
 import AppShell from "../components/AppShell";
+import Button from "../components/Button";
 import EventPopup from "../components/EventPopup";
 import MemberFilter from "../components/MemberFilter";
 import PagePanel from "../components/PagePanel";
@@ -21,11 +26,13 @@ export default function Timetable({ user }: { user: DiscordUser }) {
   const {
     dayDates,
     eventsByUser,
+    activities,
     timezone,
     loading,
     error,
     shiftWeek,
     goToThisWeek,
+    refetch,
   } = useWeekTimetable();
   const { isMobile, layout, setLayout, showToggle, useAgenda } = useTimetableLayout();
   const { scale, decrease, increase, canDecrease, canIncrease } = useTimetableFontScale();
@@ -34,14 +41,24 @@ export default function Timetable({ user }: { user: DiscordUser }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [calendarError, setCalendarError] = useState<string | null>(null);
   const [popupEvent, setPopupEvent] = useState<TimetableEventDto | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState<"create" | "edit">("create");
+  const [editEvent, setEditEvent] = useState<TimetableEventDto | null>(null);
+  const [formPrefill, setFormPrefill] = useState<ActivityFormPrefill | null>(null);
 
   const avatarByUser = useMemo(() => {
     const map = new Map<string, string | null>();
     for (const c of calendars) {
       map.set(c.user_id, c.avatar_hash);
     }
+    map.set(user.id, user.avatar);
+    for (const activity of activities) {
+      if (!map.has(activity.userId)) {
+        map.set(activity.userId, null);
+      }
+    }
     return map;
-  }, [calendars]);
+  }, [activities, calendars, user.avatar, user.id]);
 
   useEffect(() => {
     getCalendars()
@@ -71,8 +88,15 @@ export default function Timetable({ user }: { user: DiscordUser }) {
         }
       }
     }
+    // Shared activities always show, independent of member filter.
+    for (const activity of activities) {
+      const day = activity.start.slice(0, 10);
+      if (byDay.has(day)) {
+        byDay.get(day)!.push(activity);
+      }
+    }
     return byDay;
-  }, [dayDates, eventsByUser, selectedCalendars]);
+  }, [activities, dayDates, eventsByUser, selectedCalendars]);
 
   const weekDays = useMemo(
     () =>
@@ -89,6 +113,9 @@ export default function Timetable({ user }: { user: DiscordUser }) {
     [weekDays]
   );
 
+  const showSchedule =
+    selectedCalendars.length > 0 || activities.length > 0 || calendars.length === 0;
+
   function toggleMember(userId: string) {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -96,6 +123,20 @@ export default function Timetable({ user }: { user: DiscordUser }) {
       else next.add(userId);
       return next;
     });
+  }
+
+  function openCreate(prefill?: ActivityFormPrefill | null) {
+    setFormMode("create");
+    setEditEvent(null);
+    setFormPrefill(prefill ?? null);
+    setFormOpen(true);
+  }
+
+  function openEdit(event: TimetableEventDto) {
+    setFormMode("edit");
+    setEditEvent(event);
+    setFormPrefill(null);
+    setFormOpen(true);
   }
 
   const displayError = error ?? calendarError;
@@ -125,12 +166,17 @@ export default function Timetable({ user }: { user: DiscordUser }) {
                   {formatWeekRange(dayDates[0], dayDates[dayDates.length - 1])}
                 </span>
                 <MemberFilter calendars={calendars} selected={selected} onToggle={toggleMember} />
+                <Button size="small" onClick={() => openCreate()}>
+                  Activiteit toevoegen
+                </Button>
               </div>
 
-              {calendars.length === 0 && (
-                <p className="timetableEmpty">Nog geen kalenders gekoppeld.</p>
+              {calendars.length === 0 && activities.length === 0 && (
+                <p className="timetableEmpty">
+                  Nog geen kalenders gekoppeld. Je kan al wel een gedeelde activiteit toevoegen.
+                </p>
               )}
-              {calendars.length > 0 && selectedCalendars.length === 0 && (
+              {calendars.length > 0 && selectedCalendars.length === 0 && activities.length === 0 && (
                 <p className="timetableEmpty">Selecteer minstens één lid.</p>
               )}
 
@@ -140,7 +186,7 @@ export default function Timetable({ user }: { user: DiscordUser }) {
                 </PagePanel>
               )}
 
-              {selectedCalendars.length > 0 && (
+              {showSchedule && (
                 <PagePanel>
                   {useAgenda ? (
                     <WeekAgendaList
@@ -154,6 +200,9 @@ export default function Timetable({ user }: { user: DiscordUser }) {
                       timezone={timezone}
                       avatarByUser={avatarByUser}
                       onEventClick={setPopupEvent}
+                      onEmptySlotClick={(dayKey, hour, minute) =>
+                        openCreate(prefillFromSlot(dayKey, hour, minute))
+                      }
                       scrollable={isMobile}
                     />
                   )}
@@ -170,7 +219,27 @@ export default function Timetable({ user }: { user: DiscordUser }) {
         />
       </div>
 
-      {popupEvent && <EventPopup event={popupEvent} onClose={() => setPopupEvent(null)} />}
+      {popupEvent && (
+        <EventPopup
+          event={popupEvent}
+          currentUserId={user.id}
+          onClose={() => setPopupEvent(null)}
+          onEdit={openEdit}
+          onDeleted={refetch}
+        />
+      )}
+      {formOpen && (
+        <ActivityForm
+          mode={formMode}
+          initial={editEvent}
+          prefill={formPrefill}
+          onClose={() => setFormOpen(false)}
+          onSaved={() => {
+            setFormOpen(false);
+            refetch();
+          }}
+        />
+      )}
     </AppShell>
   );
 }

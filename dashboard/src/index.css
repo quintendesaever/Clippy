@@ -562,6 +562,30 @@ select.formSelect {
   flex-wrap: wrap;
 }
 
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.formOptional {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.formTextarea {
+  resize: vertical;
+  min-height: 4.5rem;
+}
+
+.activityFormPopup {
+  max-width: 28rem;
+}
+
+.eventPopupActions {
+  margin-top: 1rem;
+}
+
 .errorMsg {
   color: var(--color-error);
   font-size: 0.875rem;
@@ -962,6 +986,14 @@ select.formSelect {
   height: calc(40px * var(--tt-font-scale, 1));
 }
 
+.weekTimelineTrackClickable {
+  cursor: crosshair;
+}
+
+.weekGridDayColumnClickable {
+  cursor: crosshair;
+}
+
 .timelineHourHeader {
   display: grid;
   height: var(--header-height);
@@ -1042,6 +1074,16 @@ select.formSelect {
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.2;
+}
+
+.eventCardActivity {
+  border-color: color-mix(in srgb, #f0b232 45%, var(--color-border));
+  background: color-mix(in srgb, #f0b232 18%, var(--color-card));
+}
+
+.agendaCardActivity {
+  border-color: color-mix(in srgb, #f0b232 45%, var(--color-border));
+  background: color-mix(in srgb, #f0b232 14%, var(--color-card));
 }
 
 /* Week grid (personal) */

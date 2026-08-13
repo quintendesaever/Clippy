@@ -36,6 +36,8 @@ export interface CalendarsResponse {
   calendars: CalendarMember[];
 }
 
+export type TimetableEventSource = "ics" | "activity";
+
 export interface TimetableEventDto {
   userId: string;
   initials: string;
@@ -48,6 +50,21 @@ export interface TimetableEventDto {
   location: string | null;
   locationHidden?: boolean;
   description: string | null;
+  source: TimetableEventSource;
+  id?: string;
+  createdBy?: string;
+}
+
+export interface ActivityInput {
+  title: string;
+  start: string;
+  end: string;
+  location?: string | null;
+  description?: string | null;
+}
+
+export interface ActivityResponse {
+  activity: TimetableEventDto;
 }
 
 export interface TimetableMemberDto {
@@ -60,6 +77,7 @@ export interface TimetableMemberDto {
 export interface TimetableResponse {
   events: TimetableEventDto[];
   eventsByUser: Record<string, TimetableEventDto[]>;
+  activities: TimetableEventDto[];
   members: TimetableMemberDto[];
   timezone: string;
 }

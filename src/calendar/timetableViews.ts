@@ -76,17 +76,16 @@ export async function buildTimetableView(
   const dashboardUrl = getDashboardUrl();
   const components = buildDayButtons(timetable, dayKey);
 
-  if (timetable.memberResults.length === 0) {
-    return {
-      content: `Nog geen kalenders gekoppeld. Voeg de jouwe toe op ${dashboardUrl}`,
-      components,
-      clearEmbeds: true,
-    };
-  }
-
   const dayEvents = timetable.eventsByDay.get(dayKey) ?? [];
   if (dayEvents.length === 0) {
-    return { content: "Geen lessen op deze dag.", components, clearEmbeds: true };
+    if (timetable.memberResults.length === 0 && timetable.events.length === 0) {
+      return {
+        content: `Nog geen kalenders gekoppeld. Voeg de jouwe toe op ${dashboardUrl}`,
+        components,
+        clearEmbeds: true,
+      };
+    }
+    return { content: "Geen lessen of activiteiten op deze dag.", components, clearEmbeds: true };
   }
 
   const png = await renderTimetablePng(timetable, dayKey);
@@ -122,12 +121,15 @@ export function serializeEventForApi(
   event: TimetableEvent,
   options?: { viewerUserId?: string; showLocationByUser?: Map<string, boolean> }
 ) {
+  const source = event.source ?? "ics";
+  const isActivity = source === "activity";
   const hasLocationField = Boolean(event.location?.trim());
   const hasLocationInDescription = descriptionContainsLocation(event.description);
   const hasLocation = hasLocationField || hasLocationInDescription;
   const isOwner = options?.viewerUserId != null && options.viewerUserId === event.userId;
   const ownerAllowsLocation = options?.showLocationByUser?.get(event.userId) === true;
-  const locationVisible = isOwner || ownerAllowsLocation;
+  // Shared activities always show location; ICS follows the member preference.
+  const locationVisible = isActivity || isOwner || ownerAllowsLocation;
 
   return {
     userId: event.userId,
@@ -143,5 +145,8 @@ export function serializeEventForApi(
     description: locationVisible
       ? (event.description ?? null)
       : (redactLocationFromDescription(event.description) ?? null),
+    source,
+    ...(event.id ? { id: event.id } : {}),
+    ...(event.createdBy ? { createdBy: event.createdBy } : {}),
   };
 }

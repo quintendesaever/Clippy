@@ -1,6 +1,7 @@
 import { addDays, endOfDay, startOfWeek } from "date-fns";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import { getGuildTimezone, getTodayInGuildTz } from "../stats/helpers.js";
+import { getGuildActivitiesInRange } from "./activities.js";
 import { colorForInitials } from "./eventUtils.js";
 import { fetchIcsContent } from "./icsFetcher.js";
 import { parseIcsEvents } from "./icsParser.js";
@@ -88,16 +89,19 @@ function buildGuildTimetable(
   memberResults: MemberLoadResult[],
   guildTimezone: string,
   rangeStart: Date,
-  rangeEnd: Date
+  rangeEnd: Date,
+  activityEvents: TimetableEvent[] = []
 ): GuildTimetable {
-  const events = memberResults
-    .flatMap((result) => result.events)
-    .sort((a, b) => a.start.getTime() - b.start.getTime());
+  const icsEvents = memberResults.flatMap((result) => result.events);
+  // Activities are shared (not member-filterable); keep them out of eventsByUser.
+  const events = [...icsEvents, ...activityEvents].sort(
+    (a, b) => a.start.getTime() - b.start.getTime()
+  );
 
   return {
     events,
     eventsByDay: groupEventsByDay(events, guildTimezone),
-    eventsByUser: groupEventsByUser(events),
+    eventsByUser: groupEventsByUser(icsEvents),
     memberResults,
     members: buildMembers(memberResults),
     guildTimezone,
@@ -110,10 +114,11 @@ export async function getGuildTimetable(guildId: string): Promise<GuildTimetable
   const guildTimezone = await getGuildTimezone(guildId);
   const { rangeStart, rangeEnd } = rangeBounds(guildTimezone);
   const members = await getGuildMemberCalendars(guildId);
-  const memberResults = await Promise.all(
-    members.map((member) => loadMemberEvents(member, rangeStart, rangeEnd))
-  );
-  return buildGuildTimetable(memberResults, guildTimezone, rangeStart, rangeEnd);
+  const [memberResults, activityEvents] = await Promise.all([
+    Promise.all(members.map((member) => loadMemberEvents(member, rangeStart, rangeEnd))),
+    getGuildActivitiesInRange(guildId, rangeStart, rangeEnd),
+  ]);
+  return buildGuildTimetable(memberResults, guildTimezone, rangeStart, rangeEnd, activityEvents);
 }
 
 export async function getGuildTimetableForDates(
@@ -129,10 +134,11 @@ export async function getGuildTimetableForDates(
   const rangeStart = fromZonedTime(new Date(fromY, fromM - 1, fromD, 0, 0, 0, 0), guildTimezone);
   const rangeEnd = fromZonedTime(new Date(toY, toM - 1, toD, 23, 59, 59, 999), guildTimezone);
 
-  const memberResults = await Promise.all(
-    members.map((member) => loadMemberEvents(member, rangeStart, rangeEnd))
-  );
-  return buildGuildTimetable(memberResults, guildTimezone, rangeStart, rangeEnd);
+  const [memberResults, activityEvents] = await Promise.all([
+    Promise.all(members.map((member) => loadMemberEvents(member, rangeStart, rangeEnd))),
+    getGuildActivitiesInRange(guildId, rangeStart, rangeEnd),
+  ]);
+  return buildGuildTimetable(memberResults, guildTimezone, rangeStart, rangeEnd, activityEvents);
 }
 
 export async function getGuildTimetableForDay(

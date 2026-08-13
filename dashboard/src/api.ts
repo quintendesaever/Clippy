@@ -1,4 +1,6 @@
 import type {
+  ActivityInput,
+  ActivityResponse,
   CalendarResponse,
   CalendarsResponse,
   MeResponse,
@@ -56,4 +58,27 @@ export async function saveCalendar(data: {
 
 export async function deleteCalendar(): Promise<void> {
   await fetchApi<{ ok: boolean }>("/api/calendar", { method: "DELETE" });
+}
+
+export async function createActivity(data: ActivityInput): Promise<ActivityResponse> {
+  return fetchApi<ActivityResponse>("/api/activities", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateActivity(
+  id: string,
+  data: ActivityInput
+): Promise<ActivityResponse> {
+  return fetchApi<ActivityResponse>(`/api/activities/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteActivity(id: string): Promise<void> {
+  await fetchApi<{ ok: boolean }>(`/api/activities/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
 }

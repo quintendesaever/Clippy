@@ -66,6 +66,7 @@ export const TYPE_BADGE_LABELS: Record<string, string> = {
   S: "seminar",
   V: "evaluatie",
   J: "project",
+  A: "activiteit",
 };
 
 export function labelForTypeBadge(badge: string): string {

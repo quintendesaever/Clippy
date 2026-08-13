@@ -8,6 +8,7 @@ type EventCardProps = {
   leftPercent: number;
   widthPercent: number;
   onClick: () => void;
+  isActivity?: boolean;
 };
 
 export default function EventCard({
@@ -18,11 +19,12 @@ export default function EventCard({
   leftPercent,
   widthPercent,
   onClick,
+  isActivity = false,
 }: EventCardProps) {
   return (
     <button
       type="button"
-      className="eventCard"
+      className={`eventCard${isActivity ? " eventCardActivity" : ""}`}
       style={{
         left: `calc(${leftPercent}% + var(--timeline-card-gutter) / 2)`,
         width: `calc(${Math.max(widthPercent, 1)}% - var(--timeline-card-gutter))`,

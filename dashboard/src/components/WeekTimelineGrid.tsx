@@ -29,11 +29,16 @@ type WeekTimelineGridProps = {
   timezone: string;
   avatarByUser: Map<string, string | null>;
   onEventClick: (event: TimetableEventDto) => void;
+  onEmptySlotClick?: (dayKey: string, hour: number, minute: number) => void;
   scrollable?: boolean;
 };
 
 function formatCardTimeRange(start: Date, end: Date): string {
   return `${formatTime(start.toISOString())}–${formatTime(end.toISOString())}`;
+}
+
+function eventSource(ev: TimetableEventDto): "ics" | "activity" {
+  return ev.source ?? "ics";
 }
 
 function toLayoutEvents(events: TimetableEventDto[]): LayoutEvent[] {
@@ -43,16 +48,21 @@ function toLayoutEvents(events: TimetableEventDto[]): LayoutEvent[] {
     title: ev.title,
     userId: ev.userId,
     allDay: ev.allDay,
+    source: eventSource(ev),
   }));
 }
 
 function buildEventLookup(events: TimetableEventDto[]): Map<string, TimetableEventDto> {
   const map = new Map<string, TimetableEventDto>();
   for (const ev of events) {
-    const key = `${ev.start}|${ev.end}|${ev.title.toLowerCase()}`;
+    const key = `${eventSource(ev)}|${ev.start}|${ev.end}|${ev.title.toLowerCase()}`;
     map.set(key, ev);
   }
   return map;
+}
+
+function lookupKeyForCard(card: RenderCard): string {
+  return `${card.source}|${card.start.toISOString()}|${card.end.toISOString()}|${card.title.toLowerCase()}`;
 }
 
 function cardPositionPercent(
@@ -76,6 +86,7 @@ export default function WeekTimelineGrid({
   timezone,
   avatarByUser,
   onEventClick,
+  onEmptySlotClick,
   scrollable = false,
 }: WeekTimelineGridProps) {
   const allEvents = useMemo(() => days.flatMap((d) => d.events), [days]);
@@ -119,9 +130,25 @@ export default function WeekTimelineGrid({
     card: RenderCard,
     eventLookup: Map<string, TimetableEventDto>
   ) {
-    const key = `${card.start.toISOString()}|${card.end.toISOString()}|${card.title.toLowerCase()}`;
-    const ev = eventLookup.get(key);
+    const ev = eventLookup.get(lookupKeyForCard(card));
     if (ev) onEventClick(ev);
+  }
+
+  function handleTrackClick(
+    dayKey: string,
+    e: React.MouseEvent<HTMLDivElement>
+  ) {
+    if (!onEmptySlotClick) return;
+    if ((e.target as HTMLElement).closest(".eventCard")) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    const totalMinutes = layout.hourCount * 60;
+    const minutesFromStart = Math.round((ratio * totalMinutes) / 30) * 30;
+    const absolute = layout.hourStart * 60 + minutesFromStart;
+    const hour = Math.floor(absolute / 60);
+    const minute = absolute % 60;
+    onEmptySlotClick(dayKey, hour, minute);
   }
 
   return (
@@ -157,20 +184,28 @@ export default function WeekTimelineGrid({
               {day.packedRows.map((row, rowIndex) => (
                 <div
                   key={rowIndex}
-                  className={`weekTimelineTrack${day.isEmpty ? " weekTimelineTrackEmpty" : ""}`}
+                  className={`weekTimelineTrack${day.isEmpty ? " weekTimelineTrackEmpty" : ""}${
+                    onEmptySlotClick ? " weekTimelineTrackClickable" : ""
+                  }`}
+                  onClick={
+                    onEmptySlotClick ? (e) => handleTrackClick(day.dayKey, e) : undefined
+                  }
                 >
                   {row.map((card, cardIndex) => {
                     const pos = cardPositionPercent(card, timezone, layout);
                     if (!pos) return null;
+                    const key = lookupKeyForCard(card);
+                    const ev = day.eventLookup.get(key);
                     return (
                       <EventCard
-                        key={`${card.startMs}-${cardIndex}`}
+                        key={`${card.source}-${card.startMs}-${cardIndex}`}
                         title={card.title}
                         timeLabel={formatCardTimeRange(card.start, card.end)}
                         userIds={card.userIds}
                         avatarByUser={avatarByUser}
                         leftPercent={pos.leftPercent}
                         widthPercent={pos.widthPercent}
+                        isActivity={ev?.source === "activity" || card.source === "activity"}
                         onClick={() => handleCardClick(card, day.eventLookup)}
                       />
                     );

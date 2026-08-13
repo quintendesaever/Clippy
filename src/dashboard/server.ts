@@ -11,6 +11,12 @@ import { getDashboardUrl, getGuildId } from "../config.js";
 import { ensureGuild, getGuildTimezone } from "../stats/helpers.js";
 import { upsertMember } from "../stats/members.js";
 import { assertIcsUrlSafe } from "../calendar/icsFetcher.js";
+import {
+  ActivityValidationError,
+  createActivity,
+  deleteActivity,
+  updateActivity,
+} from "../calendar/activities.js";
 import { getGuildCalendarMembers } from "../calendar/memberCalendars.js";
 import { getGuildTimetableForDates } from "../calendar/timetableService.js";
 import { serializeEventForApi } from "../calendar/timetableViews.js";
@@ -393,9 +399,13 @@ export function createDashboardApp(): express.Express {
       for (const [userId, events] of timetable.eventsByUser) {
         eventsByUser[userId] = events.map(serialize);
       }
+      const activities = timetable.events
+        .filter((event) => event.source === "activity")
+        .map(serialize);
       res.json({
         events: timetable.events.map(serialize),
         eventsByUser,
+        activities,
         members: timetable.members.map((member) => ({
           userId: member.userId,
           initials: member.initials,
@@ -406,6 +416,110 @@ export function createDashboardApp(): express.Express {
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to load timetable";
+      res.status(500).json({ error: message });
+    }
+  });
+
+  function parseActivityBody(body: unknown): {
+    title: string;
+    start: Date;
+    end: Date;
+    location?: string | null;
+    description?: string | null;
+  } {
+    const payload = body as Record<string, unknown> | null;
+    const title = typeof payload?.title === "string" ? payload.title : "";
+    const startRaw = typeof payload?.start === "string" ? payload.start : "";
+    const endRaw = typeof payload?.end === "string" ? payload.end : "";
+    const start = new Date(startRaw);
+    const end = new Date(endRaw);
+    return {
+      title,
+      start,
+      end,
+      location: typeof payload?.location === "string" ? payload.location : null,
+      description: typeof payload?.description === "string" ? payload.description : null,
+    };
+  }
+
+  app.post("/api/activities", requireSession, async (req: Request, res: Response) => {
+    const session = req.session as SessionData;
+    const guildId = getGuildId();
+    const userId = session.user!.id;
+
+    try {
+      const event = await createActivity({
+        guildId,
+        userId,
+        avatarHash: session.user!.avatar,
+        input: parseActivityBody(req.body),
+      });
+      res.status(201).json({
+        activity: serializeEventForApi(event, { viewerUserId: userId }),
+      });
+    } catch (err) {
+      if (err instanceof ActivityValidationError) {
+        res.status(400).json({ error: err.message });
+        return;
+      }
+      const message = err instanceof Error ? err.message : "Failed to create activity";
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.patch("/api/activities/:id", requireSession, async (req: Request, res: Response) => {
+    const session = req.session as SessionData;
+    const guildId = getGuildId();
+    const userId = session.user!.id;
+    const activityId = typeof req.params.id === "string" ? req.params.id : "";
+    if (!activityId) {
+      res.status(400).json({ error: "activity id is required" });
+      return;
+    }
+
+    try {
+      const event = await updateActivity({
+        guildId,
+        userId,
+        activityId,
+        input: parseActivityBody(req.body),
+      });
+      if (!event) {
+        res.status(404).json({ error: "Activity not found" });
+        return;
+      }
+      res.json({
+        activity: serializeEventForApi(event, { viewerUserId: userId }),
+      });
+    } catch (err) {
+      if (err instanceof ActivityValidationError) {
+        res.status(400).json({ error: err.message });
+        return;
+      }
+      const message = err instanceof Error ? err.message : "Failed to update activity";
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.delete("/api/activities/:id", requireSession, async (req: Request, res: Response) => {
+    const session = req.session as SessionData;
+    const guildId = getGuildId();
+    const userId = session.user!.id;
+    const activityId = typeof req.params.id === "string" ? req.params.id : "";
+    if (!activityId) {
+      res.status(400).json({ error: "activity id is required" });
+      return;
+    }
+
+    try {
+      const deleted = await deleteActivity({ guildId, userId, activityId });
+      if (!deleted) {
+        res.status(404).json({ error: "Activity not found" });
+        return;
+      }
+      res.json({ ok: true });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to delete activity";
       res.status(500).json({ error: message });
     }
   });
