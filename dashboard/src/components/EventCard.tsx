@@ -2,6 +2,7 @@ import AvatarStack from "./AvatarStack";
 
 type EventCardProps = {
   title: string;
+  timeLabel: string;
   userIds: string[];
   avatarByUser: Map<string, string | null>;
   leftPercent: number;
@@ -11,6 +12,7 @@ type EventCardProps = {
 
 export default function EventCard({
   title,
+  timeLabel,
   userIds,
   avatarByUser,
   leftPercent,
@@ -22,14 +24,17 @@ export default function EventCard({
       type="button"
       className="eventCard"
       style={{
-        left: `${leftPercent}%`,
-        width: `${Math.max(widthPercent, 1)}%`,
+        left: `calc(${leftPercent}% + var(--timeline-card-gutter) / 2)`,
+        width: `calc(${Math.max(widthPercent, 1)}% - var(--timeline-card-gutter))`,
       }}
       onClick={onClick}
-      title={title}
+      title={`${title} (${timeLabel})`}
     >
       <AvatarStack userIds={userIds} avatarByUser={avatarByUser} size="md" />
-      <span className="eventCardTitle">{title}</span>
+      <span className="eventCardText">
+        <span className="eventCardTitle">{title}</span>
+        <span className="eventCardTime">{timeLabel}</span>
+      </span>
     </button>
   );
 }

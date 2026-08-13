@@ -5,11 +5,14 @@ import AppShell from "../components/AppShell";
 import EventPopup from "../components/EventPopup";
 import MemberFilter from "../components/MemberFilter";
 import PagePanel from "../components/PagePanel";
+import TimetableLayoutToggle from "../components/TimetableLayoutToggle";
+import WeekAgendaList from "../components/WeekAgendaList";
 import WeekAvailabilityChart from "../components/WeekAvailabilityChart";
 import WeekNav from "../components/WeekNav";
 import WeekTimelineGrid from "../components/WeekTimelineGrid";
+import { useTimetableLayout } from "../hooks/useTimetableLayout";
 import { useWeekTimetable } from "../hooks/useWeekTimetable";
-import { DAY_LABELS } from "../lib/dates";
+import { DAY_LABELS, formatWeekRange } from "../lib/dates";
 import type { CalendarMember, DiscordUser, TimetableEventDto } from "../types";
 
 export default function Timetable({ user }: { user: DiscordUser }) {
@@ -22,6 +25,7 @@ export default function Timetable({ user }: { user: DiscordUser }) {
     shiftWeek,
     goToThisWeek,
   } = useWeekTimetable();
+  const { isMobile, layout, setLayout, showToggle, useAgenda } = useTimetableLayout();
 
   const [calendars, setCalendars] = useState<CalendarMember[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -82,6 +86,11 @@ export default function Timetable({ user }: { user: DiscordUser }) {
     [weekDays]
   );
 
+  const weekLabel = formatWeekRange(
+    dayDates[0],
+    visibleWeekDays[visibleWeekDays.length - 1]?.dayKey ?? dayDates[4]
+  );
+
   function toggleMember(userId: string) {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -95,7 +104,7 @@ export default function Timetable({ user }: { user: DiscordUser }) {
 
   return (
     <AppShell user={user}>
-      <div className="pageLayout">
+      <div className="pageLayout timetablePage">
         <div className="pageLayoutContent">
           {displayError && <p className="errorMsg">{displayError}</p>}
           {loading && <p className="timetableLoading">Rooster laden…</p>}
@@ -103,12 +112,16 @@ export default function Timetable({ user }: { user: DiscordUser }) {
           {!loading && (
             <>
               <div className="timetableToolbar">
-                <MemberFilter calendars={calendars} selected={selected} onToggle={toggleMember} />
                 <WeekNav
+                  weekLabel={weekLabel}
                   onPrev={() => shiftWeek(-1)}
                   onThisWeek={goToThisWeek}
                   onNext={() => shiftWeek(1)}
                 />
+                {showToggle && (
+                  <TimetableLayoutToggle value={layout} onChange={setLayout} />
+                )}
+                <MemberFilter calendars={calendars} selected={selected} onToggle={toggleMember} />
               </div>
 
               {calendars.length === 0 && (
@@ -118,7 +131,7 @@ export default function Timetable({ user }: { user: DiscordUser }) {
                 <p className="timetableEmpty">Selecteer minstens één lid.</p>
               )}
 
-              {selectedCalendars.length > 0 && (
+              {false && selectedCalendars.length > 0 && (
                 <PagePanel>
                   <WeekAvailabilityChart days={visibleWeekDays} />
                 </PagePanel>
@@ -126,12 +139,21 @@ export default function Timetable({ user }: { user: DiscordUser }) {
 
               {selectedCalendars.length > 0 && (
                 <PagePanel>
-                  <WeekTimelineGrid
-                    days={visibleWeekDays}
-                    timezone={timezone}
-                    avatarByUser={avatarByUser}
-                    onEventClick={setPopupEvent}
-                  />
+                  {useAgenda ? (
+                    <WeekAgendaList
+                      days={visibleWeekDays}
+                      avatarByUser={avatarByUser}
+                      onEventClick={setPopupEvent}
+                    />
+                  ) : (
+                    <WeekTimelineGrid
+                      days={visibleWeekDays}
+                      timezone={timezone}
+                      avatarByUser={avatarByUser}
+                      onEventClick={setPopupEvent}
+                      scrollable={isMobile}
+                    />
+                  )}
                 </PagePanel>
               )}
             </>

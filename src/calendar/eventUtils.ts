@@ -12,39 +12,101 @@ export const MEMBER_COLORS = [
   "#8b5cf6",
 ];
 
-const TYPE_PATTERNS: { pattern: RegExp; badge: string }[] = [
-  { pattern: /\bhoorcollege\b/i, badge: "H" },
-  { pattern: /\bpracticum\b/i, badge: "P" },
-  { pattern: /\bwerkcollege\b/i, badge: "W" },
-  { pattern: /\bles\b(?=\s|$|[-,)])/i, badge: "L" },
-  { pattern: /\bgroepswerk\b/i, badge: "G" },
-  { pattern: /\bexercise\b/i, badge: "E" },
-  { pattern: /\blecture\b/i, badge: "H" },
-  { pattern: /\blab\b/i, badge: "P" },
-  { pattern: /\bseminar\b/i, badge: "S" },
+const TYPE_PATTERNS: { pattern: RegExp; badge: string; titleLabel: string }[] = [
+  { pattern: /\bschriftelijke\s+evaluatie\b/i, badge: "V", titleLabel: "Evaluatie" },
+  { pattern: /\bmondelinge\s+evaluatie\b/i, badge: "V", titleLabel: "Evaluatie" },
+  { pattern: /\bevaluatie\b/i, badge: "V", titleLabel: "Evaluatie" },
+  { pattern: /\bexamen\b/i, badge: "V", titleLabel: "Evaluatie" },
+  { pattern: /\bexam\b/i, badge: "V", titleLabel: "Evaluatie" },
+  { pattern: /\bhoorcollege\b/i, badge: "H", titleLabel: "Hoorcollege" },
+  { pattern: /\bpracticum\b/i, badge: "P", titleLabel: "Practicum" },
+  { pattern: /\bwerkcollege\b/i, badge: "W", titleLabel: "Werkcollege" },
+  { pattern: /\bles\b(?=\s|$|[-,)])/i, badge: "L", titleLabel: "Les" },
+  { pattern: /\bgroepswerk\b/i, badge: "G", titleLabel: "Groepswerk" },
+  { pattern: /\bexercise\b/i, badge: "E", titleLabel: "Exercise" },
+  { pattern: /\blecture\b/i, badge: "H", titleLabel: "Lecture" },
+  { pattern: /\bproject\b/i, badge: "J", titleLabel: "Project" },
+  { pattern: /\blab\b/i, badge: "P", titleLabel: "Lab" },
+  { pattern: /\bseminar\b/i, badge: "S", titleLabel: "Seminar" },
 ];
 
-export function parseActivitySummary(raw: string): { title: string; typeBadges: string[] } {
+/** Only safe to scan whole description (avoid false hits like "Lecture Hall"). */
+const DESCRIPTION_HINT_PATTERNS: { pattern: RegExp; badge: string; titleLabel: string }[] = [
+  { pattern: /\bexamen\b/i, badge: "V", titleLabel: "Evaluatie" },
+  { pattern: /\bevaluatie\b/i, badge: "V", titleLabel: "Evaluatie" },
+  { pattern: /\bexam\b/i, badge: "V", titleLabel: "Evaluatie" },
+];
+
+function matchType(text: string): { badge: string; titleLabel: string } | null {
+  for (const { pattern, badge, titleLabel } of TYPE_PATTERNS) {
+    if (pattern.test(text)) return { badge, titleLabel };
+  }
+  return null;
+}
+
+function extractTypeFromDescription(description?: string): { badge: string; titleLabel: string } | null {
+  if (!description?.trim()) return null;
+  const typeLine = description.match(/\bType:\s*([^\n\r]+)/i);
+  if (typeLine) {
+    const fromLine = matchType(typeLine[1].trim());
+    if (fromLine) return fromLine;
+  }
+  for (const { pattern, badge, titleLabel } of DESCRIPTION_HINT_PATTERNS) {
+    if (pattern.test(description)) return { badge, titleLabel };
+  }
+  return null;
+}
+
+export function parseActivitySummary(
+  raw: string,
+  description?: string
+): { title: string; typeBadges: string[] } {
   let s = (raw || "").trim();
-  s = s.replace(/^\s*[A-Z]+\d+[A-Z0-9]*\s*[.\-:\s]\s*/i, "").trim();
+  // MyTimetable draft marker + leading course codes (incl. WI2180LR-II)
+  s = s.replace(/^\s*\[DRAFT\]\s*/i, "").trim();
+  s = s.replace(/^\s*[A-Z]+\d+[A-Z0-9]*(?:-[A-Z0-9]+)*\s*[.\-:\s]+\s*/i, "").trim();
+
   const typeBadges: string[] = [];
-  for (const { pattern, badge } of TYPE_PATTERNS) {
+  let titleTypeLabel: string | undefined;
+
+  for (const { pattern, badge, titleLabel } of TYPE_PATTERNS) {
     if (pattern.test(s)) {
       s = s.replace(pattern, " ");
       if (!typeBadges.includes(badge)) typeBadges.push(badge);
+      if (!titleTypeLabel) titleTypeLabel = titleLabel;
     }
   }
+
+  if (!titleTypeLabel) {
+    const fromDesc = extractTypeFromDescription(description);
+    if (fromDesc) {
+      if (!typeBadges.includes(fromDesc.badge)) typeBadges.push(fromDesc.badge);
+      titleTypeLabel = fromDesc.titleLabel;
+    }
+  }
+
   s = s
-    .replace(/\s*[-\–—]\s*$/i, "")
-    .replace(/^\s*[-\–—]\s*/i, "")
     .replace(/\s*[(\[]\s*[A-Z0-9]{4,}\s*[)\]]\s*/gi, " ")
-    .replace(/\b[A-Z]+\d+[A-Z0-9]*\b/gi, " ")
+    .replace(/\b[A-Z]+\d+[A-Z0-9]*(?:-[A-Z0-9]+)*\b/gi, " ")
+    .replace(/\bGR\d+\b/gi, " ")
     .replace(/\s*[(\[]\s*[A-Za-z]+\s*[)\]]\s*$/i, " ")
     .replace(/\s*\(\s*\)\s*/g, " ")
     .replace(/\s*\[\s*\]\s*/g, " ")
+    .replace(/\s*[-\–—]+\s*$/i, "")
+    .replace(/^\s*[-\–—]+\s*/i, "")
     .replace(/\s+/g, " ")
     .trim();
-  const title = s || "(geen titel)";
+
+  // Keep course name only (first comma segment) for compact cards everywhere
+  const courseOnly = s.split(",")[0]?.trim() ?? "";
+  const course = courseOnly || s || "(geen titel)";
+
+  let title = course;
+  if (titleTypeLabel) {
+    const alreadyPrefixed = new RegExp(`^${titleTypeLabel}\\b`, "i").test(course);
+    title = alreadyPrefixed ? course : `${titleTypeLabel} ${course}`.trim();
+  }
+
   return { title, typeBadges };
 }
 
@@ -78,10 +140,17 @@ const TYPE_BADGE_COLORS: Record<string, string> = {
   G: "#06b6d4",
   E: "#eab308",
   S: "#ec4899",
+  V: "#ef4444",
+  J: "#a855f7",
 };
 
 export function colorForTypeBadge(badge: string): string {
   return TYPE_BADGE_COLORS[badge.toUpperCase()] ?? "#6366f1";
 }
 
-export { descriptionPreview, shortLocation, truncateText } from "../../shared/timetable/eventMeta.js";
+export {
+  descriptionPreview,
+  labelForTypeBadge,
+  shortLocation,
+  truncateText,
+} from "../../shared/timetable/eventMeta.js";

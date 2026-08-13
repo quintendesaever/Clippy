@@ -63,7 +63,9 @@ export default function WeekGrid({ dayDates, events, onEventClick }: WeekGridPro
                 const endMin = end.getHours() * 60 + end.getMinutes() - HOUR_START * 60;
                 const top = Math.max(0, (startMin / 60) * ROW_HEIGHT_PX);
                 const height = Math.max(36, ((endMin - startMin) / 60) * ROW_HEIGHT_PX);
-                const locationLine = shortLocation(ev.location);
+                const locationLine = ev.locationHidden
+                  ? "Campus · lokaal"
+                  : shortLocation(ev.location);
                 const descriptionLine = ev.description
                   ? descriptionPreview(ev.description)
                   : undefined;
@@ -81,7 +83,11 @@ export default function WeekGrid({ dayDates, events, onEventClick }: WeekGridPro
                         {formatTime(ev.start)}–{formatTime(ev.end)}
                       </span>
                       {locationLine && (
-                        <span className="weekGridEventMeta">{locationLine}</span>
+                        <span
+                          className={`weekGridEventMeta${ev.locationHidden ? " locationBlurred" : ""}`}
+                        >
+                          {locationLine}
+                        </span>
                       )}
                       {descriptionLine && (
                         <span className="weekGridEventMeta">{descriptionLine}</span>

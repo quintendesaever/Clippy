@@ -46,6 +46,7 @@ export async function saveCalendar(data: {
   initials: string;
   ics_url?: string;
   timezone?: string;
+  show_location?: boolean;
 }): Promise<CalendarResponse> {
   return fetchApi<CalendarResponse>("/api/calendar", {
     method: "PUT",

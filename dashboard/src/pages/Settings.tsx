@@ -7,10 +7,22 @@ import PageLayout from "../components/PageLayout";
 import PagePanel from "../components/PagePanel";
 import type { CalendarEntry, DiscordUser } from "../types";
 
+const TIMEZONE_OPTIONS = [
+  "Europe/Brussels",
+  "Europe/Amsterdam",
+  "Europe/Berlin",
+  "Europe/Paris",
+  "Europe/London",
+  "UTC",
+] as const;
+
+const DEFAULT_TIMEZONE = TIMEZONE_OPTIONS[0];
+
 export default function Settings({ user }: { user: DiscordUser }) {
   const [initials, setInitials] = useState("");
   const [icsUrl, setIcsUrl] = useState("");
-  const [timezone, setTimezone] = useState("");
+  const [timezone, setTimezone] = useState(DEFAULT_TIMEZONE);
+  const [showLocation, setShowLocation] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -26,7 +38,8 @@ export default function Settings({ user }: { user: DiscordUser }) {
           setExisting(cal.calendar);
           setInitials(cal.calendar.initials);
           setIcsUrl(cal.calendar.ics_url ?? "");
-          setTimezone(cal.calendar.timezone);
+          setTimezone(cal.calendar.timezone || DEFAULT_TIMEZONE);
+          setShowLocation(Boolean(cal.calendar.show_location));
         }
       })
       .catch((err) => {
@@ -42,6 +55,11 @@ export default function Settings({ user }: { user: DiscordUser }) {
     };
   }, []);
 
+  const timezoneOptions =
+    timezone && !(TIMEZONE_OPTIONS as readonly string[]).includes(timezone)
+      ? [...TIMEZONE_OPTIONS, timezone]
+      : [...TIMEZONE_OPTIONS];
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -52,8 +70,10 @@ export default function Settings({ user }: { user: DiscordUser }) {
         initials,
         ics_url: icsUrl || undefined,
         timezone: timezone || undefined,
+        show_location: showLocation,
       });
       setExisting(result.calendar);
+      setShowLocation(Boolean(result.calendar.show_location));
       setMessage("Kalender opgeslagen.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Opslaan mislukt");
@@ -72,7 +92,8 @@ export default function Settings({ user }: { user: DiscordUser }) {
       setExisting(null);
       setInitials("");
       setIcsUrl("");
-      setTimezone("");
+      setTimezone(DEFAULT_TIMEZONE);
+      setShowLocation(false);
       setMessage("Kalender verwijderd.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verwijderen mislukt");
@@ -95,12 +116,12 @@ export default function Settings({ user }: { user: DiscordUser }) {
             </p>
             <form onSubmit={handleSave} className="form">
               <label className="formLabel">
-                Initialen
+                Naam
                 <input
                   className="formInput"
                   value={initials}
                   onChange={(e) => setInitials(e.target.value)}
-                  placeholder="bv. QD"
+                  placeholder="bv. Quinten"
                   maxLength={32}
                   required
                 />
@@ -116,13 +137,31 @@ export default function Settings({ user }: { user: DiscordUser }) {
                 />
               </label>
               <label className="formLabel">
-                Tijdzone (optioneel)
-                <input
-                  className="formInput"
+                Tijdzone
+                <select
+                  className="formInput formSelect"
                   value={timezone}
                   onChange={(e) => setTimezone(e.target.value)}
-                  placeholder="bv. Europe/Brussels"
-                />
+                >
+                  {timezoneOptions.map((tz) => (
+                    <option key={tz} value={tz}>
+                      {tz}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="formToggleRow">
+                <span>Toon locatie aan andere leden</span>
+                <span className="toggleSwitch">
+                  <input
+                    type="checkbox"
+                    checked={showLocation}
+                    onChange={(e) => setShowLocation(e.target.checked)}
+                  />
+                  <span className="toggleTrack" aria-hidden="true">
+                    <span className="toggleThumb" />
+                  </span>
+                </span>
               </label>
               <div className="formActions">
                 <Button type="submit" disabled={saving}>

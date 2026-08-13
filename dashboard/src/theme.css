@@ -13,6 +13,8 @@
 
   --font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --sidebar-width: 240px;
+  --mobile-topbar-height: 52px;
+  --mobile-tabbar-height: 56px;
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -24,8 +26,11 @@
   --row-height: 92px;
   --row-gap: 8px;
   --timeline-row-height: 64px;
-  --timeline-row-gap: 4px;
-  --timeline-day-gap: calc(var(--timeline-row-gap) * 4);
+  --timeline-row-gap: 0px;
+  --timeline-day-gap: 16px;
+  --timeline-day-bg: #1c1d22;
+  --timeline-day-padding-y: 6px;
+  --timeline-card-gutter: 4px;
   --header-height: 32px;
   --week-grid-header-height: 52px;
   --avatar-size: 36px;

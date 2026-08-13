@@ -3,6 +3,7 @@ export type MemberCalendar = {
   initials: string;
   timezone: string;
   ics_url: string;
+  show_location: boolean;
 };
 
 export type TimetableEvent = {

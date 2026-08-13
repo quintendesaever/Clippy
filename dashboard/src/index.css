@@ -4,12 +4,17 @@
   box-sizing: border-box;
 }
 
+html {
+  min-height: 100%;
+}
+
 body {
   margin: 0;
   font-family: var(--font-family);
   background: var(--color-bg-page);
   color: var(--color-text);
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 a {
@@ -23,12 +28,14 @@ a:hover {
 
 #root {
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* App shell */
 .appShell {
   display: flex;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .appContentColumn {
@@ -38,6 +45,7 @@ a:hover {
   flex-direction: column;
   background: var(--color-bg-page);
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .pageLayout {
@@ -88,6 +96,7 @@ a:hover {
 
 .pageLayoutContent {
   flex: 1;
+  min-height: 0;
   padding: 1.5rem;
   overflow-y: auto;
 }
@@ -104,11 +113,13 @@ a:hover {
 .timetableToolbar .memberFilter {
   flex: 1;
   min-width: 0;
+  order: 1;
 }
 
 .timetableToolbar .timetableWeekNav {
   flex-shrink: 0;
   margin-left: auto;
+  order: 2;
 }
 
 .timetableWeekNav {
@@ -116,6 +127,13 @@ a:hover {
   gap: 0.5rem;
   flex-wrap: wrap;
   align-items: center;
+}
+
+.weekNavRange {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
 }
 
 .weekNavIconBtn {
@@ -244,6 +262,7 @@ a:hover {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  flex: 1;
 }
 
 .sidebarProfileName {
@@ -264,20 +283,28 @@ a:hover {
 }
 
 .sidebarLogout {
-  padding: 0.45rem 0.75rem;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
   background: none;
   border: none;
   border-radius: var(--radius-sm);
   color: var(--color-text-muted);
-  font-size: 0.8125rem;
-  font-family: inherit;
   cursor: pointer;
-  text-align: left;
+}
+
+.sidebarLogoutIcon {
+  width: 1.125rem;
+  height: 1.125rem;
 }
 
 .sidebarLogout:hover {
   color: var(--color-text);
-  background: color-mix(in srgb, var(--color-card) 50%, transparent);
+  background: color-mix(in srgb, var(--color-text) 8%, transparent);
 }
 
 /* Buttons */
@@ -373,6 +400,101 @@ a:hover {
   border-color: var(--color-accent);
 }
 
+select.formSelect {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23949ba4' d='M1.41 0L6 4.58 10.59 0 12 1.41l-6 6-6-6z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2.25rem;
+  cursor: pointer;
+}
+
+.formCheckLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.formCheckLabel input {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.formCheckHint {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.formToggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  min-height: 2rem;
+}
+
+.toggleSwitch {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.toggleSwitch input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.toggleTrack {
+  position: relative;
+  display: block;
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--color-border);
+  transition: background 0.15s ease;
+  pointer-events: none;
+}
+
+.toggleThumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-text);
+  transition: transform 0.15s ease;
+  pointer-events: none;
+}
+
+.toggleSwitch input:checked + .toggleTrack {
+  background: var(--color-accent);
+}
+
+.toggleSwitch input:checked + .toggleTrack .toggleThumb {
+  transform: translateX(18px);
+}
+
+.toggleSwitch input:focus-visible + .toggleTrack {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
 .formActions {
   display: flex;
   gap: 0.75rem;
@@ -450,6 +572,10 @@ a:hover {
 .topBarTabActive {
   background: var(--color-card);
   color: var(--color-text);
+}
+
+.timetableLayoutToggle {
+  align-self: center;
 }
 
 .timetableEmpty,
@@ -612,6 +738,31 @@ a:hover {
   border-radius: var(--radius-sm);
 }
 
+.weekTimelineGridWrapScroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.weekTimelineGridWrapScroll .weekTimelineGrid {
+  min-width: 880px;
+}
+
+.weekTimelineGridWrapScroll .weekTimelineCorner,
+.weekTimelineGridWrapScroll .weekTimelineDayLabel {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+}
+
+.weekTimelineGridWrapScroll .weekTimelineCorner {
+  z-index: 4;
+  background: var(--color-bg);
+}
+
+.weekTimelineGridWrapScroll .weekTimelineDayLabel {
+  background: var(--timeline-day-bg);
+}
+
 .weekTimelineGrid {
   display: flex;
   flex-direction: column;
@@ -646,6 +797,20 @@ a:hover {
   position: relative;
   display: grid;
   grid-template-columns: 72px 1fr;
+  background: var(--timeline-day-bg);
+  border-radius: var(--radius-sm);
+}
+
+.weekTimelineDaySection:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--timeline-day-gap) / -2);
+  height: 1px;
+  background: var(--color-border);
+  pointer-events: none;
+  z-index: 2;
 }
 
 .weekTimelineDayBody {
@@ -654,7 +819,8 @@ a:hover {
   display: flex;
   flex-direction: column;
   gap: var(--timeline-row-gap);
-  background: var(--color-bg);
+  padding: var(--timeline-day-padding-y) 0;
+  background: inherit;
 }
 
 .weekTimelineGridOverlay {
@@ -671,7 +837,7 @@ a:hover {
   top: 0;
   bottom: 0;
   width: 1px;
-  background: color-mix(in srgb, var(--color-border) 35%, transparent);
+  background: color-mix(in srgb, var(--color-border) 55%, transparent);
   pointer-events: none;
   z-index: 0;
 }
@@ -684,17 +850,18 @@ a:hover {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   gap: 0.1rem;
   padding: 0.5rem 0.35rem;
-  background: var(--color-bg);
+  background: inherit;
 }
 
 .weekTimelineDayLabel::after {
   content: "";
   position: absolute;
   right: 0;
-  top: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
   width: 1px;
   height: 2.5rem;
   background: var(--color-border);
@@ -773,14 +940,31 @@ a:hover {
   filter: brightness(1.06);
 }
 
+.eventCardText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  flex: 1;
+}
+
 .eventCardTitle {
   font-size: 0.875rem;
   font-weight: 400;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   line-height: 1.3;
+}
+
+.eventCardTime {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
 }
 
 /* Week grid (personal) */
@@ -873,7 +1057,7 @@ a:hover {
 }
 
 .weekGridDayColumn .eventCardTitle {
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
 }
 
 .weekGridEventBody {
@@ -897,6 +1081,89 @@ a:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Week agenda (mobile) */
+.weekAgenda {
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+}
+
+.weekAgendaDay {
+  min-width: 0;
+}
+
+.weekAgendaDayHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  margin: 0 0 0.55rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.weekAgendaDayToday .weekAgendaDayHeader {
+  color: var(--color-accent);
+}
+
+.weekAgendaList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.weekAgendaEmpty {
+  margin: 0;
+  padding: 0.15rem 0.1rem;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.agendaCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 56px;
+  padding: 0.7rem 0.85rem;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  appearance: none;
+}
+
+.agendaCard:hover {
+  filter: brightness(1.06);
+}
+
+.agendaCardText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.agendaCardTitle {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.3;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.agendaCardTime {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  line-height: 1.3;
 }
 
 /* Event popup */
@@ -957,66 +1224,298 @@ a:hover {
   margin: 0.15rem 0 0;
 }
 
-.eventPopupDescription {
-  white-space: pre-wrap;
+.locationBlurred {
+  filter: blur(5px);
+  user-select: none;
+  pointer-events: none;
 }
 
-/* Mobile sidebar */
+.eventPopupType {
+  text-transform: capitalize;
+}
+
+.eventPopupExtras {
+  margin-top: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.eventPopupExpand {
+  font-size: 0.875rem;
+  border-top: 1px solid var(--color-border);
+  padding-top: 0.5rem;
+}
+
+.eventPopupExpand summary {
+  cursor: pointer;
+  color: var(--color-text-muted);
+  user-select: none;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.eventPopupExpand summary::-webkit-details-marker {
+  display: none;
+}
+
+.eventPopupExpand summary::before {
+  content: "▸";
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.eventPopupExpand[open] summary::before {
+  content: "▾";
+}
+
+.eventPopupExpand summary:hover {
+  color: var(--color-text);
+}
+
+.eventPopupDescription {
+  white-space: pre-wrap;
+  margin: 0.4rem 0 0;
+}
+
+/* Mobile shell + roster */
 @media (max-width: 767px) {
   .appShell {
-    flex-direction: column;
+    display: grid;
+    grid-template:
+      "brand footer" auto
+      "content content" 1fr
+      "nav nav" auto / 1fr auto;
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
   }
 
   .sidebar {
-    width: 100%;
+    display: contents;
+    width: auto;
     height: auto;
     min-height: unset;
-    position: relative;
+    position: static;
+    border-right: none;
   }
 
   .sidebarBrand {
-    padding: 0.75rem 1rem;
+    grid-area: brand;
+    min-height: var(--mobile-topbar-height);
+    padding: calc(env(safe-area-inset-top, 0px) + 0.5rem) 0.25rem 0.5rem 1rem;
+    background: var(--color-bg-elevated);
+    border-bottom: 1px solid var(--color-border);
+    font-size: 1rem;
+  }
+
+  .sidebarFooter {
+    grid-area: footer;
+    display: flex;
+    align-items: center;
+    min-height: var(--mobile-topbar-height);
+    padding: calc(env(safe-area-inset-top, 0px) + 0.5rem) 0.75rem 0.5rem 0.25rem;
+    background: var(--color-bg-elevated);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .sidebarProfileCard {
+    background: none;
+    border: none;
+    padding: 0;
+    gap: 0.25rem;
+  }
+
+  .sidebarProfileInfo {
+    display: none;
   }
 
   .sidebarNav {
-    padding: 0 0.75rem 0.5rem;
+    grid-area: nav;
+    flex-direction: row;
+    flex-wrap: nowrap;
     flex: unset;
+    justify-content: stretch;
+    gap: 0;
+    padding: 0.25rem 0.35rem env(safe-area-inset-bottom, 0px);
+    background: var(--color-bg-elevated);
+    border-top: 1px solid var(--color-border);
+    z-index: 20;
   }
 
   .sidebarSectionLabel {
     display: none;
   }
 
-  .sidebarNav {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-
-  .sidebarFooter {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.75rem 1rem 1rem;
-  }
-
-  .sidebarProfileCard {
+  .sidebarLink {
     flex: 1;
-    min-width: 0;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.2rem;
+    min-height: var(--mobile-tabbar-height);
+    padding: 0.35rem 0.25rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.6875rem;
+    text-align: center;
   }
 
-  .sidebarLogout {
-    flex-shrink: 0;
+  .sidebarLinkLabel {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .sidebarNavIcon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .appContentColumn {
+    grid-area: content;
+    min-height: 0;
+    height: auto;
+    overflow: hidden;
+  }
+
+  .pageLayout {
+    min-height: 0;
+    overflow: hidden;
   }
 
   .topBar {
-    padding: 0.75rem 1rem;
+    padding: 0.65rem 0.75rem;
+    min-height: unset;
+  }
+
+  .topBarTitle {
+    font-size: 1rem;
   }
 
   .pageLayoutContent {
-    padding: 1rem;
+    padding: 0.75rem;
+    padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
   }
 
   .topBarActions {
     width: 100%;
+  }
+
+  .pagePanel {
+    padding: 1rem;
+  }
+
+  .timetablePage .pagePanel {
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    border-radius: 0;
+  }
+
+  .timetableToolbar {
+    display: grid;
+    grid-template:
+      "range toggle prev next" auto
+      "thisweek toggle prev next" auto
+      "chips chips chips chips" auto / 1fr auto auto auto;
+    align-items: center;
+    column-gap: 0.4rem;
+    row-gap: 0.2rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .timetableToolbar .timetableWeekNav,
+  .timetablePage .timetableWeekNav {
+    display: contents;
+    order: unset;
+    margin-left: 0;
+    width: auto;
+  }
+
+  .timetableToolbar .weekNavRange,
+  .timetablePage .weekNavRange {
+    grid-area: range;
+    text-align: left;
+    align-self: end;
+  }
+
+  .timetableToolbar .weekNavThisWeek,
+  .timetablePage .weekNavThisWeek {
+    grid-area: thisweek;
+    justify-self: start;
+  }
+
+  .timetableToolbar .weekNavPrev,
+  .timetablePage .weekNavPrev {
+    grid-area: prev;
+  }
+
+  .timetableToolbar .weekNavNext,
+  .timetablePage .weekNavNext {
+    grid-area: next;
+  }
+
+  .timetableLayoutToggle {
+    grid-area: toggle;
+    width: auto;
+    justify-content: flex-start;
+    align-self: center;
+  }
+
+  .timetableLayoutToggle .topBarTab {
+    flex: none;
+    min-height: 44px;
+  }
+
+  .timetableToolbar .memberFilter {
+    grid-area: chips;
+    order: unset;
+    flex: unset;
+    margin-top: 0.35rem;
+  }
+
+  .memberFilter {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 0.1rem;
+  }
+
+  .memberFilter::-webkit-scrollbar {
+    display: none;
+  }
+
+  .memberChip {
+    flex-shrink: 0;
+    min-height: 44px;
+    padding: 0.35rem 0.7rem 0.35rem 0.4rem;
+  }
+
+  .sidebarLogout {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .timetablePage .weekNavIconBtn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .eventPopupOverlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .eventPopup {
+    max-width: none;
+    max-height: min(90dvh, 100%);
+    overflow-y: auto;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding: 1rem 1.25rem calc(1rem + env(safe-area-inset-bottom, 0px));
   }
 }

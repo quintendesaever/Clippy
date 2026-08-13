@@ -42,7 +42,8 @@ function mapInstanceToEvent(
   const resolvedEnd =
     end ?? new Date(start.getTime() + (allDay ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000));
   const rawTitle = summary.trim() || "Untitled";
-  const { title, typeBadges } = parseActivitySummary(rawTitle);
+  const normalizedDescription = normalizeIcsDescription(description);
+  const { title, typeBadges } = parseActivitySummary(rawTitle, normalizedDescription);
 
   return {
     userId,
@@ -54,7 +55,7 @@ function mapInstanceToEvent(
     end: resolvedEnd,
     allDay,
     location: location?.trim() || undefined,
-    description: normalizeIcsDescription(description),
+    description: normalizedDescription,
   };
 }
 

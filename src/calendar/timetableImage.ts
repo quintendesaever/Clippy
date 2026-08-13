@@ -30,7 +30,9 @@ import {
   THEME,
   TIMETABLE_WIDTH,
   TITLE_FONT_SIZE,
+  TIME_FONT_SIZE,
   TITLE_LINE_HEIGHT,
+  TIME_LINE_HEIGHT,
   TITLE_MAX_LINES,
 } from "../../shared/timetable/theme.js";
 
@@ -48,6 +50,14 @@ function escapeXml(text: string): string {
 
 function formatHourLabel(hour: number): string {
   return `${String(hour).padStart(2, "0")}:00`;
+}
+
+function formatCardTimeRange(start: Date, end: Date, timezone: string): string {
+  const s = toZonedTime(start, timezone);
+  const e = toZonedTime(end, timezone);
+  const fmt = (d: Date) =>
+    `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  return `${fmt(s)}–${fmt(e)}`;
 }
 
 function rowTop(rowIndex: number): number {
@@ -121,6 +131,7 @@ function buildTextLines(
   cardHeight: number,
   cy: number,
   title: string,
+  timeLabel: string,
   textClipId: string
 ): string[] {
   const textMaxWidth = cardWidth - (textX - cardX) - CARD_INNER_PAD;
@@ -130,7 +141,8 @@ function buildTextLines(
   }
 
   const titleBlockHeight = titleLines.length * TITLE_LINE_HEIGHT;
-  const blockTop = cy - titleBlockHeight / 2;
+  const blockHeight = titleBlockHeight + TIME_LINE_HEIGHT;
+  const blockTop = cy - blockHeight / 2;
   const baselineOffset = TITLE_FONT_SIZE * 0.35;
 
   const lineTexts = titleLines.map((line, index) => {
@@ -138,6 +150,12 @@ function buildTextLines(
     const lineY = slotCy + baselineOffset;
     return `<text x="${textX}" y="${lineY}" fill="${THEME.white}" font-size="${TITLE_FONT_SIZE}" font-weight="400" font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(line)}</text>`;
   });
+
+  const timeY =
+    blockTop + titleBlockHeight + TIME_LINE_HEIGHT / 2 + TIME_FONT_SIZE * 0.35;
+  lineTexts.push(
+    `<text x="${textX}" y="${timeY}" fill="${THEME.textMuted}" font-size="${TIME_FONT_SIZE}" font-weight="400" font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(timeLabel)}</text>`
+  );
 
   return [
     `<clipPath id="${textClipId}"><rect x="${textX}" y="${cardY}" width="${Math.max(textMaxWidth, 0)}" height="${cardHeight}"/></clipPath>`,
@@ -276,6 +294,7 @@ function buildAvatarStack(
 function buildActivityCard(
   bounds: CardBounds,
   title: string,
+  timeLabel: string,
   avatarUserIds: string[],
   avatarDataUrls: Map<string, string>,
   cardId: string
@@ -299,7 +318,7 @@ function buildActivityCard(
   return [
     `<rect x="${x + borderWidth}" y="${y + borderWidth}" width="${width - borderWidth * 2}" height="${height - borderWidth * 2}" rx="${innerRadius}" ry="${innerRadius}" fill="${THEME.card}"/>`,
     ...avatarParts,
-    ...buildTextLines(textX, x, y, width, height, cy, title, textClipId),
+    ...buildTextLines(textX, x, y, width, height, cy, title, timeLabel, textClipId),
     `<rect x="${x + 0.5}" y="${y + 0.5}" width="${width - 1}" height="${height - 1}" rx="${radius}" ry="${radius}" fill="none" stroke="${THEME.border}" stroke-width="${borderWidth}"/>`,
   ];
 }
@@ -327,6 +346,7 @@ function buildRowCards(
     return buildActivityCard(
       bounds,
       card.title,
+      formatCardTimeRange(card.start, card.end, timezone),
       card.userIds,
       avatarDataUrls,
       `${rowIndex}-${card.startMs}-${cardIndex}`

@@ -3,6 +3,7 @@ export interface DiscordUser {
   username: string;
   discriminator: string;
   avatar: string | null;
+  nickname?: string;
 }
 
 export interface MeResponse {
@@ -15,6 +16,7 @@ export interface CalendarEntry {
   timezone: string;
   ics_url: string | null;
   source_type: string;
+  show_location: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -44,6 +46,7 @@ export interface TimetableEventDto {
   end: string;
   allDay: boolean;
   location: string | null;
+  locationHidden?: boolean;
   description: string | null;
 }
 

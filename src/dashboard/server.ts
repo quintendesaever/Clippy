@@ -31,6 +31,7 @@ interface DiscordUser {
   username: string;
   discriminator: string;
   avatar: string | null;
+  nickname?: string;
 }
 
 interface DiscordGuild {
@@ -69,6 +70,18 @@ async function botConfirmsGuildMember(userId: string): Promise<boolean | null> {
     return true;
   } catch {
     return false;
+  }
+}
+
+async function getGuildMemberDisplayName(userId: string): Promise<string | null> {
+  const guildId = getGuildId();
+  const guild = discordClient?.guilds.cache.get(guildId);
+  if (!guild) return null;
+  try {
+    const member = await guild.members.fetch(userId);
+    return member.displayName;
+  } catch {
+    return null;
   }
 }
 
@@ -221,9 +234,11 @@ export function createDashboardApp(): express.Express {
     res.json({ ok: true });
   });
 
-  app.get("/api/me", requireSession, (req: Request, res: Response) => {
+  app.get("/api/me", requireSession, async (req: Request, res: Response) => {
     const session = req.session as SessionData;
-    res.json({ user: session.user });
+    const user = session.user!;
+    const nickname = (await getGuildMemberDisplayName(user.id)) ?? user.username;
+    res.json({ user: { ...user, nickname } });
   });
 
   app.get("/api/calendar", requireSession, async (req: Request, res: Response) => {
@@ -233,7 +248,7 @@ export function createDashboardApp(): express.Express {
 
     const { data, error } = await supabase
       .from("member_calendars")
-      .select("id, initials, timezone, ics_url, source_type, created_at, updated_at")
+      .select("id, initials, timezone, ics_url, source_type, show_location, created_at, updated_at")
       .eq("guild_id", guildId)
       .eq("user_id", userId)
       .maybeSingle();
@@ -277,6 +292,8 @@ export function createDashboardApp(): express.Express {
       timezone = await getGuildTimezone(guildId);
     }
 
+    const showLocation = Boolean(req.body?.show_location);
+
     await ensureGuild(guildId);
     await upsertMember(guildId, userId, session.user!.avatar);
 
@@ -287,13 +304,14 @@ export function createDashboardApp(): express.Express {
       timezone,
       source_type: "url" as const,
       ics_url: icsUrl,
+      show_location: showLocation,
       updated_at: new Date().toISOString(),
     };
 
     const { data, error } = await supabase
       .from("member_calendars")
       .upsert(payload, { onConflict: "guild_id,user_id" })
-      .select("id, initials, timezone, ics_url, source_type, created_at, updated_at")
+      .select("id, initials, timezone, ics_url, source_type, show_location, created_at, updated_at")
       .single();
 
     if (error) {
@@ -341,7 +359,9 @@ export function createDashboardApp(): express.Express {
   });
 
   app.get("/api/timetable", requireSession, async (req: Request, res: Response) => {
+    const session = req.session as SessionData;
     const guildId = getGuildId();
+    const viewerUserId = session.user!.id;
     const from =
       typeof req.query.from === "string" && /^\d{4}-\d{2}-\d{2}$/.test(req.query.from)
         ? req.query.from
@@ -362,12 +382,19 @@ export function createDashboardApp(): express.Express {
 
     try {
       const timetable = await getGuildTimetableForDates(guildId, from, to);
+      const calendarMembers = await getGuildCalendarMembers(guildId);
+      const showLocationByUser = new Map(
+        calendarMembers.map((member) => [member.user_id, member.show_location] as const)
+      );
+      const serialize = (event: Parameters<typeof serializeEventForApi>[0]) =>
+        serializeEventForApi(event, { viewerUserId, showLocationByUser });
+
       const eventsByUser: Record<string, ReturnType<typeof serializeEventForApi>[]> = {};
       for (const [userId, events] of timetable.eventsByUser) {
-        eventsByUser[userId] = events.map(serializeEventForApi);
+        eventsByUser[userId] = events.map(serialize);
       }
       res.json({
-        events: timetable.events.map(serializeEventForApi),
+        events: timetable.events.map(serialize),
         eventsByUser,
         members: timetable.members.map((member) => ({
           userId: member.userId,

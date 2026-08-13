@@ -11,7 +11,7 @@ import {
 } from "@shared/timetable/layout";
 import { TIMETABLE_WIDTH } from "@shared/timetable/theme";
 import { DEFAULT_HOUR_END, DEFAULT_HOUR_START } from "../lib/availability";
-import { formatDayMonth } from "../lib/dates";
+import { formatDayMonth, formatTime } from "../lib/dates";
 import type { TimetableEventDto } from "../types";
 import EventCard from "./EventCard";
 
@@ -29,7 +29,12 @@ type WeekTimelineGridProps = {
   timezone: string;
   avatarByUser: Map<string, string | null>;
   onEventClick: (event: TimetableEventDto) => void;
+  scrollable?: boolean;
 };
+
+function formatCardTimeRange(start: Date, end: Date): string {
+  return `${formatTime(start.toISOString())}–${formatTime(end.toISOString())}`;
+}
 
 function toLayoutEvents(events: TimetableEventDto[]): LayoutEvent[] {
   return events.map((ev) => ({
@@ -71,6 +76,7 @@ export default function WeekTimelineGrid({
   timezone,
   avatarByUser,
   onEventClick,
+  scrollable = false,
 }: WeekTimelineGridProps) {
   const allEvents = useMemo(() => days.flatMap((d) => d.events), [days]);
 
@@ -119,7 +125,7 @@ export default function WeekTimelineGrid({
   }
 
   return (
-    <div className="weekTimelineGridWrap">
+    <div className={`weekTimelineGridWrap${scrollable ? " weekTimelineGridWrapScroll" : ""}`}>
       <div className="weekTimelineGrid">
         <div className="weekTimelineHeader">
           <div className="weekTimelineCorner" />
@@ -160,6 +166,7 @@ export default function WeekTimelineGrid({
                       <EventCard
                         key={`${card.startMs}-${cardIndex}`}
                         title={card.title}
+                        timeLabel={formatCardTimeRange(card.start, card.end)}
                         userIds={card.userIds}
                         avatarByUser={avatarByUser}
                         leftPercent={pos.leftPercent}

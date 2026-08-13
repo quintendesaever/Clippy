@@ -3,10 +3,13 @@ import { useMemo, useState } from "react";
 import AppShell from "../components/AppShell";
 import EventPopup from "../components/EventPopup";
 import PagePanel from "../components/PagePanel";
+import TimetableLayoutToggle from "../components/TimetableLayoutToggle";
+import WeekAgendaList from "../components/WeekAgendaList";
 import WeekGrid from "../components/WeekGrid";
 import WeekNav from "../components/WeekNav";
+import { useTimetableLayout } from "../hooks/useTimetableLayout";
 import { useWeekTimetable } from "../hooks/useWeekTimetable";
-import { eventDayKey } from "../lib/dates";
+import { DAY_LABELS, eventDayKey, formatWeekRange } from "../lib/dates";
 import type { DiscordUser, TimetableEventDto } from "../types";
 
 export default function MyTimetable({ user }: { user: DiscordUser }) {
@@ -18,6 +21,7 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
     shiftWeek,
     goToThisWeek,
   } = useWeekTimetable();
+  const { layout, setLayout, showToggle, useAgenda } = useTimetableLayout();
 
   const [popupEvent, setPopupEvent] = useState<TimetableEventDto | null>(null);
 
@@ -34,9 +38,29 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
     [dayDates, personalEvents]
   );
 
+  const weekDays = useMemo(
+    () =>
+      visibleDayDates.map((day, i) => ({
+        dayKey: day,
+        dayLabel: DAY_LABELS[dayDates.indexOf(day)] ?? DAY_LABELS[i],
+        events: personalEvents.filter((ev) => eventDayKey(ev.start) === day),
+      })),
+    [visibleDayDates, dayDates, personalEvents]
+  );
+
+  const weekLabel = formatWeekRange(
+    dayDates[0],
+    visibleDayDates[visibleDayDates.length - 1] ?? dayDates[4]
+  );
+
+  const avatarByUser = useMemo(
+    () => new Map<string, string | null>([[user.id, user.avatar]]),
+    [user.avatar, user.id]
+  );
+
   return (
     <AppShell user={user}>
-      <div className="pageLayout">
+      <div className="pageLayout timetablePage">
         <div className="pageLayoutContent">
           {error && <p className="errorMsg">{error}</p>}
           {loading && <p className="timetableLoading">Rooster laden…</p>}
@@ -45,14 +69,30 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
             <>
               <div className="timetableToolbar">
                 <WeekNav
+                  weekLabel={weekLabel}
                   onPrev={() => shiftWeek(-1)}
                   onThisWeek={goToThisWeek}
                   onNext={() => shiftWeek(1)}
                 />
+                {showToggle && (
+                  <TimetableLayoutToggle value={layout} onChange={setLayout} />
+                )}
               </div>
 
               <PagePanel>
-                {personalEvents.length === 0 ? (
+                {useAgenda ? (
+                  personalEvents.length === 0 ? (
+                    <p className="timetableEmpty">
+                      Geen lessen deze week, of geen kalender gekoppeld.
+                    </p>
+                  ) : (
+                    <WeekAgendaList
+                      days={weekDays}
+                      avatarByUser={avatarByUser}
+                      onEventClick={setPopupEvent}
+                    />
+                  )
+                ) : personalEvents.length === 0 ? (
                   <p className="timetableEmpty">
                     Geen lessen deze week, of geen kalender gekoppeld.
                   </p>

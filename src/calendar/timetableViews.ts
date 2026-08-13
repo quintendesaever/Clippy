@@ -9,6 +9,10 @@ import {
   type APIButtonComponent,
 } from "discord.js";
 import { getDashboardUrl, getPublicDashboardUrl } from "../config.js";
+import {
+  descriptionContainsLocation,
+  redactLocationFromDescription,
+} from "../../shared/timetable/eventMeta.js";
 import { renderTimetablePng } from "./timetableImage.js";
 import { dayKeyInTimezone, getWeekDayKeys, getWeekMondayKey } from "./timetableService.js";
 import type { GuildTimetable, TimetableEvent } from "./types.js";
@@ -114,7 +118,17 @@ export function getDefaultDayKey(timetable: GuildTimetable): string {
   return dayKeyInTimezone(new Date(), timetable.guildTimezone);
 }
 
-export function serializeEventForApi(event: TimetableEvent) {
+export function serializeEventForApi(
+  event: TimetableEvent,
+  options?: { viewerUserId?: string; showLocationByUser?: Map<string, boolean> }
+) {
+  const hasLocationField = Boolean(event.location?.trim());
+  const hasLocationInDescription = descriptionContainsLocation(event.description);
+  const hasLocation = hasLocationField || hasLocationInDescription;
+  const isOwner = options?.viewerUserId != null && options.viewerUserId === event.userId;
+  const ownerAllowsLocation = options?.showLocationByUser?.get(event.userId) === true;
+  const locationVisible = isOwner || ownerAllowsLocation;
+
   return {
     userId: event.userId,
     initials: event.initials,
@@ -124,7 +138,10 @@ export function serializeEventForApi(event: TimetableEvent) {
     start: event.start.toISOString(),
     end: event.end.toISOString(),
     allDay: event.allDay,
-    location: event.location ?? null,
-    description: event.description ?? null,
+    location: locationVisible ? (event.location ?? null) : null,
+    locationHidden: hasLocation && !locationVisible,
+    description: locationVisible
+      ? (event.description ?? null)
+      : (redactLocationFromDescription(event.description) ?? null),
   };
 }

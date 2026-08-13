@@ -1,4 +1,27 @@
 export const DAY_LABELS = ["Ma", "Di", "Wo", "Do", "Vr", "Za"] as const;
+export const DAY_FULL_LABELS = [
+  "Maandag",
+  "Dinsdag",
+  "Woensdag",
+  "Donderdag",
+  "Vrijdag",
+  "Zaterdag",
+] as const;
+
+const MONTHS_SHORT = [
+  "jan",
+  "feb",
+  "mrt",
+  "apr",
+  "mei",
+  "jun",
+  "jul",
+  "aug",
+  "sep",
+  "okt",
+  "nov",
+  "dec",
+] as const;
 
 export function getWeekMonday(date: Date): Date {
   const d = new Date(date);
@@ -36,4 +59,19 @@ export function weekDayDates(weekMonday: Date): string[] {
       new Date(weekMonday.getFullYear(), weekMonday.getMonth(), weekMonday.getDate() + i)
     )
   );
+}
+
+export function formatAgendaDay(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const jsDay = new Date(y, m - 1, d).getDay();
+  const dayIndex = jsDay === 0 ? 6 : jsDay - 1;
+  const dayName = DAY_FULL_LABELS[dayIndex] ?? DAY_LABELS[dayIndex] ?? "";
+  return `${dayName} ${d} ${MONTHS_SHORT[m - 1]}`;
+}
+
+export function formatWeekRange(startIso: string, endIso: string): string {
+  const [, sm, sd] = startIso.split("-").map(Number);
+  const [, em, ed] = endIso.split("-").map(Number);
+  if (sm === em) return `${sd}–${ed} ${MONTHS_SHORT[sm - 1]}`;
+  return `${sd} ${MONTHS_SHORT[sm - 1]} – ${ed} ${MONTHS_SHORT[em - 1]}`;
 }

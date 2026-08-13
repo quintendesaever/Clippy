@@ -26,6 +26,8 @@ export const AVATAR_OVERLAP = 10;
 export const AVATAR_BORDER = 2;
 
 export const TITLE_FONT_SIZE = 20;
+export const TIME_FONT_SIZE = 14;
 export const HOUR_LABEL_FONT_SIZE = 12;
 export const TITLE_LINE_HEIGHT = 24;
-export const TITLE_MAX_LINES = 3;
+export const TIME_LINE_HEIGHT = 18;
+export const TITLE_MAX_LINES = 1;
