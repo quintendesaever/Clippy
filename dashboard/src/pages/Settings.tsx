@@ -21,7 +21,7 @@ const DEFAULT_TIMEZONE = TIMEZONE_OPTIONS[0];
 export default function Settings({ user }: { user: DiscordUser }) {
   const [initials, setInitials] = useState("");
   const [icsUrl, setIcsUrl] = useState("");
-  const [timezone, setTimezone] = useState(DEFAULT_TIMEZONE);
+  const [timezone, setTimezone] = useState<string>(DEFAULT_TIMEZONE);
   const [showLocation, setShowLocation] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -72,8 +72,10 @@ export default function Settings({ user }: { user: DiscordUser }) {
         timezone: timezone || undefined,
         show_location: showLocation,
       });
-      setExisting(result.calendar);
-      setShowLocation(Boolean(result.calendar.show_location));
+      if (result.calendar) {
+        setExisting(result.calendar);
+        setShowLocation(Boolean(result.calendar.show_location));
+      }
       setMessage("Kalender opgeslagen.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Opslaan mislukt");
