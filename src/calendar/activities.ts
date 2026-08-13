@@ -91,7 +91,6 @@ export function validateActivityInput(
     throw new ActivityValidationError("activity must start and end on the same day");
   }
 
-  // Reject all-day-style midnight→midnight spans that look accidental; timed events only.
   const startZoned = toZonedTime(start, guildTimezone);
   const endZoned = toZonedTime(end, guildTimezone);
   if (
@@ -109,7 +108,7 @@ export function validateActivityInput(
   return { title: title.slice(0, TITLE_MAX), start, end, location, description };
 }
 
-async function resolveCreatorInitials(
+async function resolveMemberInitials(
   guildId: string,
   userIds: string[]
 ): Promise<Map<string, string>> {
@@ -124,7 +123,7 @@ async function resolveCreatorInitials(
     .in("user_id", unique);
 
   if (error) {
-    console.error("activities: load creator initials:", error.message);
+    console.error("activities: load member initials:", error.message);
     return map;
   }
 
@@ -136,15 +135,24 @@ async function resolveCreatorInitials(
   return map;
 }
 
-export function activityRowToEvent(
+function activityToParticipantEvents(
   row: ActivityRow,
-  initials: string
-): TimetableEvent {
-  return {
+  participantIds: string[],
+  initialsByUser: Map<string, string>
+): TimetableEvent[] {
+  const ids = participantIds.length > 0 ? participantIds : [row.created_by];
+  // Creator first, then others in stable order.
+  const ordered = [
+    row.created_by,
+    ...ids.filter((id) => id !== row.created_by),
+  ];
+  const uniqueOrdered = [...new Set(ordered)];
+
+  return uniqueOrdered.map((userId) => ({
     id: row.id,
-    userId: row.created_by,
+    userId,
     createdBy: row.created_by,
-    initials,
+    initials: initialsByUser.get(userId) ?? "Lid",
     title: row.title,
     rawTitle: row.title,
     typeBadges: ["A"],
@@ -153,8 +161,35 @@ export function activityRowToEvent(
     allDay: false,
     location: row.location ?? undefined,
     description: row.description ?? undefined,
-    source: "activity",
-  };
+    source: "activity" as const,
+    participantIds: uniqueOrdered,
+  }));
+}
+
+async function loadParticipantsByActivity(
+  guildId: string,
+  activityIds: string[]
+): Promise<Map<string, string[]>> {
+  const map = new Map<string, string[]>();
+  if (activityIds.length === 0) return map;
+
+  const { data, error } = await supabase
+    .from("timetable_activity_participants")
+    .select("activity_id, user_id")
+    .eq("guild_id", guildId)
+    .in("activity_id", activityIds)
+    .order("joined_at", { ascending: true });
+
+  if (error) {
+    throw new Error(`Failed to load activity participants: ${error.message}`);
+  }
+
+  for (const row of data ?? []) {
+    const bucket = map.get(row.activity_id) ?? [];
+    bucket.push(row.user_id);
+    map.set(row.activity_id, bucket);
+  }
+  return map;
 }
 
 export async function getGuildActivitiesInRange(
@@ -175,13 +210,26 @@ export async function getGuildActivitiesInRange(
   }
 
   const rows = (data ?? []) as ActivityRow[];
-  const initialsByUser = await resolveCreatorInitials(
+  const participantsByActivity = await loadParticipantsByActivity(
     guildId,
-    rows.map((row) => row.created_by)
+    rows.map((row) => row.id)
   );
 
-  return rows.map((row) =>
-    activityRowToEvent(row, initialsByUser.get(row.created_by) ?? "Lid")
+  const allUserIds = new Set<string>();
+  for (const row of rows) {
+    allUserIds.add(row.created_by);
+    for (const userId of participantsByActivity.get(row.id) ?? [row.created_by]) {
+      allUserIds.add(userId);
+    }
+  }
+  const initialsByUser = await resolveMemberInitials(guildId, [...allUserIds]);
+
+  return rows.flatMap((row) =>
+    activityToParticipantEvents(
+      row,
+      participantsByActivity.get(row.id) ?? [row.created_by],
+      initialsByUser
+    )
   );
 }
 
@@ -217,8 +265,21 @@ export async function createActivity(params: {
     throw new Error(`Failed to create activity: ${error.message}`);
   }
 
-  const initialsByUser = await resolveCreatorInitials(guildId, [userId]);
-  return activityRowToEvent(data as ActivityRow, initialsByUser.get(userId) ?? "Lid");
+  const row = data as ActivityRow;
+  const { error: participantError } = await supabase
+    .from("timetable_activity_participants")
+    .insert({
+      activity_id: row.id,
+      user_id: userId,
+      guild_id: guildId,
+    });
+
+  if (participantError) {
+    throw new Error(`Failed to add activity creator: ${participantError.message}`);
+  }
+
+  const initialsByUser = await resolveMemberInitials(guildId, [userId]);
+  return activityToParticipantEvents(row, [userId], initialsByUser)[0];
 }
 
 export async function updateActivity(params: {
@@ -252,8 +313,11 @@ export async function updateActivity(params: {
   }
   if (!data) return null;
 
-  const initialsByUser = await resolveCreatorInitials(guildId, [userId]);
-  return activityRowToEvent(data as ActivityRow, initialsByUser.get(userId) ?? "Lid");
+  const row = data as ActivityRow;
+  const participantsByActivity = await loadParticipantsByActivity(guildId, [row.id]);
+  const participantIds = participantsByActivity.get(row.id) ?? [row.created_by];
+  const initialsByUser = await resolveMemberInitials(guildId, participantIds);
+  return activityToParticipantEvents(row, participantIds, initialsByUser)[0];
 }
 
 export async function deleteActivity(params: {
@@ -275,4 +339,78 @@ export async function deleteActivity(params: {
     throw new Error(`Failed to delete activity: ${error.message}`);
   }
   return Boolean(data);
+}
+
+export async function joinActivity(params: {
+  guildId: string;
+  userId: string;
+  activityId: string;
+  avatarHash?: string | null;
+}): Promise<boolean> {
+  const { guildId, userId, activityId, avatarHash } = params;
+  await ensureGuild(guildId);
+  await upsertMember(guildId, userId, avatarHash);
+
+  const { data: activity, error: loadError } = await supabase
+    .from("timetable_activities")
+    .select("id")
+    .eq("id", activityId)
+    .eq("guild_id", guildId)
+    .maybeSingle();
+
+  if (loadError) {
+    throw new Error(`Failed to load activity: ${loadError.message}`);
+  }
+  if (!activity) return false;
+
+  const { error } = await supabase.from("timetable_activity_participants").upsert(
+    {
+      activity_id: activityId,
+      user_id: userId,
+      guild_id: guildId,
+    },
+    { onConflict: "activity_id,user_id", ignoreDuplicates: true }
+  );
+
+  if (error) {
+    throw new Error(`Failed to join activity: ${error.message}`);
+  }
+  return true;
+}
+
+export async function leaveActivity(params: {
+  guildId: string;
+  userId: string;
+  activityId: string;
+}): Promise<"ok" | "not_found" | "creator"> {
+  const { guildId, userId, activityId } = params;
+
+  const { data: activity, error: loadError } = await supabase
+    .from("timetable_activities")
+    .select("id, created_by")
+    .eq("id", activityId)
+    .eq("guild_id", guildId)
+    .maybeSingle();
+
+  if (loadError) {
+    throw new Error(`Failed to load activity: ${loadError.message}`);
+  }
+  if (!activity) return "not_found";
+  if (activity.created_by === userId) {
+    throw new ActivityValidationError("De organisator kan zich niet afmelden");
+  }
+
+  const { data, error } = await supabase
+    .from("timetable_activity_participants")
+    .delete()
+    .eq("activity_id", activityId)
+    .eq("guild_id", guildId)
+    .eq("user_id", userId)
+    .select("user_id")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to leave activity: ${error.message}`);
+  }
+  return data ? "ok" : "not_found";
 }

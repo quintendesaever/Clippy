@@ -6,7 +6,7 @@ import { buildTimetableView, getDefaultDayKey, toTimetableReply } from "../calen
 const timetable: Command = {
   data: new SlashCommandBuilder()
     .setName("timetable")
-    .setDescription("Toon het gedeelde serverrooster van gekoppelde ICS-kalenders."),
+    .setDescription("Toon het gedeelde serverrooster (ICS + activiteiten)."),
   async execute(interaction) {
     if (!interaction.guildId) {
       await interaction.reply({ content: "Dit commando werkt alleen in een server.", ephemeral: true });

@@ -228,19 +228,3 @@ export default function ActivityForm({
     </div>
   );
 }
-
-export function prefillFromSlot(
-  dayKey: string,
-  hour: number,
-  minute: number
-): ActivityFormPrefill {
-  const startTotal = hour * 60 + minute;
-  const rounded = Math.round(startTotal / 30) * 30;
-  const clamped = Math.min(Math.max(rounded, 8 * 60), 21 * 60);
-  const endTotal = Math.min(clamped + 60, 22 * 60);
-  return {
-    dayKey,
-    startTime: `${pad2(Math.floor(clamped / 60))}:${pad2(clamped % 60)}`,
-    endTime: `${pad2(Math.floor(endTotal / 60))}:${pad2(endTotal % 60)}`,
-  };
-}

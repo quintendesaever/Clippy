@@ -8,6 +8,8 @@ import {
   type APIActionRowComponent,
   type APIButtonComponent,
 } from "discord.js";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { getDashboardUrl, getPublicDashboardUrl } from "../config.js";
 import {
   descriptionContainsLocation,
@@ -19,6 +21,10 @@ import type { GuildTimetable, TimetableEvent } from "./types.js";
 
 const DAY_LABELS = ["Ma", "Di", "Wo", "Do", "Vr", "Za"];
 const PNG_ATTACHMENT_NAME = "rooster.png";
+const BUTTONS_PER_ROW = 3;
+
+const EMPTY_DAY_PNG_PATH = path.resolve(process.cwd(), "assets/timetable/empty-day.png");
+const emptyDayPng = readFileSync(EMPTY_DAY_PNG_PATH);
 
 export type TimetableView = {
   components: APIActionRowComponent<APIButtonComponent>[];
@@ -26,6 +32,18 @@ export type TimetableView = {
   content?: string;
   clearEmbeds?: boolean;
 };
+
+function chunkButtons(buttons: ButtonBuilder[]): APIActionRowComponent<APIButtonComponent>[] {
+  const rows: APIActionRowComponent<APIButtonComponent>[] = [];
+  for (let i = 0; i < buttons.length; i += BUTTONS_PER_ROW) {
+    rows.push(
+      new ActionRowBuilder<ButtonBuilder>()
+        .addComponents(buttons.slice(i, i + BUTTONS_PER_ROW))
+        .toJSON()
+    );
+  }
+  return rows;
+}
 
 function buildDayButtons(
   timetable: GuildTimetable,
@@ -40,7 +58,7 @@ function buildDayButtons(
       .setLabel(label)
       .setStyle(dayKey === selectedDayKey ? ButtonStyle.Primary : ButtonStyle.Secondary);
 
-  const buttons = dayKeys.map((dayKey, i) => {
+  const dayButtons = dayKeys.map((dayKey, i) => {
     const [y, m, d] = dayKey.split("-").map(Number);
     const date = toZonedTime(new Date(y, m - 1, d, 12, 0, 0), timetable.guildTimezone);
     const label = `${DAY_LABELS[i]} ${format(date, "d/M")}`;
@@ -48,25 +66,21 @@ function buildDayButtons(
   });
 
   const showSaturday = (timetable.eventsByDay.get(dayKeys[5]) ?? []).length > 0;
-  const rows: APIActionRowComponent<APIButtonComponent>[] = [
-    new ActionRowBuilder<ButtonBuilder>().addComponents(buttons.slice(0, 5)).toJSON(),
+  const visibleDays = showSaturday ? dayButtons : dayButtons.slice(0, 5);
+
+  const publicDashboardUrl = getPublicDashboardUrl();
+  const linkButtons = [
+    new ButtonBuilder()
+      .setLabel("Volledig Rooster")
+      .setStyle(ButtonStyle.Link)
+      .setURL(`${publicDashboardUrl}/timetable`),
+    new ButtonBuilder()
+      .setLabel("Instellingen")
+      .setStyle(ButtonStyle.Link)
+      .setURL(`${publicDashboardUrl}/settings`),
   ];
 
-  const secondRow: ButtonBuilder[] = showSaturday ? [buttons[5]] : [];
-  const publicDashboardUrl = getPublicDashboardUrl();
-  if (publicDashboardUrl) {
-    secondRow.push(
-      new ButtonBuilder()
-        .setLabel("Volledig rooster")
-        .setStyle(ButtonStyle.Link)
-        .setURL(`${publicDashboardUrl}/timetable`)
-    );
-  }
-  if (secondRow.length > 0) {
-    rows.push(new ActionRowBuilder<ButtonBuilder>().addComponents(secondRow).toJSON());
-  }
-
-  return rows;
+  return [...chunkButtons(visibleDays), ...chunkButtons(linkButtons)];
 }
 
 export async function buildTimetableView(
@@ -85,13 +99,18 @@ export async function buildTimetableView(
         clearEmbeds: true,
       };
     }
-    return { content: "Geen lessen of activiteiten op deze dag.", components, clearEmbeds: true };
+    return {
+      content: "",
+      components,
+      files: [new AttachmentBuilder(emptyDayPng, { name: PNG_ATTACHMENT_NAME })],
+      clearEmbeds: true,
+    };
   }
 
   const png = await renderTimetablePng(timetable, dayKey);
   const files = [new AttachmentBuilder(png, { name: PNG_ATTACHMENT_NAME })];
 
-  return { components, files, clearEmbeds: true };
+  return { content: "", components, files, clearEmbeds: true };
 }
 
 export function toTimetableReply(view: TimetableView) {
@@ -148,5 +167,6 @@ export function serializeEventForApi(
     source,
     ...(event.id ? { id: event.id } : {}),
     ...(event.createdBy ? { createdBy: event.createdBy } : {}),
+    ...(event.participantIds?.length ? { participantIds: event.participantIds } : {}),
   };
 }

@@ -10,13 +10,11 @@ import {
   type RenderCard,
 } from "@shared/timetable/layout";
 import { TIMETABLE_WIDTH } from "@shared/timetable/theme";
-import { DEFAULT_HOUR_END, DEFAULT_HOUR_START } from "../lib/availability";
 import { formatDayMonth, formatTime } from "../lib/dates";
 import type { TimetableEventDto } from "../types";
 import EventCard from "./EventCard";
 
 const DASHBOARD_GRID_INSET = 0;
-const FIXED_HOUR_RANGE = { hourStart: DEFAULT_HOUR_START, hourEnd: DEFAULT_HOUR_END };
 
 export type WeekTimelineDay = {
   dayKey: string;
@@ -29,7 +27,6 @@ type WeekTimelineGridProps = {
   timezone: string;
   avatarByUser: Map<string, string | null>;
   onEventClick: (event: TimetableEventDto) => void;
-  onEmptySlotClick?: (dayKey: string, hour: number, minute: number) => void;
   scrollable?: boolean;
 };
 
@@ -86,7 +83,6 @@ export default function WeekTimelineGrid({
   timezone,
   avatarByUser,
   onEventClick,
-  onEmptySlotClick,
   scrollable = false,
 }: WeekTimelineGridProps) {
   const allEvents = useMemo(() => days.flatMap((d) => d.events), [days]);
@@ -97,14 +93,13 @@ export default function WeekTimelineGrid({
         toLayoutEvents(allEvents),
         timezone,
         TIMETABLE_WIDTH,
-        DASHBOARD_GRID_INSET,
-        FIXED_HOUR_RANGE
+        DASHBOARD_GRID_INSET
       ),
     [allEvents, timezone]
   );
 
   const hours = useMemo(
-    () => Array.from({ length: layout.hourCount + 1 }, (_, i) => layout.hourStart + i),
+    () => Array.from({ length: layout.hourCount }, (_, i) => layout.hourStart + i),
     [layout]
   );
 
@@ -134,31 +129,18 @@ export default function WeekTimelineGrid({
     if (ev) onEventClick(ev);
   }
 
-  function handleTrackClick(
-    dayKey: string,
-    e: React.MouseEvent<HTMLDivElement>
-  ) {
-    if (!onEmptySlotClick) return;
-    if ((e.target as HTMLElement).closest(".eventCard")) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    if (rect.width <= 0) return;
-    const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-    const totalMinutes = layout.hourCount * 60;
-    const minutesFromStart = Math.round((ratio * totalMinutes) / 30) * 30;
-    const absolute = layout.hourStart * 60 + minutesFromStart;
-    const hour = Math.floor(absolute / 60);
-    const minute = absolute % 60;
-    onEmptySlotClick(dayKey, hour, minute);
-  }
-
   return (
     <div className={`weekTimelineGridWrap${scrollable ? " weekTimelineGridWrapScroll" : ""}`}>
       <div className="weekTimelineGrid">
         <div className="weekTimelineHeader">
           <div className="weekTimelineCorner" />
           <div className="weekTimelineHourHeader">
-            {hours.map((hour) => (
-              <div key={hour} className="timelineHourLabel">
+            {hours.map((hour, i) => (
+              <div
+                key={hour}
+                className="timelineHourLabel"
+                style={{ left: `${(i / layout.hourCount) * 100}%` }}
+              >
                 {formatHourLabel(hour)}
               </div>
             ))}
@@ -184,12 +166,7 @@ export default function WeekTimelineGrid({
               {day.packedRows.map((row, rowIndex) => (
                 <div
                   key={rowIndex}
-                  className={`weekTimelineTrack${day.isEmpty ? " weekTimelineTrackEmpty" : ""}${
-                    onEmptySlotClick ? " weekTimelineTrackClickable" : ""
-                  }`}
-                  onClick={
-                    onEmptySlotClick ? (e) => handleTrackClick(day.dayKey, e) : undefined
-                  }
+                  className={`weekTimelineTrack${day.isEmpty ? " weekTimelineTrackEmpty" : ""}`}
                 >
                   {row.map((card, cardIndex) => {
                     const pos = cardPositionPercent(card, timezone, layout);

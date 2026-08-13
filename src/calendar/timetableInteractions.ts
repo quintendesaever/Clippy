@@ -1,5 +1,5 @@
 import type { ButtonInteraction } from "discord.js";
-import { getGuildTimetableForDay } from "./timetableService.js";
+import { getGuildTimetable } from "./timetableService.js";
 import { buildTimetableView, toTimetableReply } from "./timetableViews.js";
 
 export async function handleTimetableButton(interaction: ButtonInteraction): Promise<boolean> {
@@ -18,7 +18,7 @@ export async function handleTimetableButton(interaction: ButtonInteraction): Pro
   await interaction.deferUpdate();
 
   try {
-    const timetable = await getGuildTimetableForDay(interaction.guildId, dayKey);
+    const timetable = await getGuildTimetable(interaction.guildId);
     const view = await buildTimetableView(timetable, dayKey);
     await interaction.editReply(toTimetableReply(view));
   } catch (err) {

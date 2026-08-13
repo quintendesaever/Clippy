@@ -22,6 +22,7 @@ export type TimetableEvent = {
   source: TimetableEventSource;
   id?: string;
   createdBy?: string;
+  participantIds?: string[];
 };
 
 export type MemberLoadResult = {

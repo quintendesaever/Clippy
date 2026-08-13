@@ -30,6 +30,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/dashboard/dist ./dashboard/dist
+COPY assets ./assets
 
 RUN chown -R clippy:clippy /app
 USER clippy

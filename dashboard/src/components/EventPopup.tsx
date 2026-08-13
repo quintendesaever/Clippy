@@ -1,6 +1,6 @@
 import { labelForTypeBadge } from "@shared/timetable/eventMeta";
 import { useState } from "react";
-import { deleteActivity } from "../api";
+import { deleteActivity, joinActivity, leaveActivity } from "../api";
 import type { TimetableEventDto } from "../types";
 import { formatTime } from "../lib/dates";
 import Button from "./Button";
@@ -11,6 +11,7 @@ type EventPopupProps = {
   onClose: () => void;
   onEdit?: (event: TimetableEventDto) => void;
   onDeleted?: () => void;
+  onChanged?: () => void;
 };
 
 export default function EventPopup({
@@ -19,8 +20,9 @@ export default function EventPopup({
   onClose,
   onEdit,
   onDeleted,
+  onChanged,
 }: EventPopupProps) {
-  const [deleting, setDeleting] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const showFullTitle = Boolean(event.rawTitle && event.rawTitle !== event.title);
@@ -28,11 +30,20 @@ export default function EventPopup({
   const isActivity = event.source === "activity";
   const canManage =
     isActivity && event.createdBy === currentUserId && Boolean(event.id);
+  const participants = event.participantIds?.length
+    ? event.participantIds
+    : isActivity
+      ? [event.userId]
+      : [];
+  const isJoined = participants.includes(currentUserId);
+  const canJoin = isActivity && Boolean(event.id) && !isJoined;
+  const canLeave =
+    isActivity && Boolean(event.id) && isJoined && event.createdBy !== currentUserId;
 
   async function handleDelete() {
     if (!event.id) return;
     if (!confirm("Deze activiteit verwijderen?")) return;
-    setDeleting(true);
+    setBusy(true);
     setError(null);
     try {
       await deleteActivity(event.id);
@@ -41,7 +52,37 @@ export default function EventPopup({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verwijderen mislukt");
     } finally {
-      setDeleting(false);
+      setBusy(false);
+    }
+  }
+
+  async function handleJoin() {
+    if (!event.id) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await joinActivity(event.id);
+      onChanged?.();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Meedoen mislukt");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleLeave() {
+    if (!event.id) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await leaveActivity(event.id);
+      onChanged?.();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Afmeld mislukt");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -75,6 +116,13 @@ export default function EventPopup({
             </>
           )}
 
+          {isActivity && (
+            <>
+              <dt>Deelnemers</dt>
+              <dd>{participants.length}</dd>
+            </>
+          )}
+
           {(event.location || event.locationHidden) && (
             <>
               <dt>Locatie</dt>
@@ -104,25 +152,35 @@ export default function EventPopup({
 
         {error && <p className="errorMsg">{error}</p>}
 
-        {canManage && (
+        {(canManage || canJoin || canLeave) && (
           <div className="formActions eventPopupActions">
-            <Button
-              type="button"
-              onClick={() => {
-                onEdit?.(event);
-                onClose();
-              }}
-              disabled={deleting}
-            >
-              Wijzigen
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? "Verwijderen…" : "Verwijderen"}
-            </Button>
+            {canJoin && (
+              <Button type="button" onClick={handleJoin} disabled={busy}>
+                {busy ? "Bezig…" : "Meedoen"}
+              </Button>
+            )}
+            {canLeave && (
+              <Button variant="secondary" onClick={handleLeave} disabled={busy}>
+                {busy ? "Bezig…" : "Afmelden"}
+              </Button>
+            )}
+            {canManage && (
+              <>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    onEdit?.(event);
+                    onClose();
+                  }}
+                  disabled={busy}
+                >
+                  Wijzigen
+                </Button>
+                <Button variant="secondary" onClick={handleDelete} disabled={busy}>
+                  {busy ? "Verwijderen…" : "Verwijderen"}
+                </Button>
+              </>
+            )}
           </div>
         )}
       </div>

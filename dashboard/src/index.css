@@ -129,6 +129,13 @@ a:hover {
   gap: 0.4rem;
 }
 
+.timetableAddActivityControls {
+  position: fixed;
+  left: max(0.75rem, env(safe-area-inset-left, 0px));
+  bottom: 1rem;
+  z-index: 25;
+}
+
 .timetableFontSizeBtn {
   width: 44px;
   height: 44px;
@@ -741,8 +748,8 @@ select.formSelect {
 }
 
 .weekAgenda .avatarSm {
-  width: calc(24px * var(--tt-font-scale, 1));
-  height: calc(24px * var(--tt-font-scale, 1));
+  width: calc(30px * var(--tt-font-scale, 1));
+  height: calc(30px * var(--tt-font-scale, 1));
 }
 
 .avatarMd {
@@ -877,9 +884,7 @@ select.formSelect {
 }
 
 .weekTimelineHourHeader {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
+  position: relative;
   height: var(--header-height);
   background: transparent;
 }
@@ -958,7 +963,7 @@ select.formSelect {
   right: 0;
   top: 50%;
   transform: translateY(-50%);
-  width: 1px;
+  width: 2px;
   height: 2.5rem;
   background: var(--color-border);
   pointer-events: none;
@@ -986,14 +991,6 @@ select.formSelect {
   height: calc(40px * var(--tt-font-scale, 1));
 }
 
-.weekTimelineTrackClickable {
-  cursor: crosshair;
-}
-
-.weekGridDayColumnClickable {
-  cursor: crosshair;
-}
-
 .timelineHourHeader {
   display: grid;
   height: var(--header-height);
@@ -1003,11 +1000,16 @@ select.formSelect {
 }
 
 .timelineHourLabel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   font-size: calc(0.75rem * var(--tt-font-scale, 1));
   color: var(--color-text-muted);
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .timelineGridLine {
@@ -1171,25 +1173,30 @@ select.formSelect {
   right: 4px;
   width: auto;
   align-items: stretch;
-  padding: calc(0.4rem * var(--tt-font-scale, 1)) calc(0.55rem * var(--tt-font-scale, 1));
+  padding: calc(0.3rem * var(--tt-font-scale, 1)) calc(0.45rem * var(--tt-font-scale, 1));
   border: 1px solid color-mix(in srgb, var(--course-color, var(--color-border)) 35%, var(--color-border));
   background: color-mix(in srgb, var(--course-color, var(--color-card)) 22%, var(--color-card));
 }
 
 .weekGridDayColumn .eventCardTitle {
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   white-space: normal;
   font-weight: 600;
   font-size: calc(0.8125rem * var(--tt-font-scale, 1));
   overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+}
+
+.weekGridDayColumn .eventCardTitle.weekGridEventTitleTall {
+  -webkit-line-clamp: 2;
 }
 
 .weekGridEventBody {
   display: flex;
   flex-direction: column;
-  gap: calc(0.4rem * var(--tt-font-scale, 1));
+  gap: calc(0.2rem * var(--tt-font-scale, 1));
   min-width: 0;
   width: 100%;
 }
@@ -1251,7 +1258,7 @@ select.formSelect {
 
 .agendaCard {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: calc(0.75rem * var(--tt-font-scale, 1));
   width: 100%;
   min-height: calc(56px * var(--tt-font-scale, 1));
@@ -1538,6 +1545,10 @@ select.formSelect {
   }
 
   .timetableFontSizeControls {
+    bottom: calc(var(--mobile-tabbar-height) + env(safe-area-inset-bottom, 0px) + 0.75rem);
+  }
+
+  .timetableAddActivityControls {
     bottom: calc(var(--mobile-tabbar-height) + env(safe-area-inset-bottom, 0px) + 0.75rem);
   }
 

@@ -1,15 +1,12 @@
 import { withoutEmptySaturday } from "@shared/timetable/weekDays";
 import { useEffect, useMemo, useState } from "react";
 import { getCalendars } from "../api";
-import ActivityForm, {
-  prefillFromSlot,
-  type ActivityFormPrefill,
-} from "../components/ActivityForm";
+import ActivityForm, { type ActivityFormPrefill } from "../components/ActivityForm";
 import AppShell from "../components/AppShell";
-import Button from "../components/Button";
 import EventPopup from "../components/EventPopup";
 import MemberFilter from "../components/MemberFilter";
 import PagePanel from "../components/PagePanel";
+import TimetableAddActivityButton from "../components/TimetableAddActivityButton";
 import TimetableFontSizeControls from "../components/TimetableFontSizeControls";
 import TimetableLayoutToggle from "../components/TimetableLayoutToggle";
 import WeekAgendaList from "../components/WeekAgendaList";
@@ -55,6 +52,11 @@ export default function Timetable({ user }: { user: DiscordUser }) {
     for (const activity of activities) {
       if (!map.has(activity.userId)) {
         map.set(activity.userId, null);
+      }
+      for (const participantId of activity.participantIds ?? []) {
+        if (!map.has(participantId)) {
+          map.set(participantId, null);
+        }
       }
     }
     return map;
@@ -166,9 +168,6 @@ export default function Timetable({ user }: { user: DiscordUser }) {
                   {formatWeekRange(dayDates[0], dayDates[dayDates.length - 1])}
                 </span>
                 <MemberFilter calendars={calendars} selected={selected} onToggle={toggleMember} />
-                <Button size="small" onClick={() => openCreate()}>
-                  Activiteit toevoegen
-                </Button>
               </div>
 
               {calendars.length === 0 && activities.length === 0 && (
@@ -200,9 +199,6 @@ export default function Timetable({ user }: { user: DiscordUser }) {
                       timezone={timezone}
                       avatarByUser={avatarByUser}
                       onEventClick={setPopupEvent}
-                      onEmptySlotClick={(dayKey, hour, minute) =>
-                        openCreate(prefillFromSlot(dayKey, hour, minute))
-                      }
                       scrollable={isMobile}
                     />
                   )}
@@ -211,6 +207,7 @@ export default function Timetable({ user }: { user: DiscordUser }) {
             </>
           )}
         </div>
+        <TimetableAddActivityButton onClick={() => openCreate()} />
         <TimetableFontSizeControls
           onDecrease={decrease}
           onIncrease={increase}
@@ -226,6 +223,7 @@ export default function Timetable({ user }: { user: DiscordUser }) {
           onClose={() => setPopupEvent(null)}
           onEdit={openEdit}
           onDeleted={refetch}
+          onChanged={refetch}
         />
       )}
       {formOpen && (

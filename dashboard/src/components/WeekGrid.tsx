@@ -1,49 +1,86 @@
 import { descriptionPreview, shortLocation } from "@shared/timetable/eventMeta";
+import { computeDisplayHourRange, type LayoutEvent } from "@shared/timetable/layout";
 import { useMemo, type CSSProperties } from "react";
 import { courseColorMap, courseKeyFromTitle } from "../lib/courseColor";
 import { DAY_LABELS, formatDayMonth, formatTime, eventDayKey } from "../lib/dates";
 import type { TimetableEventDto } from "../types";
 
-const HOUR_START = 8;
-const HOUR_END = 22;
 const BASE_ROW_HEIGHT_PX = 64;
 const BASE_MIN_EVENT_HEIGHT_PX = 36;
 const ACTIVITY_COLOR = "#f0b232";
 
+/** Matches week-grid CSS (0.3rem pad, 0.2rem gap, title/time/meta line heights). */
+const CONTENT_PAD_Y_PX = 0.3 * 16 * 2;
+const CONTENT_GAP_PX = 0.2 * 16;
+const TITLE_LINE_PX = 0.8125 * 16 * 1.3;
+const TIME_LINE_PX = 0.7 * 16 * 1.2;
+const META_LINE_PX = 0.7 * 16 * 1.25;
+
 type WeekGridProps = {
   dayDates: string[];
   events: TimetableEventDto[];
+  timezone: string;
   onEventClick: (event: TimetableEventDto) => void;
-  onEmptySlotClick?: (dayKey: string, hour: number, minute: number) => void;
   scale?: number;
 };
+
+type EventContentVisibility = {
+  titleTall: boolean;
+  showTime: boolean;
+  showLocation: boolean;
+  showDescription: boolean;
+};
+
+function eventContentVisibility(height: number, scale: number): EventContentVisibility {
+  const pad = CONTENT_PAD_Y_PX * scale;
+  const gap = CONTENT_GAP_PX * scale;
+  const title = TITLE_LINE_PX * scale;
+  const time = TIME_LINE_PX * scale;
+  const meta = META_LINE_PX * scale;
+  const available = height - pad;
+
+  const showTime = available >= title + gap + time;
+  const afterTime = showTime ? title + gap + time : title;
+  const showLocation = showTime && available >= afterTime + gap + meta;
+  const afterLocation = showLocation ? afterTime + gap + meta : afterTime;
+  const showDescription = showLocation && available >= afterLocation + gap + meta;
+  const afterAll = showDescription ? afterLocation + gap + meta : afterLocation;
+  // Second title line only when it still fits with the lines we already chose.
+  const titleTall = available >= afterAll + title;
+
+  return { titleTall, showTime, showLocation, showDescription };
+}
+
+function toLayoutEvents(events: TimetableEventDto[]): LayoutEvent[] {
+  return events.map((ev) => ({
+    start: new Date(ev.start),
+    end: new Date(ev.end),
+    title: ev.title,
+    userId: ev.userId,
+    allDay: ev.allDay,
+    source: ev.source ?? "ics",
+  }));
+}
 
 export default function WeekGrid({
   dayDates,
   events,
+  timezone,
   onEventClick,
-  onEmptySlotClick,
   scale = 1,
 }: WeekGridProps) {
-  const hourCount = HOUR_END - HOUR_START;
+  const { hourStart, hourEnd } = useMemo(
+    () => computeDisplayHourRange(toLayoutEvents(events), timezone),
+    [events, timezone]
+  );
+
+  const hourCount = Math.max(1, hourEnd - hourStart);
   const rowHeight = BASE_ROW_HEIGHT_PX * scale;
   const minEventHeight = BASE_MIN_EVENT_HEIGHT_PX * scale;
   const colorsByCourse = useMemo(
     () => courseColorMap(events.filter((ev) => ev.source !== "activity").map((ev) => ev.title)),
     [events]
   );
-
-  function handleColumnClick(day: string, e: React.MouseEvent<HTMLDivElement>) {
-    if (!onEmptySlotClick) return;
-    if ((e.target as HTMLElement).closest(".weekGridEvent")) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    if (rect.height <= 0) return;
-    const ratio = Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height));
-    const totalMinutes = hourCount * 60;
-    const minutesFromStart = Math.round((ratio * totalMinutes) / 30) * 30;
-    const absolute = HOUR_START * 60 + minutesFromStart;
-    onEmptySlotClick(day, Math.floor(absolute / 60), absolute % 60);
-  }
 
   return (
     <div className="weekGridWrap">
@@ -71,29 +108,38 @@ export default function WeekGrid({
             className="weekGridTimeLabel"
             style={{ gridColumn: 1, gridRow: i + 2 }}
           >
-            {String(HOUR_START + i).padStart(2, "0")}:00
+            {String(hourStart + i).padStart(2, "0")}:00
           </div>
         ))}
         {dayDates.map((day, dayIndex) => {
-          const dayEvents = events.filter((ev) => eventDayKey(ev.start) === day);
+          const dayEventsRaw = events.filter((ev) => eventDayKey(ev.start) === day);
+          // Activities may be expanded per participant for avatar stacking; show one card each.
+          const seenActivityIds = new Set<string>();
+          const dayEvents = dayEventsRaw.filter((ev) => {
+            if (ev.source !== "activity" || !ev.id) return true;
+            if (seenActivityIds.has(ev.id)) return false;
+            seenActivityIds.add(ev.id);
+            return true;
+          });
           return (
             <div
               key={day}
-              className={`weekGridDayColumn${onEmptySlotClick ? " weekGridDayColumnClickable" : ""}`}
+              className="weekGridDayColumn"
               style={{
                 gridColumn: dayIndex + 2,
                 gridRow: `2 / ${hourCount + 2}`,
                 height: hourCount * rowHeight,
               }}
-              onClick={onEmptySlotClick ? (e) => handleColumnClick(day, e) : undefined}
             >
               {dayEvents.map((ev) => {
                 const start = new Date(ev.start);
                 const end = new Date(ev.end);
-                const startMin = start.getHours() * 60 + start.getMinutes() - HOUR_START * 60;
-                const endMin = end.getHours() * 60 + end.getMinutes() - HOUR_START * 60;
+                const startMin = start.getHours() * 60 + start.getMinutes() - hourStart * 60;
+                const endMin = end.getHours() * 60 + end.getMinutes() - hourStart * 60;
                 const top = Math.max(0, (startMin / 60) * rowHeight);
                 const height = Math.max(minEventHeight, ((endMin - startMin) / 60) * rowHeight);
+                const { titleTall, showTime, showLocation, showDescription } =
+                  eventContentVisibility(height, scale);
                 const locationLine = ev.locationHidden
                   ? "Campus · lokaal"
                   : shortLocation(ev.location);
@@ -106,7 +152,7 @@ export default function WeekGrid({
                   : (colorsByCourse.get(courseKeyFromTitle(ev.title)) ?? "#5865f2");
                 return (
                   <button
-                    key={`${ev.source ?? "ics"}-${ev.id ?? ev.start}-${ev.title}`}
+                    key={`${ev.source ?? "ics"}-${ev.id ?? ev.start}-${ev.userId}-${ev.title}`}
                     type="button"
                     className={`eventCard weekGridEvent${isActivity ? " eventCardActivity" : ""}`}
                     style={
@@ -117,20 +163,27 @@ export default function WeekGrid({
                       } as CSSProperties
                     }
                     onClick={() => onEventClick(ev)}
+                    title={`${ev.title} (${formatTime(ev.start)}–${formatTime(ev.end)})`}
                   >
                     <span className="weekGridEventBody">
-                      <span className="eventCardTitle">{ev.title}</span>
-                      <span className="weekGridEventTime">
-                        {formatTime(ev.start)}–{formatTime(ev.end)}
+                      <span
+                        className={`eventCardTitle${titleTall ? " weekGridEventTitleTall" : ""}`}
+                      >
+                        {ev.title}
                       </span>
-                      {locationLine && (
+                      {showTime && (
+                        <span className="weekGridEventTime">
+                          {formatTime(ev.start)}–{formatTime(ev.end)}
+                        </span>
+                      )}
+                      {showLocation && locationLine && (
                         <span
                           className={`weekGridEventMeta${ev.locationHidden ? " locationBlurred" : ""}`}
                         >
                           {locationLine}
                         </span>
                       )}
-                      {descriptionLine && (
+                      {showDescription && descriptionLine && (
                         <span className="weekGridEventMeta">{descriptionLine}</span>
                       )}
                     </span>

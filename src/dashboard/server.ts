@@ -15,6 +15,8 @@ import {
   ActivityValidationError,
   createActivity,
   deleteActivity,
+  joinActivity,
+  leaveActivity,
   updateActivity,
 } from "../calendar/activities.js";
 import { getGuildCalendarMembers } from "../calendar/memberCalendars.js";
@@ -520,6 +522,61 @@ export function createDashboardApp(): express.Express {
       res.json({ ok: true });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to delete activity";
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.post("/api/activities/:id/join", requireSession, async (req: Request, res: Response) => {
+    const session = req.session as SessionData;
+    const guildId = getGuildId();
+    const userId = session.user!.id;
+    const activityId = typeof req.params.id === "string" ? req.params.id : "";
+    if (!activityId) {
+      res.status(400).json({ error: "activity id is required" });
+      return;
+    }
+
+    try {
+      const joined = await joinActivity({
+        guildId,
+        userId,
+        activityId,
+        avatarHash: session.user!.avatar,
+      });
+      if (!joined) {
+        res.status(404).json({ error: "Activity not found" });
+        return;
+      }
+      res.json({ ok: true });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to join activity";
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.delete("/api/activities/:id/join", requireSession, async (req: Request, res: Response) => {
+    const session = req.session as SessionData;
+    const guildId = getGuildId();
+    const userId = session.user!.id;
+    const activityId = typeof req.params.id === "string" ? req.params.id : "";
+    if (!activityId) {
+      res.status(400).json({ error: "activity id is required" });
+      return;
+    }
+
+    try {
+      const result = await leaveActivity({ guildId, userId, activityId });
+      if (result === "not_found") {
+        res.status(404).json({ error: "Activity not found" });
+        return;
+      }
+      res.json({ ok: true });
+    } catch (err) {
+      if (err instanceof ActivityValidationError) {
+        res.status(400).json({ error: err.message });
+        return;
+      }
+      const message = err instanceof Error ? err.message : "Failed to leave activity";
       res.status(500).json({ error: message });
     }
   });

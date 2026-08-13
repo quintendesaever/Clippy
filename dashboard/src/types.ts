@@ -53,6 +53,7 @@ export interface TimetableEventDto {
   source: TimetableEventSource;
   id?: string;
   createdBy?: string;
+  participantIds?: string[];
 }
 
 export interface ActivityInput {

@@ -82,3 +82,15 @@ export async function deleteActivity(id: string): Promise<void> {
     method: "DELETE",
   });
 }
+
+export async function joinActivity(id: string): Promise<void> {
+  await fetchApi<{ ok: boolean }>(`/api/activities/${encodeURIComponent(id)}/join`, {
+    method: "POST",
+  });
+}
+
+export async function leaveActivity(id: string): Promise<void> {
+  await fetchApi<{ ok: boolean }>(`/api/activities/${encodeURIComponent(id)}/join`, {
+    method: "DELETE",
+  });
+}

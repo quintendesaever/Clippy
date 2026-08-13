@@ -1,13 +1,10 @@
 import { withoutEmptySaturday } from "@shared/timetable/weekDays";
 import { useMemo, useState } from "react";
-import ActivityForm, {
-  prefillFromSlot,
-  type ActivityFormPrefill,
-} from "../components/ActivityForm";
+import ActivityForm, { type ActivityFormPrefill } from "../components/ActivityForm";
 import AppShell from "../components/AppShell";
-import Button from "../components/Button";
 import EventPopup from "../components/EventPopup";
 import PagePanel from "../components/PagePanel";
+import TimetableAddActivityButton from "../components/TimetableAddActivityButton";
 import TimetableFontSizeControls from "../components/TimetableFontSizeControls";
 import TimetableLayoutToggle from "../components/TimetableLayoutToggle";
 import WeekAgendaList from "../components/WeekAgendaList";
@@ -24,6 +21,7 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
     dayDates,
     eventsByUser,
     activities,
+    timezone,
     loading,
     error,
     shiftWeek,
@@ -70,6 +68,11 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
       if (!map.has(activity.userId)) {
         map.set(activity.userId, null);
       }
+      for (const participantId of activity.participantIds ?? []) {
+        if (!map.has(participantId)) {
+          map.set(participantId, null);
+        }
+      }
     }
     return map;
   }, [activities, user.avatar, user.id]);
@@ -112,9 +115,6 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
                 <span className="timetableWeekLabel">
                   {formatWeekRange(dayDates[0], dayDates[dayDates.length - 1])}
                 </span>
-                <Button size="small" onClick={() => openCreate()}>
-                  Activiteit toevoegen
-                </Button>
               </div>
 
               <PagePanel>
@@ -135,10 +135,8 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
                   <WeekGrid
                     dayDates={visibleDayDates.length > 0 ? visibleDayDates : dayDates}
                     events={personalEvents}
+                    timezone={timezone}
                     onEventClick={setPopupEvent}
-                    onEmptySlotClick={(dayKey, hour, minute) =>
-                      openCreate(prefillFromSlot(dayKey, hour, minute))
-                    }
                     scale={scale}
                   />
                 )}
@@ -146,6 +144,7 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
             </>
           )}
         </div>
+        <TimetableAddActivityButton onClick={() => openCreate()} />
         <TimetableFontSizeControls
           onDecrease={decrease}
           onIncrease={increase}
@@ -161,6 +160,7 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
           onClose={() => setPopupEvent(null)}
           onEdit={openEdit}
           onDeleted={refetch}
+          onChanged={refetch}
         />
       )}
       {formOpen && (

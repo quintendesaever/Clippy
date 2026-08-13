@@ -1,5 +1,10 @@
 import { toZonedTime } from "date-fns-tz";
-import { HOUR_MAX, HOUR_MIN } from "./theme.js";
+import {
+  DEFAULT_DISPLAY_HOUR_END,
+  DEFAULT_DISPLAY_HOUR_START,
+  HOUR_MAX,
+  HOUR_MIN,
+} from "./theme.js";
 
 export type LayoutEvent = {
   start: Date;
@@ -38,7 +43,9 @@ export function computeDisplayHourRange(
   timezone: string
 ): { hourStart: number; hourEnd: number } {
   const timed = events.filter((event) => !event.allDay);
-  if (timed.length === 0) return { hourStart: HOUR_MIN, hourEnd: HOUR_MAX };
+  if (timed.length === 0) {
+    return { hourStart: DEFAULT_DISPLAY_HOUR_START, hourEnd: DEFAULT_DISPLAY_HOUR_END };
+  }
 
   let minMinutes = Infinity;
   let maxMinutes = -Infinity;
@@ -49,11 +56,18 @@ export function computeDisplayHourRange(
     maxMinutes = Math.max(maxMinutes, end.getHours() * 60 + end.getMinutes());
   }
 
-  const hourStart = Math.max(HOUR_MIN, Math.floor(minMinutes / 60) - 1);
-  let hourEnd = Math.min(HOUR_MAX, Math.ceil(maxMinutes / 60) + 1);
-  if (hourEnd - hourStart < 4) {
-    hourEnd = Math.min(HOUR_MAX, hourStart + 4);
-  }
+  const eventStartHour = Math.floor(minMinutes / 60);
+  const eventEndHour = Math.max(Math.ceil(maxMinutes / 60), eventStartHour + 1);
+
+  const hourStart = Math.max(
+    HOUR_MIN,
+    Math.min(DEFAULT_DISPLAY_HOUR_START, eventStartHour)
+  );
+  const hourEnd = Math.min(
+    HOUR_MAX,
+    Math.max(DEFAULT_DISPLAY_HOUR_END, eventEndHour)
+  );
+
   return { hourStart, hourEnd };
 }
 

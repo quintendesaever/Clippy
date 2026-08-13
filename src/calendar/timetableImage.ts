@@ -12,6 +12,8 @@ import {
   type TimelineLayout,
 } from "../../shared/timetable/layout.js";
 import {
+  ACTIVITY_CARD_BORDER,
+  ACTIVITY_CARD_FILL,
   AVATAR_BORDER,
   AVATAR_OVERLAP,
   AVATAR_SIZE,
@@ -22,11 +24,14 @@ import {
   HEADER_BODY_GAP,
   HEADER_HEIGHT,
   HOUR_LABEL_FONT_SIZE,
+  MIN_CARD_WIDTH,
+  NARROW_CARD_AVATAR_SIZE,
   OUTER_PAD_BOTTOM,
   OUTER_PAD_TOP,
   OUTER_PAD_X,
   ROW_GAP,
   ROW_HEIGHT,
+  SIDE_BY_SIDE_MIN_WIDTH,
   THEME,
   TIMETABLE_WIDTH,
   TITLE_FONT_SIZE,
@@ -132,29 +137,35 @@ function buildTextLines(
   cy: number,
   title: string,
   timeLabel: string,
-  textClipId: string
+  textClipId: string,
+  options?: { titleSize?: number; timeSize?: number; titleLineHeight?: number; timeLineHeight?: number; maxLines?: number }
 ): string[] {
+  const titleSize = options?.titleSize ?? TITLE_FONT_SIZE;
+  const timeSize = options?.timeSize ?? TIME_FONT_SIZE;
+  const titleLh = options?.titleLineHeight ?? TITLE_LINE_HEIGHT;
+  const timeLh = options?.timeLineHeight ?? TIME_LINE_HEIGHT;
+  const maxLines = options?.maxLines ?? TITLE_MAX_LINES;
+
   const textMaxWidth = cardWidth - (textX - cardX) - CARD_INNER_PAD;
-  const titleLines = wrapText(title, textMaxWidth, TITLE_FONT_SIZE, TITLE_MAX_LINES);
+  const titleLines = wrapText(title, textMaxWidth, titleSize, maxLines);
   if (titleLines.length === 0 || (titleLines.length === 1 && titleLines[0] === "")) {
     return [];
   }
 
-  const titleBlockHeight = titleLines.length * TITLE_LINE_HEIGHT;
-  const blockHeight = titleBlockHeight + TIME_LINE_HEIGHT;
+  const titleBlockHeight = titleLines.length * titleLh;
+  const blockHeight = titleBlockHeight + timeLh;
   const blockTop = cy - blockHeight / 2;
-  const baselineOffset = TITLE_FONT_SIZE * 0.35;
+  const baselineOffset = titleSize * 0.35;
 
   const lineTexts = titleLines.map((line, index) => {
-    const slotCy = blockTop + index * TITLE_LINE_HEIGHT + TITLE_LINE_HEIGHT / 2;
+    const slotCy = blockTop + index * titleLh + titleLh / 2;
     const lineY = slotCy + baselineOffset;
-    return `<text x="${textX}" y="${lineY}" fill="${THEME.white}" font-size="${TITLE_FONT_SIZE}" font-weight="400" font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(line)}</text>`;
+    return `<text x="${textX}" y="${lineY}" fill="${THEME.white}" font-size="${titleSize}" font-weight="400" font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(line)}</text>`;
   });
 
-  const timeY =
-    blockTop + titleBlockHeight + TIME_LINE_HEIGHT / 2 + TIME_FONT_SIZE * 0.35;
+  const timeY = blockTop + titleBlockHeight + timeLh / 2 + timeSize * 0.35;
   lineTexts.push(
-    `<text x="${textX}" y="${timeY}" fill="${THEME.textMuted}" font-size="${TIME_FONT_SIZE}" font-weight="400" font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(timeLabel)}</text>`
+    `<text x="${textX}" y="${timeY}" fill="${THEME.textMuted}" font-size="${timeSize}" font-weight="400" font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(timeLabel)}</text>`
   );
 
   return [
@@ -173,10 +184,13 @@ function cardBounds(
 ): CardBounds {
   const x = timeToX(startHour, startMinute, layout);
   const endX = timeToX(endHour, endMinute, layout);
+  const gridRight = layout.gridInset + layout.hourCount * layout.colWidth;
+  const naturalWidth = Math.max(endX - x, 2);
+  const width = Math.min(Math.max(naturalWidth, MIN_CARD_WIDTH), Math.max(gridRight - x, 2));
   return {
     x,
     y: rowY,
-    width: Math.max(endX - x, 2),
+    width,
     height: ROW_HEIGHT,
   };
 }
@@ -240,9 +254,9 @@ function buildHourHeader(layout: TimelineLayout): string[] {
   ];
 
   for (let i = 0; i < layout.hourCount; i++) {
-    const x = layout.gridInset + (i + 0.5) * layout.colWidth;
+    const x = hourTickX(i, layout);
     parts.push(
-      `<text x="${x}" y="${HEADER_HEIGHT / 2 + HOUR_LABEL_FONT_SIZE * 0.35}" fill="${THEME.textMuted}" font-size="${HOUR_LABEL_FONT_SIZE}" font-weight="400" text-anchor="middle" font-family="${FONT}">${formatHourLabel(layout.hourStart + i)}</text>`
+      `<text x="${x}" y="${HEADER_HEIGHT / 2 + HOUR_LABEL_FONT_SIZE * 0.35}" fill="${THEME.textMuted}" font-size="${HOUR_LABEL_FONT_SIZE}" font-weight="400" text-anchor="start" font-family="${FONT}">${formatHourLabel(layout.hourStart + i)}</text>`
     );
   }
 
@@ -265,10 +279,12 @@ function buildAvatarStack(
   cy: number,
   userIds: string[],
   avatarDataUrls: Map<string, string>,
-  idPrefix: string
+  idPrefix: string,
+  avatarSize: number = AVATAR_SIZE
 ): { parts: string[]; endX: number } {
   const parts: string[] = [];
-  const avatarStep = AVATAR_SIZE - AVATAR_OVERLAP;
+  const overlap = Math.min(AVATAR_OVERLAP, Math.floor(avatarSize * 0.3));
+  const avatarStep = avatarSize - overlap;
   let x = startX;
 
   userIds.forEach((userId, index) => {
@@ -276,22 +292,22 @@ function buildAvatarStack(
     if (!dataUrl) return;
 
     const clipId = `${idPrefix}-avatar-${index}`;
-    const cx = x + AVATAR_SIZE / 2;
+    const cx = x + avatarSize / 2;
     parts.push(
-      `<clipPath id="${clipId}"><circle cx="${cx}" cy="${cy}" r="${AVATAR_SIZE / 2 - AVATAR_BORDER}"/></clipPath>`,
-      `<circle cx="${cx}" cy="${cy}" r="${AVATAR_SIZE / 2}" fill="${THEME.card}"/>`,
-      `<image href="${dataUrl}" x="${x}" y="${cy - AVATAR_SIZE / 2}" width="${AVATAR_SIZE}" height="${AVATAR_SIZE}" clip-path="url(#${clipId})"/>`
+      `<clipPath id="${clipId}"><circle cx="${cx}" cy="${cy}" r="${avatarSize / 2 - AVATAR_BORDER}"/></clipPath>`,
+      `<circle cx="${cx}" cy="${cy}" r="${avatarSize / 2}" fill="${THEME.card}"/>`,
+      `<image href="${dataUrl}" x="${x}" y="${cy - avatarSize / 2}" width="${avatarSize}" height="${avatarSize}" clip-path="url(#${clipId})"/>`
     );
     x += avatarStep;
   });
 
   const rendered = userIds.filter((id) => avatarDataUrls.has(id)).length;
-  const endX = rendered > 0 ? startX + AVATAR_SIZE + avatarStep * (rendered - 1) + 12 : startX;
+  const endX = rendered > 0 ? startX + avatarSize + avatarStep * (rendered - 1) + 12 : startX;
 
   return { parts, endX };
 }
 
-function buildActivityCard(
+function buildStackedCardContent(
   bounds: CardBounds,
   title: string,
   timeLabel: string,
@@ -300,26 +316,87 @@ function buildActivityCard(
   cardId: string
 ): string[] {
   const { x, y, width, height } = bounds;
-  const radius = Math.min(CARD_RADIUS, height / 2 - 1, width / 2 - 1);
   const textClipId = `card-${cardId}-text`;
-  const cy = y + height / 2;
-  const avatarStartX = x + CARD_INNER_PAD;
-  const { parts: avatarParts, endX: textX } = buildAvatarStack(
+  const avatarSize = Math.min(NARROW_CARD_AVATAR_SIZE, Math.max(width - CARD_INNER_PAD * 2, 16));
+  const contentTop = y + CARD_INNER_PAD;
+  const avatarCy = contentTop + avatarSize / 2;
+  const avatarStartX = x + (width - avatarSize) / 2;
+
+  const { parts: avatarParts } = buildAvatarStack(
     avatarStartX,
-    cy,
-    avatarUserIds,
+    avatarCy,
+    avatarUserIds.slice(0, 1),
     avatarDataUrls,
-    cardId
+    cardId,
+    avatarSize
   );
 
+  const textX = x + CARD_INNER_PAD;
+  const textTop = contentTop + avatarSize + 6;
+  const titleSize = Math.min(TITLE_FONT_SIZE, 22);
+  const timeSize = Math.min(TIME_FONT_SIZE, 16);
+  const titleLh = Math.round(titleSize * 1.2);
+  const timeLh = Math.round(timeSize * 1.25);
+  const textMaxWidth = Math.max(width - CARD_INNER_PAD * 2, 0);
+  const titleLines = wrapText(title, textMaxWidth, titleSize, 1);
+  const parts: string[] = [
+    ...avatarParts,
+    `<clipPath id="${textClipId}"><rect x="${textX}" y="${textTop}" width="${textMaxWidth}" height="${Math.max(height - (textTop - y) - CARD_INNER_PAD, 0)}"/></clipPath>`,
+  ];
+
+  if (titleLines[0]) {
+    parts.push(
+      `<text x="${x + width / 2}" y="${textTop + titleSize * 0.85}" fill="${THEME.white}" font-size="${titleSize}" font-weight="400" text-anchor="middle" font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(titleLines[0])}</text>`
+    );
+  }
+  parts.push(
+    `<text x="${x + width / 2}" y="${textTop + titleLh + timeSize * 0.85}" fill="${THEME.textMuted}" font-size="${timeSize}" font-weight="400" text-anchor="middle" font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(timeLabel)}</text>`
+  );
+
+  return parts;
+}
+
+function buildTimelineCard(
+  bounds: CardBounds,
+  title: string,
+  timeLabel: string,
+  avatarUserIds: string[],
+  avatarDataUrls: Map<string, string>,
+  cardId: string,
+  source: "ics" | "activity"
+): string[] {
+  const { x, y, width, height } = bounds;
+  const radius = Math.min(CARD_RADIUS, height / 2 - 1, width / 2 - 1);
   const borderWidth = 1;
   const innerRadius = Math.max(radius - borderWidth, 0);
+  const isActivity = source === "activity";
+  const fill = isActivity ? ACTIVITY_CARD_FILL : THEME.card;
+  const stroke = isActivity ? ACTIVITY_CARD_BORDER : THEME.border;
+
+  const useStacked = width < SIDE_BY_SIDE_MIN_WIDTH;
+  const content = useStacked
+    ? buildStackedCardContent(bounds, title, timeLabel, avatarUserIds, avatarDataUrls, cardId)
+    : (() => {
+        const textClipId = `card-${cardId}-text`;
+        const cy = y + height / 2;
+        const avatarStartX = x + CARD_INNER_PAD;
+        const { parts: avatarParts, endX: textX } = buildAvatarStack(
+          avatarStartX,
+          cy,
+          avatarUserIds,
+          avatarDataUrls,
+          cardId
+        );
+        return [
+          ...avatarParts,
+          ...buildTextLines(textX, x, y, width, height, cy, title, timeLabel, textClipId),
+        ];
+      })();
 
   return [
-    `<rect x="${x + borderWidth}" y="${y + borderWidth}" width="${width - borderWidth * 2}" height="${height - borderWidth * 2}" rx="${innerRadius}" ry="${innerRadius}" fill="${THEME.card}"/>`,
-    ...avatarParts,
-    ...buildTextLines(textX, x, y, width, height, cy, title, timeLabel, textClipId),
-    `<rect x="${x + 0.5}" y="${y + 0.5}" width="${width - 1}" height="${height - 1}" rx="${radius}" ry="${radius}" fill="none" stroke="${THEME.border}" stroke-width="${borderWidth}"/>`,
+    `<rect x="${x + borderWidth}" y="${y + borderWidth}" width="${width - borderWidth * 2}" height="${height - borderWidth * 2}" rx="${innerRadius}" ry="${innerRadius}" fill="${fill}"/>`,
+    ...content,
+    `<rect x="${x + 0.5}" y="${y + 0.5}" width="${width - 1}" height="${height - 1}" rx="${radius}" ry="${radius}" fill="none" stroke="${stroke}" stroke-width="${borderWidth}"/>`,
   ];
 }
 
@@ -343,13 +420,14 @@ function buildRowCards(
       times.endMinute,
       layout
     );
-    return buildActivityCard(
+    return buildTimelineCard(
       bounds,
       card.title,
       formatCardTimeRange(card.start, card.end, timezone),
       card.userIds,
       avatarDataUrls,
-      `${rowIndex}-${card.startMs}-${cardIndex}`
+      `${rowIndex}-${card.startMs}-${cardIndex}`,
+      card.source
     );
   });
 }
