@@ -122,7 +122,7 @@ function titleAdvanceEm(ch: string): number {
 function titleTextWidth(text: string, fontSize: number): number {
   let width = 0;
   for (const ch of text) width += titleAdvanceEm(ch) * fontSize;
-  return width * 1.04;
+  return width * 1.06;
 }
 
 function truncateToWidth(text: string, maxPx: number, fontSize: number): string {
@@ -140,7 +140,9 @@ function truncateToWidth(text: string, maxPx: number, fontSize: number): string 
 }
 
 /** Keep titles inside the rounded card edge instead of clipping the last glyph. */
-const TITLE_WRAP_INSET = 6;
+const TITLE_WRAP_INSET = 8;
+/** Don't squeeze a leftover short word onto a nearly full line. */
+const TITLE_WRAP_SLACK = 10;
 
 function wrapText(text: string, maxWidthPx: number, fontSize: number, maxLines: number): string[] {
   const maxPx = maxWidthPx - TITLE_WRAP_INSET;
@@ -167,8 +169,9 @@ function wrapText(text: string, maxWidthPx: number, fontSize: number, maxLines: 
     const wordW = titleTextWidth(word, fontSize);
     const room = remainingPx();
     const lastLine = lines.length === maxLines - 1;
+    const fits = current ? wordW + TITLE_WRAP_SLACK <= room : wordW <= room;
 
-    if (wordW <= room) {
+    if (fits) {
       current = current ? `${current} ${word}` : word;
       queue.shift();
       continue;
