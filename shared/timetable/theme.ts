@@ -28,14 +28,22 @@ export const FONT = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
 
 export const CARD_RADIUS = 14;
 export const CARD_INNER_PAD = 14;
+/** Gap between adjacent cards so touching time-slots do not visually collide. */
+export const CARD_GUTTER = 6;
 export const AVATAR_SIZE = 56;
 export const AVATAR_OVERLAP = 12;
 export const AVATAR_BORDER = 3;
-/** Short events grow visually to at least this width so text stays readable. */
-export const MIN_CARD_WIDTH = 240;
 /** Stacked layout when side-by-side avatar+text still doesn't fit. */
-export const NARROW_CARD_AVATAR_SIZE = 40;
+export const NARROW_CARD_AVATAR_SIZE = 32;
 export const SIDE_BY_SIDE_MIN_WIDTH = AVATAR_SIZE + CARD_INNER_PAD * 2 + 140;
+/** Below this width, drop the avatar so title and time use the full card. */
+export const COMPACT_CARD_MAX_WIDTH = 140;
+export const COMPACT_CARD_PAD = 8;
+export const COMPACT_TITLE_FONT_SIZE = 20;
+export const COMPACT_TIME_FONT_SIZE = 14;
+export const STACKED_CARD_PAD = 8;
+export const STACKED_TITLE_FONT_SIZE = 20;
+export const STACKED_TIME_FONT_SIZE = 14;
 
 /** Sized so text stays readable after Discord scales the wide PNG down. */
 export const TITLE_FONT_SIZE = 28;
