@@ -1,3 +1,7 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { Resvg } from "@resvg/resvg-js";
 import { toZonedTime } from "date-fns-tz";
 import sharp from "sharp";
 import { getGuildId } from "../config.js";
@@ -40,6 +44,31 @@ import {
 } from "../../shared/timetable/theme.js";
 
 const WIDTH = TIMETABLE_WIDTH;
+
+function resolveInterFontPath(): string {
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    path.resolve(process.cwd(), "assets/fonts/Inter-Regular.ttf"),
+    path.resolve(here, "../../../assets/fonts/Inter-Regular.ttf"),
+    path.resolve(here, "../../assets/fonts/Inter-Regular.ttf"),
+  ];
+  const found = candidates.find((candidate) => existsSync(candidate));
+  if (!found) {
+    throw new Error(`Inter Regular not found. Looked in: ${candidates.join(", ")}`);
+  }
+  return found;
+}
+
+function svgToPng(svg: string): Buffer {
+  const resvg = new Resvg(svg, {
+    font: {
+      fontFiles: [resolveInterFontPath()],
+      loadSystemFonts: false,
+      defaultFontFamily: FONT,
+    },
+  });
+  return Buffer.from(resvg.render().asPng());
+}
 
 type CardBounds = { x: number; y: number; width: number; height: number };
 
@@ -629,5 +658,5 @@ export async function renderTimetablePng(
   const userIds = [...new Set(dayEvents.map((event) => event.userId))];
   const avatarDataUrls = await loadAvatarDataUrls(guildId, userIds);
   const svg = buildTimelineSvg(timetable, dayKey, avatarDataUrls);
-  return sharp(Buffer.from(svg)).png().toBuffer();
+  return svgToPng(svg);
 }

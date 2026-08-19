@@ -31,6 +31,9 @@ RUN npm ci --omit=dev
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/dashboard/dist ./dashboard/dist
 COPY assets ./assets
+RUN mkdir -p /usr/share/fonts/clippy \
+  && cp /app/assets/fonts/*.ttf /usr/share/fonts/clippy/ \
+  && fc-cache -f
 
 RUN chown -R clippy:clippy /app
 USER clippy

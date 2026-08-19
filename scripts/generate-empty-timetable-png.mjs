@@ -1,6 +1,7 @@
-import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { Resvg } from "@resvg/resvg-js";
 import sharp from "sharp";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -15,7 +16,8 @@ const OUTER_PAD_BOTTOM = 12;
 const ROW_HEIGHT = 112;
 const dark = "#323338";
 const muted = "#949ba4";
-const font = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+const font = "Inter";
+const fontPath = path.resolve(root, "assets/fonts/Inter-Regular.ttf");
 const message = "Geen lessen of activiteiten op deze dag.";
 const LOGO_SIZE = 64;
 const MESSAGE_FONT_SIZE = 28;
@@ -47,6 +49,16 @@ const svg = `<?xml version="1.0" encoding="UTF-8"?>
 </svg>`;
 
 mkdirSync(path.dirname(outPath), { recursive: true });
-const png = await sharp(Buffer.from(svg)).png().toBuffer();
+if (!existsSync(fontPath)) {
+  throw new Error(`Inter Regular not found at ${fontPath}`);
+}
+const resvg = new Resvg(svg, {
+  font: {
+    fontFiles: existsSync(fontPath) ? [fontPath] : [],
+    loadSystemFonts: false,
+    defaultFontFamily: font,
+  },
+});
+const png = Buffer.from(resvg.render().asPng());
 writeFileSync(outPath, png);
 console.log(`Wrote ${outPath} (${png.length} bytes)`);

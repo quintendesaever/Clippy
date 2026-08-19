@@ -25,7 +25,7 @@ export const OUTER_PAD_BOTTOM = 12;
 /** Side pad so hour labels can be centered on the first/last tick. */
 export const GRID_INSET_X = 32;
 export const HEADER_BODY_GAP = 8;
-export const FONT = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+export const FONT = "Inter";
 
 export const CARD_RADIUS = 14;
 export const CARD_INNER_PAD = 8;
