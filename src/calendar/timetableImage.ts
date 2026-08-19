@@ -2,50 +2,40 @@ import { toZonedTime } from "date-fns-tz";
 import sharp from "sharp";
 import { getGuildId } from "../config.js";
 import { supabase } from "../supabase.js";
-import { truncateText } from "./eventUtils.js";
 import type { GuildTimetable, TimetableEvent } from "./types.js";
 import {
   clipEventToGrid,
   createTimelineLayout,
   groupDayEvents,
   packEventsIntoRows,
-  type RenderCard,
+  timeToX,
   type TimelineLayout,
 } from "../../shared/timetable/layout.js";
+import { colorForTypeBadge, labelForTypeBadge } from "../../shared/timetable/eventMeta.js";
 import {
   ACTIVITY_CARD_BORDER,
   ACTIVITY_CARD_FILL,
   AVATAR_BORDER,
   AVATAR_OVERLAP,
   AVATAR_SIZE,
-  CARD_GUTTER,
+  CARD_CONTENT_GAP,
   CARD_INNER_PAD,
   CARD_RADIUS,
-  COMPACT_CARD_MAX_WIDTH,
-  COMPACT_CARD_PAD,
-  COMPACT_TIME_FONT_SIZE,
-  COMPACT_TITLE_FONT_SIZE,
   FONT,
   GRID_INSET_X,
   HEADER_BODY_GAP,
   HEADER_HEIGHT,
   HOUR_LABEL_FONT_SIZE,
-  NARROW_CARD_AVATAR_SIZE,
   OUTER_PAD_BOTTOM,
   OUTER_PAD_TOP,
   OUTER_PAD_X,
   ROW_GAP,
   ROW_HEIGHT,
-  SIDE_BY_SIDE_MIN_WIDTH,
-  STACKED_CARD_PAD,
-  STACKED_TIME_FONT_SIZE,
-  STACKED_TITLE_FONT_SIZE,
   THEME,
   TIMETABLE_WIDTH,
   TITLE_FONT_SIZE,
   TIME_FONT_SIZE,
   TITLE_LINE_HEIGHT,
-  TIME_LINE_HEIGHT,
   TITLE_MAX_LINES,
 } from "../../shared/timetable/theme.js";
 
@@ -77,136 +67,136 @@ function rowTop(rowIndex: number): number {
   return HEADER_HEIGHT + HEADER_BODY_GAP + rowIndex * (ROW_HEIGHT + ROW_GAP);
 }
 
-function hourTickX(hourIndex: number, layout: TimelineLayout): number {
-  return layout.gridInset + hourIndex * layout.colWidth;
-}
-
-function timeToX(hour: number, minute: number, layout: TimelineLayout): number {
-  const minutesFromStart = (hour - layout.hourStart) * 60 + minute;
-  return layout.gridInset + (minutesFromStart / 60) * layout.colWidth;
-}
-
 function createLayout(events: TimetableEvent[], timezone: string): TimelineLayout {
   return createTimelineLayout(events, timezone, WIDTH, GRID_INSET_X);
 }
 
 function approxCharWidth(fontSize: number): number {
-  return fontSize * 0.52;
+  return fontSize * 0.58;
 }
 
-function ellipsizeLine(text: string, maxLen: number): string {
-  if (maxLen <= 0) return "";
-  if (maxLen === 1) return "…";
-  const withEllipsis = `${text}…`;
-  if (withEllipsis.length <= maxLen) return withEllipsis;
-  return `${text.slice(0, maxLen - 1)}…`;
+/** Approximate system-ui advances so titles can fill the card without a blunt char cap. */
+function titleAdvanceEm(ch: string): number {
+  switch (ch) {
+    case "i":
+    case "l":
+    case "I":
+    case "j":
+    case "'":
+    case "|":
+      return 0.28;
+    case "t":
+    case "f":
+    case "r":
+    case "J":
+      return 0.34;
+    case " ":
+      return 0.26;
+    case "-":
+    case "–":
+    case "—":
+      return 0.36;
+    case ".":
+    case ",":
+    case ":":
+    case ";":
+    case "!":
+      return 0.28;
+    case "m":
+    case "w":
+      return 0.82;
+    case "M":
+    case "W":
+      return 0.88;
+    case "…":
+      return 0.72;
+    case "&":
+      return 0.64;
+    default:
+      if (ch >= "A" && ch <= "Z") return 0.64;
+      if (ch >= "0" && ch <= "9") return 0.56;
+      return 0.52;
+  }
 }
+
+function titleTextWidth(text: string, fontSize: number): number {
+  let width = 0;
+  for (const ch of text) width += titleAdvanceEm(ch) * fontSize;
+  return width * 1.04;
+}
+
+function truncateToWidth(text: string, maxPx: number, fontSize: number): string {
+  if (titleTextWidth(text, fontSize) <= maxPx) return text;
+  const ell = "…";
+  const ellW = titleTextWidth(ell, fontSize);
+  let lo = 0;
+  let hi = text.length;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (titleTextWidth(text.slice(0, mid), fontSize) + ellW <= maxPx) lo = mid;
+    else hi = mid - 1;
+  }
+  return lo > 0 ? `${text.slice(0, lo)}…` : ell;
+}
+
+/** Keep titles inside the rounded card edge instead of clipping the last glyph. */
+const TITLE_WRAP_INSET = 6;
 
 function wrapText(text: string, maxWidthPx: number, fontSize: number, maxLines: number): string[] {
-  if (maxWidthPx <= 0 || maxLines <= 0) return [];
+  const maxPx = maxWidthPx - TITLE_WRAP_INSET;
+  if (maxPx <= 0 || maxLines <= 0) return ["…"];
 
-  const maxChars = Math.max(1, Math.floor(maxWidthPx / approxCharWidth(fontSize)));
   const words = text.split(/\s+/).filter(Boolean);
   if (words.length === 0) return [""];
 
+  const spaceW = titleTextWidth(" ", fontSize);
   const lines: string[] = [];
-  let i = 0;
+  let current = "";
+  const queue = [...words];
 
-  while (i < words.length && lines.length < maxLines) {
-    const isLastLine = lines.length === maxLines - 1;
-    let line = "";
+  const remainingPx = () => maxPx - titleTextWidth(current, fontSize) - (current ? spaceW : 0);
 
-    while (i < words.length) {
-      const word = words[i];
-      if (!word) break;
-      const candidate = line ? `${line} ${word}` : word;
-      if (candidate.length <= maxChars) {
-        line = candidate;
-        i++;
-        continue;
-      }
-      break;
-    }
+  const pushCurrent = () => {
+    if (!current) return;
+    lines.push(current);
+    current = "";
+  };
 
-    if (line) {
-      if (isLastLine && i < words.length) {
-        lines.push(ellipsizeLine(line, maxChars));
-        return lines;
-      }
-      lines.push(line);
+  while (queue.length > 0 && lines.length < maxLines) {
+    const word = queue[0];
+    const wordW = titleTextWidth(word, fontSize);
+    const room = remainingPx();
+    const lastLine = lines.length === maxLines - 1;
+
+    if (wordW <= room) {
+      current = current ? `${current} ${word}` : word;
+      queue.shift();
       continue;
     }
 
-    const overflowWord = words[i];
-    if (!overflowWord) break;
-
-    if (isLastLine) {
-      lines.push(truncateText(overflowWord, maxChars));
-      return lines;
+    if (current) {
+      if (lastLine) {
+        const packed = `${current} ${queue.join(" ")}`.trim();
+        lines.push(truncateToWidth(packed, maxPx, fontSize));
+        queue.length = 0;
+        current = "";
+        break;
+      }
+      pushCurrent();
+      continue;
     }
 
-    lines.push(overflowWord.slice(0, maxChars));
-    words[i] = overflowWord.slice(maxChars);
+    lines.push(truncateToWidth(word, maxPx, fontSize));
+    queue.shift();
+  }
+  pushCurrent();
+
+  if (queue.length > 0 && lines.length > 0) {
+    const last = lines[lines.length - 1].replace(/…$/, "");
+    lines[lines.length - 1] = truncateToWidth(`${last} ${queue.join(" ")}`.trim(), maxPx, fontSize);
   }
 
-  return lines.length > 0 ? lines : [truncateText(text, maxChars)];
-}
-
-function buildTextLines(
-  textX: number,
-  cardX: number,
-  cardY: number,
-  cardWidth: number,
-  cardHeight: number,
-  cy: number,
-  title: string,
-  timeLabel: string,
-  textClipId: string,
-  options?: {
-    titleSize?: number;
-    timeSize?: number;
-    titleLineHeight?: number;
-    timeLineHeight?: number;
-    maxLines?: number;
-    pad?: number;
-    anchor?: "start" | "middle";
-  }
-): string[] {
-  const titleSize = options?.titleSize ?? TITLE_FONT_SIZE;
-  const timeSize = options?.timeSize ?? TIME_FONT_SIZE;
-  const titleLh = options?.titleLineHeight ?? TITLE_LINE_HEIGHT;
-  const timeLh = options?.timeLineHeight ?? TIME_LINE_HEIGHT;
-  const maxLines = options?.maxLines ?? TITLE_MAX_LINES;
-  const pad = options?.pad ?? CARD_INNER_PAD;
-  const anchor = options?.anchor ?? "start";
-
-  const textMaxWidth = cardWidth - (textX - cardX) - pad;
-  const titleLines = wrapText(title, textMaxWidth, titleSize, maxLines);
-  if (titleLines.length === 0 || (titleLines.length === 1 && titleLines[0] === "")) {
-    return [];
-  }
-
-  const titleBlockHeight = titleLines.length * titleLh;
-  const blockHeight = titleBlockHeight + timeLh;
-  const blockTop = cy - blockHeight / 2;
-  const baselineOffset = titleSize * 0.35;
-
-  const textAnchor = anchor === "middle" ? ` text-anchor="middle"` : "";
-  const lineTexts = titleLines.map((line, index) => {
-    const slotCy = blockTop + index * titleLh + titleLh / 2;
-    const lineY = slotCy + baselineOffset;
-    return `<text x="${textX}" y="${lineY}" fill="${THEME.white}" font-size="${titleSize}" font-weight="400"${textAnchor} font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(line)}</text>`;
-  });
-
-  const timeY = blockTop + titleBlockHeight + timeLh / 2 + timeSize * 0.35;
-  lineTexts.push(
-    `<text x="${textX}" y="${timeY}" fill="${THEME.textMuted}" font-size="${timeSize}" font-weight="400"${textAnchor} font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(timeLabel)}</text>`
-  );
-
-  return [
-    `<clipPath id="${textClipId}"><rect x="${textX}" y="${cardY}" width="${Math.max(textMaxWidth, 0)}" height="${cardHeight}"/></clipPath>`,
-    ...lineTexts,
-  ];
+  return lines.length > 0 ? lines.slice(0, maxLines) : [truncateToWidth(text, maxPx, fontSize)];
 }
 
 function cardBounds(
@@ -217,26 +207,14 @@ function cardBounds(
   endMinute: number,
   layout: TimelineLayout
 ): CardBounds {
-  const startX = timeToX(startHour, startMinute, layout);
+  const x = timeToX(startHour, startMinute, layout);
   const endX = timeToX(endHour, endMinute, layout);
-  const gridRight = layout.gridInset + layout.hourCount * layout.colWidth;
-  const slotRight = Math.min(endX, gridRight);
-  const slotWidth = Math.max(slotRight - startX, 2);
-  const gutter = Math.min(CARD_GUTTER, Math.max(slotWidth - 2, 0));
   return {
-    x: startX + gutter / 2,
+    x,
     y: rowY,
-    width: Math.max(slotWidth - gutter, 2),
+    width: Math.max(endX - x, 2),
     height: ROW_HEIGHT,
   };
-}
-
-type CardLayoutMode = "sideBySide" | "stacked" | "compact";
-
-function cardLayoutMode(width: number): CardLayoutMode {
-  if (width >= SIDE_BY_SIDE_MIN_WIDTH) return "sideBySide";
-  if (width >= COMPACT_CARD_MAX_WIDTH) return "stacked";
-  return "compact";
 }
 
 function discordAvatarUrl(userId: string, avatarHash: string | null): string {
@@ -297,10 +275,11 @@ function buildHourHeader(layout: TimelineLayout): string[] {
     `<line x1="0" y1="${HEADER_HEIGHT}" x2="${WIDTH}" y2="${HEADER_HEIGHT}" stroke="${THEME.border}" stroke-width="1"/>`,
   ];
 
-  for (let i = 0; i < layout.hourCount; i++) {
-    const x = hourTickX(i, layout);
+  for (let i = 0; i <= layout.hourCount; i++) {
+    const hour = layout.hourStart + i;
+    const x = timeToX(hour, 0, layout);
     parts.push(
-      `<text x="${x}" y="${HEADER_HEIGHT / 2 + HOUR_LABEL_FONT_SIZE * 0.35}" fill="${THEME.textMuted}" font-size="${HOUR_LABEL_FONT_SIZE}" font-weight="400" text-anchor="start" font-family="${FONT}">${formatHourLabel(layout.hourStart + i)}</text>`
+      `<text x="${x}" y="${HEADER_HEIGHT / 2 + HOUR_LABEL_FONT_SIZE * 0.35}" fill="${THEME.textMuted}" font-size="${HOUR_LABEL_FONT_SIZE}" font-weight="400" text-anchor="middle" font-family="${FONT}">${formatHourLabel(hour)}</text>`
     );
   }
 
@@ -310,12 +289,19 @@ function buildHourHeader(layout: TimelineLayout): string[] {
 function buildHourGridLines(y: number, height: number, layout: TimelineLayout): string[] {
   const parts: string[] = [];
   for (let i = 0; i <= layout.hourCount; i++) {
-    const x = hourTickX(i, layout);
+    const x = timeToX(layout.hourStart + i, 0, layout);
     parts.push(
       `<line x1="${x}" y1="${y}" x2="${x}" y2="${y + height}" stroke="${THEME.border}" stroke-width="1" stroke-opacity="0.15"/>`
     );
   }
   return parts;
+}
+
+function avatarStackWidth(count: number, avatarSize: number): number {
+  if (count <= 0) return 0;
+  const overlap = Math.min(AVATAR_OVERLAP, Math.floor(avatarSize * 0.3));
+  const avatarStep = avatarSize - overlap;
+  return avatarSize + avatarStep * (count - 1);
 }
 
 function buildAvatarStack(
@@ -325,7 +311,8 @@ function buildAvatarStack(
   avatarDataUrls: Map<string, string>,
   idPrefix: string,
   avatarSize: number = AVATAR_SIZE
-): { parts: string[]; endX: number } {
+): { clipDefs: string[]; parts: string[]; endX: number } {
+  const clipDefs: string[] = [];
   const parts: string[] = [];
   const overlap = Math.min(AVATAR_OVERLAP, Math.floor(avatarSize * 0.3));
   const avatarStep = avatarSize - overlap;
@@ -337,8 +324,10 @@ function buildAvatarStack(
 
     const clipId = `${idPrefix}-avatar-${index}`;
     const cx = x + avatarSize / 2;
+    clipDefs.push(
+      `<clipPath id="${clipId}"><circle cx="${cx}" cy="${cy}" r="${avatarSize / 2 - AVATAR_BORDER}"/></clipPath>`
+    );
     parts.push(
-      `<clipPath id="${clipId}"><circle cx="${cx}" cy="${cy}" r="${avatarSize / 2 - AVATAR_BORDER}"/></clipPath>`,
       `<circle cx="${cx}" cy="${cy}" r="${avatarSize / 2}" fill="${THEME.card}"/>`,
       `<image href="${dataUrl}" x="${x}" y="${cy - avatarSize / 2}" width="${avatarSize}" height="${avatarSize}" clip-path="url(#${clipId})"/>`
     );
@@ -346,115 +335,170 @@ function buildAvatarStack(
   });
 
   const rendered = userIds.filter((id) => avatarDataUrls.has(id)).length;
-  const endX = rendered > 0 ? startX + avatarSize + avatarStep * (rendered - 1) + 12 : startX;
+  const endX = rendered > 0 ? startX + avatarStackWidth(rendered, avatarSize) : startX;
 
-  return { parts, endX };
+  return { clipDefs, parts, endX };
 }
 
-function buildCompactCardContent(
-  bounds: CardBounds,
-  title: string,
-  timeLabel: string,
-  cardId: string
-): string[] {
-  const { x, y, width, height } = bounds;
-  const pad = COMPACT_CARD_PAD;
-  const titleSize = COMPACT_TITLE_FONT_SIZE;
-  const timeSize = COMPACT_TIME_FONT_SIZE;
-  const titleLh = Math.round(titleSize * 1.2);
-  const timeLh = Math.round(timeSize * 1.2);
-  const textX = x + pad;
-  const cy = y + height / 2;
-  return buildTextLines(textX, x, y, width, height, cy, title, timeLabel, `card-${cardId}-text`, {
-    titleSize,
-    timeSize,
-    titleLineHeight: titleLh,
-    timeLineHeight: timeLh,
-    maxLines: TITLE_MAX_LINES,
-    pad,
-  });
+function textWidth(text: string, fontSize: number): number {
+  return text.length * approxCharWidth(fontSize);
 }
 
-function buildStackedCardContent(
+function buildCardContent(
   bounds: CardBounds,
   title: string,
   timeLabel: string,
   avatarUserIds: string[],
   avatarDataUrls: Map<string, string>,
-  cardId: string
+  cardId: string,
+  typeBadges: string[]
 ): string[] {
   const { x, y, width, height } = bounds;
-  const pad = STACKED_CARD_PAD;
-  const textClipId = `card-${cardId}-text`;
-  const avatarSize = Math.min(NARROW_CARD_AVATAR_SIZE, Math.max(width - pad * 2, 16));
-  const contentTop = y + pad;
-  const avatarCy = contentTop + avatarSize / 2;
-  const avatarStartX = x + (width - avatarSize) / 2;
+  const innerX = x + CARD_INNER_PAD;
+  const innerY = y + CARD_INNER_PAD;
+  const innerRight = x + width - CARD_INNER_PAD;
+  const innerW = Math.max(innerRight - innerX, 0);
+  const innerH = Math.max(height - CARD_INNER_PAD * 2, 0);
+  if (innerW <= 0 || innerH <= 0) return [];
 
-  const { parts: avatarParts } = buildAvatarStack(
-    avatarStartX,
+  const availableIds = avatarUserIds.filter((id) => avatarDataUrls.has(id));
+  const minTimeSize = 13;
+
+  const badgeLabel = typeBadges[0] ? labelForTypeBadge(typeBadges[0]) : "";
+  const timeNeeded = (size: number) => textWidth(timeLabel, size);
+  const pillWidthAt = (fontSize: number) =>
+    badgeLabel ? textWidth(badgeLabel, fontSize) + Math.round(fontSize * 1.8) : 0;
+  const pillHeightAt = (fontSize: number) => (fontSize > 0 ? Math.round(fontSize * 1.85) : 0);
+  const timeLineH = (size: number) => size;
+  const metaColumnWidth = (size: number, pillFont: number) =>
+    Math.max(pillFont > 0 ? pillWidthAt(pillFont) : 0, timeNeeded(size));
+  const metaColumnHeight = (size: number, pillFont: number) => {
+    const pillH = pillHeightAt(pillFont);
+    return (pillH > 0 ? pillH + CARD_CONTENT_GAP : 0) + timeLineH(size);
+  };
+
+  const reservedWidth = (avSize: number, avCount: number, size: number, pillFont: number) => {
+    const avW = avCount > 0 ? avatarStackWidth(avCount, avSize) : 0;
+    const metaW = metaColumnWidth(size, pillFont);
+    return (avW > 0 ? avW + CARD_CONTENT_GAP : 0) + metaW;
+  };
+
+  const fits = (size: number, avSize: number, avCount: number, pillFont: number) =>
+    reservedWidth(avSize, avCount, size, pillFont) <= innerW &&
+    metaColumnHeight(size, pillFont) <= innerH;
+
+  let timeSize = TIME_FONT_SIZE;
+  let avatarSize = 0;
+  let shownCount = 0;
+  let pillFont = 0;
+
+  const avatarCandidates =
+    availableIds.length > 0 ? [Math.min(AVATAR_SIZE, innerH * 0.7), 36, 24, 0] : [0];
+  const pillFontCandidates = badgeLabel ? [16, 14, 12, 0] : [0];
+  outer: for (const avSize of avatarCandidates) {
+    const maxCount = avSize > 0 ? availableIds.length : 0;
+    for (const nextPillFont of pillFontCandidates) {
+      for (let size = TIME_FONT_SIZE; size >= minTimeSize; size--) {
+        let count = 0;
+        for (let n = 1; n <= maxCount; n++) {
+          if (fits(size, avSize, n, nextPillFont)) count = n;
+          else break;
+        }
+        if (avSize === 0 ? fits(size, 0, 0, nextPillFont) : count > 0) {
+          timeSize = size;
+          avatarSize = avSize;
+          shownCount = count;
+          pillFont = nextPillFont;
+          break outer;
+        }
+      }
+    }
+  }
+  const shownIds = availableIds.slice(0, shownCount);
+  const stackH = metaColumnHeight(timeSize, pillFont);
+  const topRowH = Math.max(shownIds.length > 0 ? avatarSize : 0, stackH);
+  const avatarCy = innerY + topRowH / 2;
+  const { clipDefs: avatarClipDefs, parts: avatarParts, endX: avatarsEndX } = buildAvatarStack(
+    innerX,
     avatarCy,
-    avatarUserIds.slice(0, 1),
+    shownIds,
     avatarDataUrls,
-    cardId,
+    `card-${cardId}`,
     avatarSize
   );
 
-  const titleSize = STACKED_TITLE_FONT_SIZE;
-  const timeSize = STACKED_TIME_FONT_SIZE;
-  const titleLh = Math.round(titleSize * 1.1);
-  const timeLh = Math.round(timeSize * 1.15);
-  const textTop = contentTop + avatarSize + 4;
-  const textAreaHeight = Math.max(height - (textTop - y) - pad, 0);
-  const maxLines = Math.min(
-    TITLE_MAX_LINES,
-    Math.max(1, Math.floor((textAreaHeight - timeLh) / titleLh))
-  );
-  const textX = x + width / 2;
-  const textMaxWidth = Math.max(width - pad * 2, 0);
-  const titleLines = wrapText(title, textMaxWidth, titleSize, maxLines);
-  const titleBlockHeight = titleLines.length * titleLh;
+  const pillW = pillFont > 0 ? pillWidthAt(pillFont) : 0;
+  const pillH = pillHeightAt(pillFont);
+  const metaX = shownIds.length > 0 ? avatarsEndX + CARD_CONTENT_GAP : innerX;
+  const stackTop = innerY + (topRowH - stackH) / 2;
+  const timeClipLeft = metaX;
+  const timeClipWidth = Math.max(innerRight - timeClipLeft, 0);
+  const timeClipId = `card-${cardId}-time`;
+  const titleClipId = `card-${cardId}-title`;
+  const bodyClipId = `card-${cardId}-body`;
+
+  const titleTop = innerY + topRowH + CARD_CONTENT_GAP;
+  const titleMaxH = Math.max(y + height - CARD_INNER_PAD - titleTop, 0);
+  const titleX = innerX;
+  const titleWidth = innerW;
+
+  let titleSize = TITLE_FONT_SIZE;
+  let titleLh = TITLE_LINE_HEIGHT;
+  let maxLines = 1;
+  if (titleMaxH >= TITLE_LINE_HEIGHT * 2) {
+    maxLines = TITLE_MAX_LINES;
+  } else if (titleMaxH > 0 && titleMaxH < TITLE_LINE_HEIGHT) {
+    titleSize = Math.min(TITLE_FONT_SIZE, Math.max(14, Math.round(titleMaxH * 0.85)));
+    titleLh = titleMaxH;
+  }
+
+  const titleLines = titleMaxH > 0 ? wrapText(title, titleWidth, titleSize, maxLines) : [];
+  const radius = Math.min(CARD_RADIUS, height / 2 - 1, width / 2 - 1);
   const parts: string[] = [
+    `<defs>`,
+    `<clipPath id="${bodyClipId}"><rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${radius}" ry="${radius}"/></clipPath>`,
+    timeClipWidth > 0
+      ? `<clipPath id="${timeClipId}"><rect x="${timeClipLeft}" y="${innerY}" width="${timeClipWidth}" height="${topRowH}"/></clipPath>`
+      : "",
+    titleWidth > 0 && titleMaxH > 0
+      ? `<clipPath id="${titleClipId}"><rect x="${titleX}" y="${titleTop}" width="${Math.max(titleWidth - TITLE_WRAP_INSET, 0)}" height="${titleMaxH}"/></clipPath>`
+      : "",
+    ...avatarClipDefs,
+    `</defs>`,
+    `<g clip-path="url(#${bodyClipId})">`,
     ...avatarParts,
-    `<clipPath id="${textClipId}"><rect x="${x + pad}" y="${textTop}" width="${textMaxWidth}" height="${textAreaHeight}"/></clipPath>`,
-  ];
+  ].filter(Boolean);
 
-  titleLines.forEach((line, index) => {
-    const lineY = textTop + index * titleLh + titleSize * 0.85;
+  if (pillW > 0 && badgeLabel) {
+    const pillY = stackTop;
+    const pillRadius = pillH / 2;
+    const badgeCode = typeBadges[0];
+    const badgeColor = colorForTypeBadge(badgeCode);
     parts.push(
-      `<text x="${textX}" y="${lineY}" fill="${THEME.white}" font-size="${titleSize}" font-weight="400" text-anchor="middle" font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(line)}</text>`
+      `<rect x="${metaX}" y="${pillY}" width="${pillW}" height="${pillH}" rx="${pillRadius}" ry="${pillRadius}" fill="${badgeColor}" fill-opacity="0.22"/>`,
+      `<text x="${metaX + pillW / 2}" y="${pillY + pillH / 2 + pillFont * 0.32}" fill="${badgeColor}" font-size="${pillFont}" font-weight="600" text-anchor="middle" font-family="${FONT}">${escapeXml(badgeLabel)}</text>`
     );
-  });
-  parts.push(
-    `<text x="${textX}" y="${textTop + titleBlockHeight + timeSize * 0.85}" fill="${THEME.textMuted}" font-size="${timeSize}" font-weight="400" text-anchor="middle" font-family="${FONT}" clip-path="url(#${textClipId})">${escapeXml(timeLabel)}</text>`
-  );
+  }
 
+  if (timeClipWidth > 0) {
+    const timeY = stackTop + (pillH > 0 ? pillH + CARD_CONTENT_GAP : 0) + timeSize * 0.85;
+    parts.push(
+      `<text x="${metaX}" y="${timeY}" fill="${THEME.textMuted}" font-size="${timeSize}" font-weight="400" text-anchor="start" font-family="${FONT}" clip-path="url(#${timeClipId})">${escapeXml(timeLabel)}</text>`
+    );
+  }
+
+  if (titleLines.length > 0 && titleMaxH > 0) {
+    for (const [index, line] of titleLines.entries()) {
+      if (!line) continue;
+      const lineY = titleTop + index * titleLh + titleSize * 0.85;
+      parts.push(
+        `<text x="${titleX}" y="${lineY}" fill="${THEME.white}" font-size="${titleSize}" font-weight="400" font-family="${FONT}" clip-path="url(#${titleClipId})">${escapeXml(line)}</text>`
+      );
+    }
+  }
+
+  parts.push(`</g>`);
   return parts;
-}
-
-function buildSideBySideCardContent(
-  bounds: CardBounds,
-  title: string,
-  timeLabel: string,
-  avatarUserIds: string[],
-  avatarDataUrls: Map<string, string>,
-  cardId: string
-): string[] {
-  const { x, y, width, height } = bounds;
-  const textClipId = `card-${cardId}-text`;
-  const cy = y + height / 2;
-  const avatarStartX = x + CARD_INNER_PAD;
-  const { parts: avatarParts, endX: textX } = buildAvatarStack(
-    avatarStartX,
-    cy,
-    avatarUserIds,
-    avatarDataUrls,
-    cardId
-  );
-  return [
-    ...avatarParts,
-    ...buildTextLines(textX, x, y, width, height, cy, title, timeLabel, textClipId),
-  ];
 }
 
 function buildTimelineCard(
@@ -464,7 +508,8 @@ function buildTimelineCard(
   avatarUserIds: string[],
   avatarDataUrls: Map<string, string>,
   cardId: string,
-  source: "ics" | "activity"
+  source: "ics" | "activity",
+  typeBadges: string[]
 ): string[] {
   const { x, y, width, height } = bounds;
   const radius = Math.min(CARD_RADIUS, height / 2 - 1, width / 2 - 1);
@@ -473,18 +518,10 @@ function buildTimelineCard(
   const isActivity = source === "activity";
   const fill = isActivity ? ACTIVITY_CARD_FILL : THEME.card;
   const stroke = isActivity ? ACTIVITY_CARD_BORDER : THEME.border;
-  const mode = cardLayoutMode(width);
-
-  const content =
-    mode === "compact"
-      ? buildCompactCardContent(bounds, title, timeLabel, cardId)
-      : mode === "stacked"
-        ? buildStackedCardContent(bounds, title, timeLabel, avatarUserIds, avatarDataUrls, cardId)
-        : buildSideBySideCardContent(bounds, title, timeLabel, avatarUserIds, avatarDataUrls, cardId);
 
   return [
     `<rect x="${x + borderWidth}" y="${y + borderWidth}" width="${width - borderWidth * 2}" height="${height - borderWidth * 2}" rx="${innerRadius}" ry="${innerRadius}" fill="${fill}"/>`,
-    ...content,
+    ...buildCardContent(bounds, title, timeLabel, avatarUserIds, avatarDataUrls, cardId, typeBadges),
     `<rect x="${x + 0.5}" y="${y + 0.5}" width="${width - 1}" height="${height - 1}" rx="${radius}" ry="${radius}" fill="none" stroke="${stroke}" stroke-width="${borderWidth}"/>`,
   ];
 }
@@ -492,15 +529,24 @@ function buildTimelineCard(
 function buildRowCards(
   rowIndex: number,
   rowY: number,
-  cards: RenderCard[],
+  cards: import("../../shared/timetable/layout.js").RenderCard[],
   layout: TimelineLayout,
   timezone: string,
   avatarDataUrls: Map<string, string>
 ): string[] {
-  return cards.flatMap((card, cardIndex) => {
-    const times = clipEventToGrid(card.start, card.end, timezone, layout);
-    if (!times) return [];
+  const prepared = cards
+    .map((card, cardIndex) => {
+      const times = clipEventToGrid(card.start, card.end, timezone, layout);
+      if (!times) return null;
+      return { card, cardIndex, times };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null)
+    .sort(
+      (a, b) =>
+        a.times.startHour * 60 + a.times.startMinute - (b.times.startHour * 60 + b.times.startMinute)
+    );
 
+  return prepared.flatMap(({ card, cardIndex, times }) => {
     const bounds = cardBounds(
       rowY,
       times.startHour,
@@ -516,14 +562,15 @@ function buildRowCards(
       card.userIds,
       avatarDataUrls,
       `${rowIndex}-${card.startMs}-${cardIndex}`,
-      card.source
+      card.source,
+      card.typeBadges
     );
   });
 }
 
 function buildRow(
   rowIndex: number,
-  cards: RenderCard[],
+  cards: import("../../shared/timetable/layout.js").RenderCard[],
   layout: TimelineLayout,
   timezone: string,
   avatarDataUrls: Map<string, string>
@@ -536,8 +583,8 @@ function buildRow(
   ];
 }
 
-function buildTimelineSvg(
-  timetable: GuildTimetable,
+export function buildTimelineSvg(
+  timetable: Pick<GuildTimetable, "eventsByDay" | "guildTimezone">,
   dayKey: string,
   avatarDataUrls: Map<string, string>
 ): string {

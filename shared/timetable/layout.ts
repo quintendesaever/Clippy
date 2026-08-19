@@ -14,6 +14,7 @@ export type LayoutEvent = {
   allDay: boolean;
   /** Distinguishes ICS lessons from shared activities when merging cards. */
   source?: "ics" | "activity";
+  typeBadges?: string[];
 };
 
 export type RenderCard = {
@@ -24,6 +25,7 @@ export type RenderCard = {
   startMs: number;
   endMs: number;
   source: "ics" | "activity";
+  typeBadges: string[];
 };
 
 export type TimelineLayout = {
@@ -84,7 +86,7 @@ export function createTimelineLayout(
   fixedRange?: FixedHourRange
 ): TimelineLayout {
   const { hourStart, hourEnd } = fixedRange ?? computeDisplayHourRange(events, timezone);
-  const hourCount = hourEnd - hourStart;
+  const hourCount = Math.max(hourEnd - hourStart, 1);
   return {
     hourStart,
     hourEnd,
@@ -94,14 +96,33 @@ export function createTimelineLayout(
   };
 }
 
+/** Hours from the timeline origin (`hourStart:00`). */
+export function hoursFromStart(hour: number, minute: number, layout: TimelineLayout): number {
+  return hour - layout.hourStart + minute / 60;
+}
+
+/** Full axis width in the same units as `timeToX` (inner grid plus side insets). */
+export function layoutAxisWidth(layout: TimelineLayout): number {
+  return 2 * layout.gridInset + layout.colWidth * layout.hourCount;
+}
+
+/**
+ * Map a clock time onto the shared horizontal axis.
+ * `hourStart:00` is the first tick; `hourEnd:00` is the last tick.
+ * Labels, grid lines, and event edges all use this function.
+ */
+export function timeToX(hour: number, minute: number, layout: TimelineLayout): number {
+  return layout.gridInset + hoursFromStart(hour, minute, layout) * layout.colWidth;
+}
+
 export function timeToPercent(
   hour: number,
   minute: number,
   layout: TimelineLayout
 ): number {
-  const minutesFromStart = (hour - layout.hourStart) * 60 + minute;
-  const totalMinutes = layout.hourCount * 60;
-  return (minutesFromStart / totalMinutes) * 100;
+  const total = layoutAxisWidth(layout);
+  if (total <= 0) return 0;
+  return (timeToX(hour, minute, layout) / total) * 100;
 }
 
 export function clipEventToGrid(
@@ -131,6 +152,10 @@ export function clipEventToGrid(
   };
 }
 
+export function typeBadgeKey(badges: string[] | undefined): string {
+  return [...(badges ?? [])].map((badge) => badge.toUpperCase()).sort().join(",");
+}
+
 export function groupDayEvents(events: LayoutEvent[]): RenderCard[] {
   const groups = new Map<string, RenderCard>();
 
@@ -138,7 +163,8 @@ export function groupDayEvents(events: LayoutEvent[]): RenderCard[] {
     if (event.allDay) continue;
 
     const source = event.source ?? "ics";
-    const key = `${source}|${event.start.getTime()}|${event.end.getTime()}|${event.title.toLowerCase()}`;
+    const typeBadges = event.typeBadges ?? [];
+    const key = `${source}|${event.start.getTime()}|${event.end.getTime()}|${event.title.toLowerCase()}|${typeBadgeKey(typeBadges)}`;
     const existing = groups.get(key);
     if (existing) {
       if (!existing.userIds.includes(event.userId)) {
@@ -155,6 +181,7 @@ export function groupDayEvents(events: LayoutEvent[]): RenderCard[] {
       startMs: event.start.getTime(),
       endMs: event.end.getTime(),
       source,
+      typeBadges,
     });
   }
 

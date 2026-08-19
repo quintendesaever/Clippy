@@ -1,6 +1,6 @@
-import { addDays, endOfDay, startOfWeek } from "date-fns";
+import { addDays, startOfWeek } from "date-fns";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
-import { getGuildTimezone, getTodayInGuildTz } from "../stats/helpers.js";
+import { getGuildTimezone } from "../stats/helpers.js";
 import { getGuildActivitiesInRange } from "./activities.js";
 import { colorForInitials } from "./eventUtils.js";
 import { fetchIcsContent } from "./icsFetcher.js";
@@ -20,15 +20,6 @@ export function dayKeyInTimezone(date: Date, timezone: string): string {
   const month = String(zoned.getMonth() + 1).padStart(2, "0");
   const day = String(zoned.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
-}
-
-function rangeBounds(timezone: string): { rangeStart: Date; rangeEnd: Date } {
-  const today = getTodayInGuildTz(timezone);
-  const [year, month, day] = today.split("-").map(Number);
-  const startLocal = fromZonedTime(new Date(year, month - 1, day, 0, 0, 0, 0), timezone);
-  const zonedEnd = addDays(toZonedTime(startLocal, timezone), 6);
-  const endLocal = fromZonedTime(endOfDay(zonedEnd), timezone);
-  return { rangeStart: startLocal, rangeEnd: endLocal };
 }
 
 function groupEventsByDay(events: TimetableEvent[], timezone: string): Map<string, TimetableEvent[]> {
@@ -112,13 +103,11 @@ function buildGuildTimetable(
 
 export async function getGuildTimetable(guildId: string): Promise<GuildTimetable> {
   const guildTimezone = await getGuildTimezone(guildId);
-  const { rangeStart, rangeEnd } = rangeBounds(guildTimezone);
-  const members = await getGuildMemberCalendars(guildId);
-  const [memberResults, activityEvents] = await Promise.all([
-    Promise.all(members.map((member) => loadMemberEvents(member, rangeStart, rangeEnd))),
-    getGuildActivitiesInRange(guildId, rangeStart, rangeEnd),
-  ]);
-  return buildGuildTimetable(memberResults, guildTimezone, rangeStart, rangeEnd, activityEvents);
+  const mondayKey = getWeekMondayKey(new Date(), guildTimezone);
+  const [year, month, day] = mondayKey.split("-").map(Number);
+  const mondayNoon = fromZonedTime(new Date(year, month - 1, day, 12, 0, 0), guildTimezone);
+  const sundayKey = dayKeyInTimezone(addDays(mondayNoon, 6), guildTimezone);
+  return getGuildTimetableForDates(guildId, mondayKey, sundayKey);
 }
 
 export async function getGuildTimetableForDates(

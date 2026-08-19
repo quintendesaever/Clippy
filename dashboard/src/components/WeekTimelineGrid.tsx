@@ -6,15 +6,14 @@ import {
   groupDayEvents,
   packEventsIntoRows,
   timeToPercent,
+  typeBadgeKey,
   type LayoutEvent,
   type RenderCard,
 } from "@shared/timetable/layout";
-import { TIMETABLE_WIDTH } from "@shared/timetable/theme";
+import { TIMETABLE_WIDTH, GRID_INSET_X } from "@shared/timetable/theme";
 import { formatDayMonth, formatTime } from "../lib/dates";
 import type { TimetableEventDto } from "../types";
 import EventCard from "./EventCard";
-
-const DASHBOARD_GRID_INSET = 0;
 
 export type WeekTimelineDay = {
   dayKey: string;
@@ -46,20 +45,39 @@ function toLayoutEvents(events: TimetableEventDto[]): LayoutEvent[] {
     userId: ev.userId,
     allDay: ev.allDay,
     source: eventSource(ev),
+    typeBadges: ev.typeBadges,
   }));
+}
+
+function eventLookupKey(
+  source: "ics" | "activity",
+  start: string,
+  end: string,
+  title: string,
+  typeBadges: string[] | undefined
+): string {
+  return `${source}|${start}|${end}|${title.toLowerCase()}|${typeBadgeKey(typeBadges)}`;
 }
 
 function buildEventLookup(events: TimetableEventDto[]): Map<string, TimetableEventDto> {
   const map = new Map<string, TimetableEventDto>();
   for (const ev of events) {
-    const key = `${eventSource(ev)}|${ev.start}|${ev.end}|${ev.title.toLowerCase()}`;
-    map.set(key, ev);
+    map.set(
+      eventLookupKey(eventSource(ev), ev.start, ev.end, ev.title, ev.typeBadges),
+      ev
+    );
   }
   return map;
 }
 
 function lookupKeyForCard(card: RenderCard): string {
-  return `${card.source}|${card.start.toISOString()}|${card.end.toISOString()}|${card.title.toLowerCase()}`;
+  return eventLookupKey(
+    card.source,
+    card.start.toISOString(),
+    card.end.toISOString(),
+    card.title,
+    card.typeBadges
+  );
 }
 
 function cardPositionPercent(
@@ -93,13 +111,13 @@ export default function WeekTimelineGrid({
         toLayoutEvents(allEvents),
         timezone,
         TIMETABLE_WIDTH,
-        DASHBOARD_GRID_INSET
+        GRID_INSET_X
       ),
     [allEvents, timezone]
   );
 
   const hours = useMemo(
-    () => Array.from({ length: layout.hourCount }, (_, i) => layout.hourStart + i),
+    () => Array.from({ length: layout.hourCount + 1 }, (_, i) => layout.hourStart + i),
     [layout]
   );
 
@@ -135,11 +153,11 @@ export default function WeekTimelineGrid({
         <div className="weekTimelineHeader">
           <div className="weekTimelineCorner" />
           <div className="weekTimelineHourHeader">
-            {hours.map((hour, i) => (
+            {hours.map((hour) => (
               <div
                 key={hour}
                 className="timelineHourLabel"
-                style={{ left: `${(i / layout.hourCount) * 100}%` }}
+                style={{ left: `${timeToPercent(hour, 0, layout)}%` }}
               >
                 {formatHourLabel(hour)}
               </div>
@@ -159,7 +177,7 @@ export default function WeekTimelineGrid({
                   <div
                     key={i}
                     className="timelineGridLine"
-                    style={{ left: `${(i / layout.hourCount) * 100}%` }}
+                    style={{ left: `${timeToPercent(layout.hourStart + i, 0, layout)}%` }}
                   />
                 ))}
               </div>
@@ -183,6 +201,7 @@ export default function WeekTimelineGrid({
                         leftPercent={pos.leftPercent}
                         widthPercent={pos.widthPercent}
                         isActivity={ev?.source === "activity" || card.source === "activity"}
+                        typeBadges={card.typeBadges}
                         onClick={() => handleCardClick(card, day.eventLookup)}
                       />
                     );

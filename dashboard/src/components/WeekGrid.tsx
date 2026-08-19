@@ -4,6 +4,7 @@ import { useMemo, type CSSProperties } from "react";
 import { courseColorMap, courseKeyFromTitle } from "../lib/courseColor";
 import { DAY_LABELS, formatDayMonth, formatTime, eventDayKey } from "../lib/dates";
 import type { TimetableEventDto } from "../types";
+import TypeBadge from "./TypeBadge";
 
 const BASE_ROW_HEIGHT_PX = 64;
 const BASE_MIN_EVENT_HEIGHT_PX = 36;
@@ -166,10 +167,13 @@ export default function WeekGrid({
                     title={`${ev.title} (${formatTime(ev.start)}–${formatTime(ev.end)})`}
                   >
                     <span className="weekGridEventBody">
-                      <span
-                        className={`eventCardTitle${titleTall ? " weekGridEventTitleTall" : ""}`}
-                      >
-                        {ev.title}
+                      <span className="eventCardTitleRow">
+                        <TypeBadge badges={ev.typeBadges} />
+                        <span
+                          className={`eventCardTitle${titleTall ? " weekGridEventTitleTall" : ""}`}
+                        >
+                          {ev.title}
+                        </span>
                       </span>
                       {showTime && (
                         <span className="weekGridEventTime">

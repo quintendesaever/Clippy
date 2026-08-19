@@ -72,3 +72,20 @@ export const TYPE_BADGE_LABELS: Record<string, string> = {
 export function labelForTypeBadge(badge: string): string {
   return TYPE_BADGE_LABELS[badge.toUpperCase()] ?? badge;
 }
+
+export const TYPE_BADGE_COLORS: Record<string, string> = {
+  H: "#8b5cf6",
+  P: "#f97316",
+  W: "#22c55e",
+  L: "#3b82f6",
+  G: "#06b6d4",
+  E: "#eab308",
+  S: "#ec4899",
+  V: "#ef4444",
+  J: "#a855f7",
+  A: "#f0b232",
+};
+
+export function colorForTypeBadge(badge: string): string {
+  return TYPE_BADGE_COLORS[badge.toUpperCase()] ?? "#6366f1";
+}

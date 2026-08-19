@@ -1,9 +1,10 @@
 import { useMemo } from "react";
-import { groupDayEvents, type LayoutEvent } from "@shared/timetable/layout";
+import { groupDayEvents, typeBadgeKey, type LayoutEvent } from "@shared/timetable/layout";
 import { formatAgendaDay, formatTime, toISODate } from "../lib/dates";
 import type { TimetableEventDto } from "../types";
 import type { WeekTimelineDay } from "./WeekTimelineGrid";
 import AvatarStack from "./AvatarStack";
+import TypeBadge from "./TypeBadge";
 
 type WeekAgendaListProps = {
   days: WeekTimelineDay[];
@@ -17,6 +18,7 @@ type AgendaItem = {
   timeLabel: string;
   userIds: string[];
   event: TimetableEventDto;
+  typeBadges: string[];
 };
 
 function eventSource(ev: TimetableEventDto): "ics" | "activity" {
@@ -31,6 +33,7 @@ function toLayoutEvents(events: TimetableEventDto[]): LayoutEvent[] {
     userId: ev.userId,
     allDay: ev.allDay,
     source: eventSource(ev),
+    typeBadges: ev.typeBadges,
   }));
 }
 
@@ -39,13 +42,16 @@ function findEvent(
   title: string,
   startMs: number,
   endMs: number,
-  source: "ics" | "activity"
+  source: "ics" | "activity",
+  typeBadges: string[]
 ) {
+  const badges = typeBadgeKey(typeBadges);
   return events.find(
     (ev) =>
       !ev.allDay &&
       eventSource(ev) === source &&
       ev.title.toLowerCase() === title.toLowerCase() &&
+      typeBadgeKey(ev.typeBadges) === badges &&
       new Date(ev.start).getTime() === startMs &&
       new Date(ev.end).getTime() === endMs
   );
@@ -55,7 +61,7 @@ function groupAllDayEvents(events: TimetableEventDto[]): AgendaItem[] {
   const groups = new Map<string, AgendaItem>();
   for (const ev of events) {
     if (!ev.allDay) continue;
-    const key = `${eventSource(ev)}|${ev.start}|${ev.end}|${ev.title.toLowerCase()}`;
+    const key = `${eventSource(ev)}|${ev.start}|${ev.end}|${ev.title.toLowerCase()}|${typeBadgeKey(ev.typeBadges)}`;
     const existing = groups.get(key);
     if (existing) {
       if (!existing.userIds.includes(ev.userId)) existing.userIds.push(ev.userId);
@@ -67,6 +73,7 @@ function groupAllDayEvents(events: TimetableEventDto[]): AgendaItem[] {
       timeLabel: "Hele dag",
       userIds: [ev.userId],
       event: ev,
+      typeBadges: ev.typeBadges ?? [],
     });
   }
   return [...groups.values()];
@@ -74,15 +81,16 @@ function groupAllDayEvents(events: TimetableEventDto[]): AgendaItem[] {
 
 function timedAgendaItems(events: TimetableEventDto[]): AgendaItem[] {
   return groupDayEvents(toLayoutEvents(events)).flatMap((card) => {
-    const ev = findEvent(events, card.title, card.startMs, card.endMs, card.source);
+    const ev = findEvent(events, card.title, card.startMs, card.endMs, card.source, card.typeBadges);
     if (!ev) return [];
     return [
       {
-        key: `${card.source}-${card.startMs}-${card.title}`,
+        key: `${card.source}-${card.startMs}-${card.title}-${typeBadgeKey(card.typeBadges)}`,
         title: card.title,
         timeLabel: `${formatTime(ev.start)}–${formatTime(ev.end)}`,
         userIds: card.userIds,
         event: ev,
+        typeBadges: card.typeBadges,
       },
     ];
   });
@@ -124,6 +132,7 @@ export default function WeekAgendaList({
                   onClick={() => onEventClick(item.event)}
                 >
                   <AvatarStack userIds={item.userIds} avatarByUser={avatarByUser} size="sm" />
+                  <TypeBadge badges={item.typeBadges} />
                   <span className="agendaCardText">
                     <span className="agendaCardTitle">{item.title}</span>
                     <span className="agendaCardTime">{item.timeLabel}</span>

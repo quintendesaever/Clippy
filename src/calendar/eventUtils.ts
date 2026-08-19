@@ -99,13 +99,7 @@ export function parseActivitySummary(
 
   // Keep course name only (first comma segment) for compact cards everywhere
   const courseOnly = s.split(",")[0]?.trim() ?? "";
-  const course = courseOnly || s || "(geen titel)";
-
-  let title = course;
-  if (titleTypeLabel) {
-    const alreadyPrefixed = new RegExp(`^${titleTypeLabel}\\b`, "i").test(course);
-    title = alreadyPrefixed ? course : `${titleTypeLabel} ${course}`.trim();
-  }
+  const title = courseOnly || s || "(geen titel)";
 
   return { title, typeBadges };
 }
@@ -132,23 +126,8 @@ export const HOUR_START = 8;
 export const HOUR_END = 20;
 export const TOTAL_HOURS = HOUR_END - HOUR_START;
 
-const TYPE_BADGE_COLORS: Record<string, string> = {
-  H: "#8b5cf6",
-  P: "#f97316",
-  W: "#22c55e",
-  L: "#3b82f6",
-  G: "#06b6d4",
-  E: "#eab308",
-  S: "#ec4899",
-  V: "#ef4444",
-  J: "#a855f7",
-};
-
-export function colorForTypeBadge(badge: string): string {
-  return TYPE_BADGE_COLORS[badge.toUpperCase()] ?? "#6366f1";
-}
-
 export {
+  colorForTypeBadge,
   descriptionPreview,
   labelForTypeBadge,
   shortLocation,

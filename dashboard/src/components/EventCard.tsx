@@ -1,4 +1,5 @@
 import AvatarStack from "./AvatarStack";
+import TypeBadge from "./TypeBadge";
 
 type EventCardProps = {
   title: string;
@@ -9,6 +10,7 @@ type EventCardProps = {
   widthPercent: number;
   onClick: () => void;
   isActivity?: boolean;
+  typeBadges?: string[];
 };
 
 export default function EventCard({
@@ -20,19 +22,21 @@ export default function EventCard({
   widthPercent,
   onClick,
   isActivity = false,
+  typeBadges,
 }: EventCardProps) {
   return (
     <button
       type="button"
       className={`eventCard${isActivity ? " eventCardActivity" : ""}`}
       style={{
-        left: `calc(${leftPercent}% + var(--timeline-card-gutter) / 2)`,
-        width: `calc(${Math.max(widthPercent, 1)}% - var(--timeline-card-gutter))`,
+        left: `${leftPercent}%`,
+        width: `${Math.max(widthPercent, 0)}%`,
       }}
       onClick={onClick}
       title={`${title} (${timeLabel})`}
     >
       <AvatarStack userIds={userIds} avatarByUser={avatarByUser} size="md" />
+      <TypeBadge badges={typeBadges} />
       <span className="eventCardText">
         <span className="eventCardTitle">{title}</span>
         <span className="eventCardTime">{timeLabel}</span>
