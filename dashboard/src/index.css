@@ -1095,26 +1095,6 @@ select.formSelect {
   line-height: 1.2;
 }
 
-.typeBadge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  height: calc(1.1rem * var(--tt-font-scale, 1));
-  padding: 0 calc(0.4rem * var(--tt-font-scale, 1));
-  border-radius: 999px;
-  font-size: calc(0.6rem * var(--tt-font-scale, 1));
-  font-weight: 500;
-  color: var(--type-badge-color, var(--color-text-muted));
-  background: color-mix(in srgb, var(--type-badge-color, var(--color-text-muted)) 18%, var(--color-card));
-  line-height: 1;
-  letter-spacing: 0;
-  white-space: nowrap;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .eventCardActivity {
   border-color: color-mix(in srgb, #f0b232 45%, var(--color-border));
   background: color-mix(in srgb, #f0b232 18%, var(--color-card));

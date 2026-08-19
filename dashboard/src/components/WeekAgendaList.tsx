@@ -4,7 +4,6 @@ import { formatAgendaDay, formatTime, toISODate } from "../lib/dates";
 import type { TimetableEventDto } from "../types";
 import type { WeekTimelineDay } from "./WeekTimelineGrid";
 import AvatarStack from "./AvatarStack";
-import TypeBadge from "./TypeBadge";
 
 type WeekAgendaListProps = {
   days: WeekTimelineDay[];
@@ -18,7 +17,6 @@ type AgendaItem = {
   timeLabel: string;
   userIds: string[];
   event: TimetableEventDto;
-  typeBadges: string[];
 };
 
 function eventSource(ev: TimetableEventDto): "ics" | "activity" {
@@ -73,7 +71,6 @@ function groupAllDayEvents(events: TimetableEventDto[]): AgendaItem[] {
       timeLabel: "Hele dag",
       userIds: [ev.userId],
       event: ev,
-      typeBadges: ev.typeBadges ?? [],
     });
   }
   return [...groups.values()];
@@ -90,7 +87,6 @@ function timedAgendaItems(events: TimetableEventDto[]): AgendaItem[] {
         timeLabel: `${formatTime(ev.start)}–${formatTime(ev.end)}`,
         userIds: card.userIds,
         event: ev,
-        typeBadges: card.typeBadges,
       },
     ];
   });
@@ -132,7 +128,6 @@ export default function WeekAgendaList({
                   onClick={() => onEventClick(item.event)}
                 >
                   <AvatarStack userIds={item.userIds} avatarByUser={avatarByUser} size="sm" />
-                  <TypeBadge badges={item.typeBadges} />
                   <span className="agendaCardText">
                     <span className="agendaCardTitle">{item.title}</span>
                     <span className="agendaCardTime">{item.timeLabel}</span>

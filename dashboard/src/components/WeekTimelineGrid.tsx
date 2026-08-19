@@ -201,7 +201,6 @@ export default function WeekTimelineGrid({
                         leftPercent={pos.leftPercent}
                         widthPercent={pos.widthPercent}
                         isActivity={ev?.source === "activity" || card.source === "activity"}
-                        typeBadges={card.typeBadges}
                         onClick={() => handleCardClick(card, day.eventLookup)}
                       />
                     );

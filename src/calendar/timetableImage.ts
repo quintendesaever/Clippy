@@ -367,8 +367,8 @@ function buildCardContent(
   const badgeLabel = typeBadges[0] ? labelForTypeBadge(typeBadges[0]) : "";
   const timeNeeded = (size: number) => textWidth(timeLabel, size);
   const pillWidthAt = (fontSize: number) =>
-    badgeLabel ? textWidth(badgeLabel, fontSize) + Math.round(fontSize * 1.8) : 0;
-  const pillHeightAt = (fontSize: number) => (fontSize > 0 ? Math.round(fontSize * 1.85) : 0);
+    badgeLabel ? textWidth(badgeLabel, fontSize) + Math.round(fontSize * 1.5) : 0;
+  const pillHeightAt = (fontSize: number) => (fontSize > 0 ? Math.round(fontSize * 1.7) : 0);
   const timeLineH = (size: number) => size;
   const metaColumnWidth = (size: number, pillFont: number) =>
     Math.max(pillFont > 0 ? pillWidthAt(pillFont) : 0, timeNeeded(size));
@@ -394,7 +394,7 @@ function buildCardContent(
 
   const avatarCandidates =
     availableIds.length > 0 ? [Math.min(AVATAR_SIZE, innerH * 0.7), 36, 24, 0] : [0];
-  const pillFontCandidates = badgeLabel ? [16, 14, 12, 0] : [0];
+  const pillFontCandidates = badgeLabel ? [14, 12, 11, 0] : [0];
   outer: for (const avSize of avatarCandidates) {
     const maxCount = avSize > 0 ? availableIds.length : 0;
     for (const nextPillFont of pillFontCandidates) {
@@ -475,8 +475,8 @@ function buildCardContent(
     const badgeCode = typeBadges[0];
     const badgeColor = colorForTypeBadge(badgeCode);
     parts.push(
-      `<rect x="${metaX}" y="${pillY}" width="${pillW}" height="${pillH}" rx="${pillRadius}" ry="${pillRadius}" fill="${badgeColor}" fill-opacity="0.22"/>`,
-      `<text x="${metaX + pillW / 2}" y="${pillY + pillH / 2 + pillFont * 0.32}" fill="${badgeColor}" font-size="${pillFont}" font-weight="600" text-anchor="middle" font-family="${FONT}">${escapeXml(badgeLabel)}</text>`
+      `<rect x="${metaX}" y="${pillY}" width="${pillW}" height="${pillH}" rx="${pillRadius}" ry="${pillRadius}" fill="${badgeColor}" fill-opacity="0.16"/>`,
+      `<text x="${metaX + pillW / 2}" y="${pillY + pillH / 2 + pillFont * 0.32}" fill="${badgeColor}" font-size="${pillFont}" font-weight="500" text-anchor="middle" font-family="${FONT}">${escapeXml(badgeLabel)}</text>`
     );
   }
 

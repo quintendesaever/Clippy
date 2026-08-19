@@ -40,7 +40,7 @@ export const AVATAR_BORDER = 2;
 export const MIN_CARD_WIDTH = 240;
 
 /** Sized so text stays readable after Discord scales the wide PNG down. */
-export const TITLE_FONT_SIZE = 24;
+export const TITLE_FONT_SIZE = 25;
 export const TIME_FONT_SIZE = 18;
 export const HOUR_LABEL_FONT_SIZE = 20;
 export const TITLE_LINE_HEIGHT = 30;
