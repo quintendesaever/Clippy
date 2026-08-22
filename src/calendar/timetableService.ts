@@ -59,13 +59,18 @@ function buildMembers(memberResults: MemberLoadResult[]): TimetableMember[] {
   }));
 }
 
+export type GuildTimetableOptions = {
+  skipIcsCache?: boolean;
+};
+
 async function loadMemberEvents(
   member: MemberCalendar,
   rangeStart: Date,
-  rangeEnd: Date
+  rangeEnd: Date,
+  skipIcsCache?: boolean
 ): Promise<MemberLoadResult> {
   try {
-    const content = await fetchIcsContent(member.ics_url);
+    const content = await fetchIcsContent(member.ics_url, { skipCache: skipIcsCache });
     const events = parseIcsEvents(content, member.user_id, member.initials, rangeStart, rangeEnd);
     return { userId: member.user_id, initials: member.initials, events };
   } catch (err) {
@@ -104,18 +109,22 @@ function buildGuildTimetable(
   };
 }
 
-export async function getGuildTimetable(guildId: string): Promise<GuildTimetable> {
+export async function getGuildTimetable(
+  guildId: string,
+  options?: GuildTimetableOptions
+): Promise<GuildTimetable> {
   const guildTimezone = await getGuildTimezone(guildId);
   const mondayKey = getWeekMondayKey(new Date(), guildTimezone);
   const dayKeys = calendarWeekDayKeys(mondayKey);
   const sundayKey = dayKeys[6]!;
-  return getGuildTimetableForDates(guildId, mondayKey, sundayKey);
+  return getGuildTimetableForDates(guildId, mondayKey, sundayKey, options);
 }
 
 export async function getGuildTimetableForDates(
   guildId: string,
   fromDate: string,
-  toDate: string
+  toDate: string,
+  options?: GuildTimetableOptions
 ): Promise<GuildTimetable> {
   const guildTimezone = await getGuildTimezone(guildId);
   const members = await getGuildMemberCalendars(guildId);
@@ -126,7 +135,11 @@ export async function getGuildTimetableForDates(
   const rangeEnd = fromZonedTime(new Date(toY, toM - 1, toD, 23, 59, 59, 999), guildTimezone);
 
   const [memberResults, activityEvents] = await Promise.all([
-    Promise.all(members.map((member) => loadMemberEvents(member, rangeStart, rangeEnd))),
+    Promise.all(
+      members.map((member) =>
+        loadMemberEvents(member, rangeStart, rangeEnd, options?.skipIcsCache)
+      )
+    ),
     getGuildActivitiesInRange(guildId, rangeStart, rangeEnd),
   ]);
   return buildGuildTimetable(memberResults, guildTimezone, rangeStart, rangeEnd, activityEvents);
@@ -134,9 +147,10 @@ export async function getGuildTimetableForDates(
 
 export async function getGuildTimetableForDay(
   guildId: string,
-  dayKey: string
+  dayKey: string,
+  options?: GuildTimetableOptions
 ): Promise<GuildTimetable> {
-  return getGuildTimetableForDates(guildId, dayKey, dayKey);
+  return getGuildTimetableForDates(guildId, dayKey, dayKey, options);
 }
 
 export function getWeekDayKeys(_weekStartDayKey: string, _timezone?: string): string[] {

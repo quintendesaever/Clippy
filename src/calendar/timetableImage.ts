@@ -48,6 +48,9 @@ import {
 
 const WIDTH = TIMETABLE_WIDTH;
 
+/** Bump when SVG/layout rendering changes so Discord PNG caches invalidate. */
+export const TIMETABLE_RENDERER_VERSION = 1;
+
 function resolveInterFontPath(): string | null {
   const here = path.dirname(fileURLToPath(import.meta.url));
   const candidates = [
@@ -294,7 +297,7 @@ async function fetchAvatarDataUrl(userId: string, avatarHash: string | null): Pr
   return `data:image/png;base64,${png.toString("base64")}`;
 }
 
-async function loadAvatarDataUrls(
+export async function loadAvatarDataUrls(
   guildId: string,
   userIds: string[]
 ): Promise<Map<string, string>> {
@@ -727,12 +730,13 @@ export function buildTimelineSvg(
 
 export async function renderTimetablePng(
   timetable: GuildTimetable,
-  dayKey: string
+  dayKey: string,
+  avatarDataUrls?: Map<string, string>
 ): Promise<Buffer> {
   const guildId = getGuildId();
   const dayEvents = timetable.eventsByDay.get(dayKey) ?? [];
   const userIds = [...new Set(dayEvents.map((event) => event.userId))];
-  const avatarDataUrls = await loadAvatarDataUrls(guildId, userIds);
-  const svg = buildTimelineSvg(timetable, dayKey, avatarDataUrls);
+  const avatars = avatarDataUrls ?? (await loadAvatarDataUrls(guildId, userIds));
+  const svg = buildTimelineSvg(timetable, dayKey, avatars);
   return svgToPng(svg);
 }

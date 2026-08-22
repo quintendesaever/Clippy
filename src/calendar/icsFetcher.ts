@@ -150,11 +150,16 @@ async function fetchWithSafeRedirects(
   throw new Error("ICS fetch too many redirects");
 }
 
-export async function fetchIcsContent(urlString: string): Promise<string> {
+export async function fetchIcsContent(
+  urlString: string,
+  options?: { skipCache?: boolean }
+): Promise<string> {
   const now = Date.now();
-  const cached = cache.get(urlString);
-  if (cached && cached.expiresAt > now) {
-    return cached.body;
+  if (!options?.skipCache) {
+    const cached = cache.get(urlString);
+    if (cached && cached.expiresAt > now) {
+      return cached.body;
+    }
   }
 
   const controller = new AbortController();

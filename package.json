@@ -11,7 +11,7 @@
     "dev": "tsx watch src/index.ts",
     "deploy-commands": "tsx src/deploy-commands.ts",
     "preview:timetable": "tsx scripts/preview-timetable.ts",
-    "test": "tsx --test shared/timetable/dates.test.ts shared/timetable/layout.test.ts shared/timetable/weekDays.test.ts shared/timetable/eventMeta.test.ts src/calendar/icsParser.test.ts src/calendar/eventUtils.test.ts",
+    "test": "tsx --test shared/timetable/dates.test.ts shared/timetable/layout.test.ts shared/timetable/weekDays.test.ts shared/timetable/eventMeta.test.ts src/calendar/icsParser.test.ts src/calendar/eventUtils.test.ts src/calendar/timetableHash.test.ts src/calendar/timetableWeekCache.test.ts src/calendar/timetablePanel.test.ts",
     "docker:build": "docker compose build",
     "docker:up": "docker compose up -d",
     "docker:prod": "docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build"

@@ -14,6 +14,7 @@ import {
 import { ensureGuild } from "./stats/helpers.js";
 import { syncGuildMembers } from "./stats/members.js";
 import { startF1ReminderJob } from "./f1/reminderJob.js";
+import { startTimetablePanelJob } from "./calendar/timetablePanelJob.js";
 import { handleTimetableButton } from "./calendar/timetableInteractions.js";
 import { deleteMemberCalendar } from "./calendar/memberCalendars.js";
 
@@ -69,6 +70,7 @@ client.once("clientReady", async () => {
   }
 
   startF1ReminderJob(client);
+  startTimetablePanelJob(client);
 
   if (process.env.CLIENT_SECRET?.trim() && process.env.SESSION_SECRET?.trim()) {
     const { startDashboardServer } = await import("./dashboard/server.js");
