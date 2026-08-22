@@ -131,7 +131,7 @@ a:hover {
 
 .timetableAddActivityControls {
   position: fixed;
-  left: max(0.75rem, env(safe-area-inset-left, 0px));
+  left: calc(var(--sidebar-width) + max(0.75rem, env(safe-area-inset-left, 0px)));
   bottom: 1rem;
   z-index: 25;
 }
@@ -1566,6 +1566,7 @@ select.formSelect {
   }
 
   .timetableAddActivityControls {
+    left: max(0.75rem, env(safe-area-inset-left, 0px));
     bottom: calc(var(--mobile-tabbar-height) + env(safe-area-inset-bottom, 0px) + 0.75rem);
   }
 
