@@ -60,6 +60,11 @@ function mapInstanceToEvent(
   };
 }
 
+function isCancelledStatus(status: unknown): boolean {
+  if (typeof status !== "string") return false;
+  return status.trim().toUpperCase() === "CANCELLED";
+}
+
 function isVEvent(component: CalendarResponse[string]): component is VEvent {
   return Boolean(component && typeof component === "object" && "type" in component && component.type === "VEVENT");
 }
@@ -77,6 +82,7 @@ export function parseIcsEvents(
   for (const component of Object.values(parsed)) {
     if (!isVEvent(component)) continue;
     if (!component.start) continue;
+    if (isCancelledStatus(component.status)) continue;
 
     const summary = paramValueToString(component.summary) ?? "Untitled";
     const location = paramValueToString(component.location);

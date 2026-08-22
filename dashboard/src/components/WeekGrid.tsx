@@ -1,5 +1,11 @@
+import { zonedStartEndMinutes } from "@shared/timetable/dates";
 import { descriptionPreview, shortLocation } from "@shared/timetable/eventMeta";
-import { computeDisplayHourRange, type LayoutEvent } from "@shared/timetable/layout";
+import {
+  computeDisplayHourRange,
+  packEventsIntoRows,
+  type LayoutEvent,
+  type RenderCard,
+} from "@shared/timetable/layout";
 import { useMemo, type CSSProperties } from "react";
 import { courseColorMap, courseKeyFromTitle } from "../lib/courseColor";
 import { DAY_LABELS, formatDayMonth, formatTime, eventDayKey } from "../lib/dates";
@@ -45,7 +51,6 @@ function eventContentVisibility(height: number, scale: number): EventContentVisi
   const afterLocation = showLocation ? afterTime + gap + meta : afterTime;
   const showDescription = showLocation && available >= afterLocation + gap + meta;
   const afterAll = showDescription ? afterLocation + gap + meta : afterLocation;
-  // Second title line only when it still fits with the lines we already chose.
   const titleTall = available >= afterAll + title;
 
   return { titleTall, showTime, showLocation, showDescription };
@@ -59,7 +64,29 @@ function toLayoutEvents(events: TimetableEventDto[]): LayoutEvent[] {
     userId: ev.userId,
     allDay: ev.allDay,
     source: ev.source ?? "ics",
+    typeBadges: ev.typeBadges,
+    id: ev.id,
   }));
+}
+
+function toRenderCard(ev: TimetableEventDto): RenderCard {
+  const start = new Date(ev.start);
+  const end = new Date(ev.end);
+  return {
+    start,
+    end,
+    title: ev.title,
+    userIds: [ev.userId],
+    startMs: start.getTime(),
+    endMs: end.getTime(),
+    source: ev.source ?? "ics",
+    typeBadges: ev.typeBadges ?? [],
+    id: ev.id,
+  };
+}
+
+function eventIdentity(ev: TimetableEventDto): string {
+  return `${ev.source ?? "ics"}-${ev.id ?? ev.start}-${ev.userId}-${ev.title}`;
 }
 
 export default function WeekGrid({
@@ -92,16 +119,35 @@ export default function WeekGrid({
         }}
       >
         <div className="weekGridCorner" style={{ gridColumn: 1, gridRow: 1 }} />
-        {dayDates.map((day, i) => (
-          <div
-            key={day}
-            className="weekGridDayHeader"
-            style={{ gridColumn: i + 2, gridRow: 1 }}
-          >
-            <span className="weekGridDayName">{DAY_LABELS[i]}</span>
-            <span className="weekGridDayDate">{formatDayMonth(day)}</span>
-          </div>
-        ))}
+        {dayDates.map((day, i) => {
+          const allDay = events.filter(
+            (ev) => ev.allDay && eventDayKey(ev.start, timezone) === day
+          );
+          return (
+            <div
+              key={day}
+              className="weekGridDayHeader"
+              style={{ gridColumn: i + 2, gridRow: 1 }}
+            >
+              <span className="weekGridDayName">{DAY_LABELS[i]}</span>
+              <span className="weekGridDayDate">{formatDayMonth(day)}</span>
+              {allDay.length > 0 && (
+                <div className="weekGridAllDay">
+                  {allDay.map((ev) => (
+                    <button
+                      key={eventIdentity(ev)}
+                      type="button"
+                      className={`weekGridAllDayChip${ev.source === "activity" ? " weekGridAllDayChipActivity" : ""}`}
+                      onClick={() => onEventClick(ev)}
+                    >
+                      {ev.title}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
         {Array.from({ length: hourCount }, (_, i) => (
           <div
             key={i}
@@ -112,8 +158,9 @@ export default function WeekGrid({
           </div>
         ))}
         {dayDates.map((day, dayIndex) => {
-          const dayEventsRaw = events.filter((ev) => eventDayKey(ev.start) === day);
-          // Activities may be expanded per participant for avatar stacking; show one card each.
+          const dayEventsRaw = events.filter(
+            (ev) => !ev.allDay && eventDayKey(ev.start, timezone) === day
+          );
           const seenActivityIds = new Set<string>();
           const dayEvents = dayEventsRaw.filter((ev) => {
             if (ev.source !== "activity" || !ev.id) return true;
@@ -121,6 +168,22 @@ export default function WeekGrid({
             seenActivityIds.add(ev.id);
             return true;
           });
+          const packed = packEventsIntoRows(dayEvents.map(toRenderCard));
+          const colCount = Math.max(packed.length, 1);
+          const colByIdentity = new Map<string, number>();
+          packed.forEach((column, col) => {
+            for (const card of column) {
+              const match = dayEvents.find(
+                (ev) =>
+                  (card.id && ev.id === card.id) ||
+                  (ev.title === card.title &&
+                    new Date(ev.start).getTime() === card.startMs &&
+                    new Date(ev.end).getTime() === card.endMs)
+              );
+              if (match) colByIdentity.set(eventIdentity(match), col);
+            }
+          });
+
           return (
             <div
               key={day}
@@ -132,10 +195,13 @@ export default function WeekGrid({
               }}
             >
               {dayEvents.map((ev) => {
-                const start = new Date(ev.start);
-                const end = new Date(ev.end);
-                const startMin = start.getHours() * 60 + start.getMinutes() - hourStart * 60;
-                const endMin = end.getHours() * 60 + end.getMinutes() - hourStart * 60;
+                const { startMinutes, endMinutes } = zonedStartEndMinutes(
+                  new Date(ev.start),
+                  new Date(ev.end),
+                  timezone
+                );
+                const startMin = startMinutes - hourStart * 60;
+                const endMin = endMinutes - hourStart * 60;
                 const top = Math.max(0, (startMin / 60) * rowHeight);
                 const height = Math.max(minEventHeight, ((endMin - startMin) / 60) * rowHeight);
                 const { titleTall, showTime, showLocation, showDescription } =
@@ -150,20 +216,24 @@ export default function WeekGrid({
                 const courseColor = isActivity
                   ? ACTIVITY_COLOR
                   : (colorsByCourse.get(courseKeyFromTitle(ev.title)) ?? "#5865f2");
+                const col = colByIdentity.get(eventIdentity(ev)) ?? 0;
                 return (
                   <button
-                    key={`${ev.source ?? "ics"}-${ev.id ?? ev.start}-${ev.userId}-${ev.title}`}
+                    key={eventIdentity(ev)}
                     type="button"
                     className={`eventCard weekGridEvent${isActivity ? " eventCardActivity" : ""}`}
                     style={
                       {
                         top: `${top}px`,
                         height: `${height}px`,
+                        left: `calc(4px + ${col} * ((100% - 8px) / ${colCount}))`,
+                        width: `calc((100% - 8px) / ${colCount} - 2px)`,
+                        right: "auto",
                         "--course-color": courseColor,
                       } as CSSProperties
                     }
                     onClick={() => onEventClick(ev)}
-                    title={`${ev.title} (${formatTime(ev.start)}–${formatTime(ev.end)})`}
+                    title={`${ev.title} (${formatTime(ev.start, timezone)}–${formatTime(ev.end, timezone)})`}
                   >
                     <span className="weekGridEventBody">
                       <span
@@ -173,7 +243,7 @@ export default function WeekGrid({
                       </span>
                       {showTime && (
                         <span className="weekGridEventTime">
-                          {formatTime(ev.start)}–{formatTime(ev.end)}
+                          {formatTime(ev.start, timezone)}–{formatTime(ev.end, timezone)}
                         </span>
                       )}
                       {showLocation && locationLine && (

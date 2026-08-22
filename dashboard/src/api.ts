@@ -16,6 +16,10 @@ async function fetchApi<T>(path: string, init?: RequestInit): Promise<T> {
       ...(init?.headers ?? {}),
     },
   });
+  if (res.status === 401 && window.location.pathname !== "/") {
+    window.location.assign("/");
+    throw new Error("Not authenticated");
+  }
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { error?: string };
     throw new Error(body.error ?? `Request failed (${res.status})`);

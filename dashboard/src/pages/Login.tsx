@@ -6,7 +6,7 @@ export default function Login() {
     <div className="loginPage">
       <div className="loginCard">
         <h1>Clippy</h1>
-        <p>Meld je aan met Discord om je kalender te beheren.</p>
+        <p>Meld je aan met Discord om het rooster te bekijken.</p>
         <a href="/api/auth/discord" className="btn" style={{ display: "inline-block" }}>
           Inloggen met Discord
         </a>

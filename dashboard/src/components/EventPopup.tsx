@@ -3,11 +3,14 @@ import { useState } from "react";
 import { deleteActivity, joinActivity, leaveActivity } from "../api";
 import type { TimetableEventDto } from "../types";
 import { formatTime } from "../lib/dates";
+import AvatarStack from "./AvatarStack";
 import Button from "./Button";
 
 type EventPopupProps = {
   event: TimetableEventDto;
   currentUserId: string;
+  timezone: string;
+  avatarByUser?: Map<string, string | null>;
   onClose: () => void;
   onEdit?: (event: TimetableEventDto) => void;
   onDeleted?: () => void;
@@ -17,6 +20,8 @@ type EventPopupProps = {
 export default function EventPopup({
   event,
   currentUserId,
+  timezone,
+  avatarByUser,
   onClose,
   onEdit,
   onDeleted,
@@ -63,7 +68,6 @@ export default function EventPopup({
     try {
       await joinActivity(event.id);
       onChanged?.();
-      onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Meedoen mislukt");
     } finally {
@@ -78,7 +82,6 @@ export default function EventPopup({
     try {
       await leaveActivity(event.id);
       onChanged?.();
-      onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Afmeld mislukt");
     } finally {
@@ -106,7 +109,9 @@ export default function EventPopup({
 
           <dt>Tijd</dt>
           <dd>
-            {formatTime(event.start)} – {formatTime(event.end)}
+            {event.allDay
+              ? "Hele dag"
+              : `${formatTime(event.start, timezone)} – ${formatTime(event.end, timezone)}`}
           </dd>
 
           {typeLabels.length > 0 && (
@@ -119,7 +124,12 @@ export default function EventPopup({
           {isActivity && (
             <>
               <dt>Deelnemers</dt>
-              <dd>{participants.length}</dd>
+              <dd className="eventPopupParticipants">
+                {avatarByUser ? (
+                  <AvatarStack userIds={participants} avatarByUser={avatarByUser} size="sm" />
+                ) : null}
+                <span>{participants.length}</span>
+              </dd>
             </>
           )}
 

@@ -64,7 +64,7 @@ export function startF1ReminderJob(client: Client): void {
 
       const oneDayBeforeMs = isTestMode()
         ? nextRace.raceDate.getTime() - 2 * 60 * 1000
-        : nextRace.raceDate.getTime() - 3 * 24 * 60 * 60 * 1000;
+        : nextRace.raceDate.getTime() - 24 * 60 * 60 * 1000;
       const nowMs = now.getTime();
 
       if (nowMs < oneDayBeforeMs) return;

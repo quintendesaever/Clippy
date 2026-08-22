@@ -1,6 +1,6 @@
-import { withoutEmptySaturday } from "@shared/timetable/weekDays";
+import { withoutEmptyWeekendDays } from "@shared/timetable/weekDays";
 import { useEffect, useMemo, useState } from "react";
-import { getCalendars } from "../api";
+import { getCalendar, getCalendars } from "../api";
 import ActivityForm, { type ActivityFormPrefill } from "../components/ActivityForm";
 import AppShell from "../components/AppShell";
 import EventPopup from "../components/EventPopup";
@@ -16,7 +16,7 @@ import WeekTimelineGrid from "../components/WeekTimelineGrid";
 import { useTimetableFontScale } from "../hooks/useTimetableFontScale";
 import { useTimetableLayout } from "../hooks/useTimetableLayout";
 import { useWeekTimetable } from "../hooks/useWeekTimetable";
-import { DAY_LABELS, formatWeekRange } from "../lib/dates";
+import { DAY_LABELS, eventDayKey, formatWeekRange } from "../lib/dates";
 import type { CalendarMember, DiscordUser, TimetableEventDto } from "../types";
 
 export default function Timetable({ user }: { user: DiscordUser }) {
@@ -24,6 +24,7 @@ export default function Timetable({ user }: { user: DiscordUser }) {
     dayDates,
     eventsByUser,
     activities,
+    members,
     timezone,
     loading,
     error,
@@ -37,6 +38,7 @@ export default function Timetable({ user }: { user: DiscordUser }) {
   const [calendars, setCalendars] = useState<CalendarMember[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [calendarError, setCalendarError] = useState<string | null>(null);
+  const [ownCalendarMissing, setOwnCalendarMissing] = useState(false);
   const [popupEvent, setPopupEvent] = useState<TimetableEventDto | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
@@ -73,7 +75,16 @@ export default function Timetable({ user }: { user: DiscordUser }) {
       .catch((e) =>
         setCalendarError(e instanceof Error ? e.message : "Kalenders laden mislukt")
       );
+    getCalendar()
+      .then((r) => setOwnCalendarMissing(!r.calendar?.ics_url))
+      .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!popupEvent?.id) return;
+    const updated = activities.find((activity) => activity.id === popupEvent.id);
+    if (updated) setPopupEvent(updated);
+  }, [activities, popupEvent?.id]);
 
   const selectedCalendars = calendars.filter((c) => selected.has(c.user_id));
 
@@ -84,21 +95,20 @@ export default function Timetable({ user }: { user: DiscordUser }) {
     }
     for (const member of selectedCalendars) {
       for (const ev of eventsByUser[member.user_id] ?? []) {
-        const day = ev.start.slice(0, 10);
+        const day = eventDayKey(ev.start, timezone);
         if (byDay.has(day)) {
           byDay.get(day)!.push(ev);
         }
       }
     }
-    // Shared activities always show, independent of member filter.
     for (const activity of activities) {
-      const day = activity.start.slice(0, 10);
+      const day = eventDayKey(activity.start, timezone);
       if (byDay.has(day)) {
         byDay.get(day)!.push(activity);
       }
     }
     return byDay;
-  }, [activities, dayDates, eventsByUser, selectedCalendars]);
+  }, [activities, dayDates, eventsByUser, selectedCalendars, timezone]);
 
   const weekDays = useMemo(
     () =>
@@ -111,12 +121,14 @@ export default function Timetable({ user }: { user: DiscordUser }) {
   );
 
   const visibleWeekDays = useMemo(
-    () => withoutEmptySaturday(weekDays, (d) => d.events.length > 0),
+    () => withoutEmptyWeekendDays(weekDays, (d) => d.events.length > 0),
     [weekDays]
   );
 
   const showSchedule =
     selectedCalendars.length > 0 || activities.length > 0 || calendars.length === 0;
+  const hasWeekData = dayDates.length > 0;
+  const memberErrors = members.filter((member) => member.error);
 
   function toggleMember(userId: string) {
     setSelected((prev) => {
@@ -153,13 +165,14 @@ export default function Timetable({ user }: { user: DiscordUser }) {
           {displayError && <p className="errorMsg">{displayError}</p>}
           {loading && <p className="timetableLoading">Rooster laden…</p>}
 
-          {!loading && (
+          {hasWeekData && (
             <>
               <div className="timetableToolbar">
                 <WeekNav
                   onPrev={() => shiftWeek(-1)}
                   onThisWeek={goToThisWeek}
                   onNext={() => shiftWeek(1)}
+                  disabled={loading}
                 />
                 {showToggle && (
                   <TimetableLayoutToggle value={layout} onChange={setLayout} />
@@ -170,6 +183,12 @@ export default function Timetable({ user }: { user: DiscordUser }) {
                 <MemberFilter calendars={calendars} selected={selected} onToggle={toggleMember} />
               </div>
 
+              {ownCalendarMissing && (
+                <p className="timetableEmpty">
+                  Koppel je kalender in Instellingen om je lessen in het rooster te zien.
+                </p>
+              )}
+
               {calendars.length === 0 && activities.length === 0 && (
                 <p className="timetableEmpty">
                   Nog geen kalenders gekoppeld. Je kan al wel een gedeelde activiteit toevoegen.
@@ -178,6 +197,11 @@ export default function Timetable({ user }: { user: DiscordUser }) {
               {calendars.length > 0 && selectedCalendars.length === 0 && activities.length === 0 && (
                 <p className="timetableEmpty">Selecteer minstens één lid.</p>
               )}
+              {memberErrors.map((member) => (
+                <p key={member.userId} className="timetableEmpty">
+                  {member.error}
+                </p>
+              ))}
 
               {false && selectedCalendars.length > 0 && (
                 <PagePanel>
@@ -190,6 +214,7 @@ export default function Timetable({ user }: { user: DiscordUser }) {
                   {useAgenda ? (
                     <WeekAgendaList
                       days={visibleWeekDays}
+                      timezone={timezone}
                       avatarByUser={avatarByUser}
                       onEventClick={setPopupEvent}
                     />
@@ -220,15 +245,21 @@ export default function Timetable({ user }: { user: DiscordUser }) {
         <EventPopup
           event={popupEvent}
           currentUserId={user.id}
+          timezone={timezone}
+          avatarByUser={avatarByUser}
           onClose={() => setPopupEvent(null)}
           onEdit={openEdit}
-          onDeleted={refetch}
+          onDeleted={() => {
+            setPopupEvent(null);
+            refetch();
+          }}
           onChanged={refetch}
         />
       )}
       {formOpen && (
         <ActivityForm
           mode={formMode}
+          timezone={timezone}
           initial={editEvent}
           prefill={formPrefill}
           onClose={() => setFormOpen(false)}

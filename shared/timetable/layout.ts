@@ -1,4 +1,4 @@
-import { toZonedTime } from "date-fns-tz";
+import { zonedStartEndMinutes } from "./dates.js";
 import {
   DEFAULT_DISPLAY_HOUR_END,
   DEFAULT_DISPLAY_HOUR_START,
@@ -15,6 +15,8 @@ export type LayoutEvent = {
   /** Distinguishes ICS lessons from shared activities when merging cards. */
   source?: "ics" | "activity";
   typeBadges?: string[];
+  /** Activity row id — required so distinct activities do not merge. */
+  id?: string;
 };
 
 export type RenderCard = {
@@ -26,6 +28,7 @@ export type RenderCard = {
   endMs: number;
   source: "ics" | "activity";
   typeBadges: string[];
+  id?: string;
 };
 
 export type TimelineLayout = {
@@ -52,10 +55,9 @@ export function computeDisplayHourRange(
   let minMinutes = Infinity;
   let maxMinutes = -Infinity;
   for (const event of timed) {
-    const start = toZonedTime(event.start, timezone);
-    const end = toZonedTime(event.end, timezone);
-    minMinutes = Math.min(minMinutes, start.getHours() * 60 + start.getMinutes());
-    maxMinutes = Math.max(maxMinutes, end.getHours() * 60 + end.getMinutes());
+    const { startMinutes, endMinutes } = zonedStartEndMinutes(event.start, event.end, timezone);
+    minMinutes = Math.min(minMinutes, startMinutes);
+    maxMinutes = Math.max(maxMinutes, endMinutes);
   }
 
   const eventStartHour = Math.floor(minMinutes / 60);
@@ -131,10 +133,7 @@ export function clipEventToGrid(
   timezone: string,
   layout: TimelineLayout
 ): { startHour: number; startMinute: number; endHour: number; endMinute: number } | null {
-  const startZoned = toZonedTime(start, timezone);
-  const endZoned = toZonedTime(end, timezone);
-  const startMinutes = startZoned.getHours() * 60 + startZoned.getMinutes();
-  const endMinutes = endZoned.getHours() * 60 + endZoned.getMinutes();
+  const { startMinutes, endMinutes } = zonedStartEndMinutes(start, end, timezone);
   const gridStart = layout.hourStart * 60;
   const gridEnd = layout.hourEnd * 60;
 
@@ -156,6 +155,47 @@ export function typeBadgeKey(badges: string[] | undefined): string {
   return [...(badges ?? [])].map((badge) => badge.toUpperCase()).sort().join(",");
 }
 
+export function eventMergeKey(event: {
+  source?: "ics" | "activity";
+  id?: string;
+  start: Date | string | number;
+  end: Date | string | number;
+  title: string;
+  typeBadges?: string[];
+}): string {
+  const source = event.source ?? "ics";
+  if (source === "activity" && event.id) {
+    return `activity|${event.id}`;
+  }
+  const startMs =
+    event.start instanceof Date
+      ? event.start.getTime()
+      : typeof event.start === "number"
+        ? event.start
+        : new Date(event.start).getTime();
+  const endMs =
+    event.end instanceof Date
+      ? event.end.getTime()
+      : typeof event.end === "number"
+        ? event.end
+        : new Date(event.end).getTime();
+  return `${source}|${startMs}|${endMs}|${event.title.toLowerCase()}|${typeBadgeKey(event.typeBadges)}`;
+}
+
+function toRenderCard(event: LayoutEvent, source: "ics" | "activity"): RenderCard {
+  return {
+    start: event.start,
+    end: event.end,
+    title: event.title,
+    userIds: [event.userId],
+    startMs: event.start.getTime(),
+    endMs: event.end.getTime(),
+    source,
+    typeBadges: event.typeBadges ?? [],
+    ...(event.id ? { id: event.id } : {}),
+  };
+}
+
 export function groupDayEvents(events: LayoutEvent[]): RenderCard[] {
   const groups = new Map<string, RenderCard>();
 
@@ -163,8 +203,7 @@ export function groupDayEvents(events: LayoutEvent[]): RenderCard[] {
     if (event.allDay) continue;
 
     const source = event.source ?? "ics";
-    const typeBadges = event.typeBadges ?? [];
-    const key = `${source}|${event.start.getTime()}|${event.end.getTime()}|${event.title.toLowerCase()}|${typeBadgeKey(typeBadges)}`;
+    const key = eventMergeKey({ ...event, source });
     const existing = groups.get(key);
     if (existing) {
       if (!existing.userIds.includes(event.userId)) {
@@ -173,19 +212,32 @@ export function groupDayEvents(events: LayoutEvent[]): RenderCard[] {
       continue;
     }
 
-    groups.set(key, {
-      start: event.start,
-      end: event.end,
-      title: event.title,
-      userIds: [event.userId],
-      startMs: event.start.getTime(),
-      endMs: event.end.getTime(),
-      source,
-      typeBadges,
-    });
+    groups.set(key, toRenderCard(event, source));
   }
 
   return [...groups.values()].sort((a, b) => a.startMs - b.startMs);
+}
+
+export function groupAllDayEvents(events: LayoutEvent[]): RenderCard[] {
+  const groups = new Map<string, RenderCard>();
+
+  for (const event of events) {
+    if (!event.allDay) continue;
+
+    const source = event.source ?? "ics";
+    const key = eventMergeKey({ ...event, source });
+    const existing = groups.get(key);
+    if (existing) {
+      if (!existing.userIds.includes(event.userId)) {
+        existing.userIds.push(event.userId);
+      }
+      continue;
+    }
+
+    groups.set(key, toRenderCard(event, source));
+  }
+
+  return [...groups.values()].sort((a, b) => a.title.localeCompare(b.title));
 }
 
 export function cardsOverlap(a: RenderCard, b: RenderCard): boolean {

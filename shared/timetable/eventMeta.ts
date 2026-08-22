@@ -1,4 +1,4 @@
-const ROOM_CODE_PATTERN = /\b([A-Z]{3,6}\.\d+\.\d+)\b/g;
+export const ROOM_CODE_PATTERN = /\b([A-Z]{1,6}\d{0,4}\.\d+\.\d+)\b/g;
 
 export function shortLocation(location: string | undefined | null): string | undefined {
   if (!location?.trim()) return undefined;
@@ -45,7 +45,9 @@ export function redactLocationFromDescription(
     .replace(/(?:^|\n)[ \t]*Location\(s\)[ \t]*:\s*\n[^\n]*/gi, "\n")
     // Single-line Location: / Locations: / Locatie:
     .replace(/(?:^|\n)[ \t]*(?:Locations?|Locatie(?:s)?)[ \t]*:[^\n]*/gi, "\n")
+    .replace(ROOM_CODE_PATTERN, "")
     .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]{2,}/g, " ")
     .trim();
   return redacted || undefined;
 }

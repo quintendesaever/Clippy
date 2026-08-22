@@ -40,7 +40,20 @@ async function handleStatus(interaction: ChatInputCommandInteraction) {
     parts.push("Next race: `unknown`");
   }
 
-  await interaction.reply({ content: parts.join("\n"), flags: MessageFlags.Ephemeral });
+  await interaction.editReply({ content: parts.join("\n") });
+}
+
+async function saveSettingsOrError(
+  interaction: ChatInputCommandInteraction,
+  patch: Parameters<typeof upsertF1ReminderSettings>[0],
+  success: string
+): Promise<void> {
+  const saved = await upsertF1ReminderSettings(patch);
+  if (!saved) {
+    await interaction.editReply("Could not save F1 reminder settings. Try again later.");
+    return;
+  }
+  await interaction.editReply(success);
 }
 
 const f1Reminder: Command = {
@@ -89,6 +102,8 @@ const f1Reminder: Command = {
       return;
     }
 
+    await interaction.deferReply({ ephemeral: true });
+
     const sub = interaction.options.getSubcommand();
     const guildId = interaction.guildId;
 
@@ -100,28 +115,19 @@ const f1Reminder: Command = {
     if (sub === "test-send") {
       const settings = await getF1ReminderSettings(guildId);
       if (!settings?.channel_id || !settings?.role_id) {
-        await interaction.reply({
-          content: "Please set both a channel and a role first.",
-          flags: MessageFlags.Ephemeral,
-        });
+        await interaction.editReply("Please set both a channel and a role first.");
         return;
       }
 
       const nextRace = await findNextRace(new Date());
       if (!nextRace) {
-        await interaction.reply({
-          content: "Couldn't find the next race right now.",
-          flags: MessageFlags.Ephemeral,
-        });
+        await interaction.editReply("Couldn't find the next race right now.");
         return;
       }
 
       const channel = await interaction.guild.channels.fetch(settings.channel_id).catch(() => null);
       if (!channel || !channel.isTextBased() || channel.isDMBased()) {
-        await interaction.reply({
-          content: "Configured channel is missing or not a text channel.",
-          flags: MessageFlags.Ephemeral,
-        });
+        await interaction.editReply("Configured channel is missing or not a text channel.");
         return;
       }
 
@@ -138,28 +144,25 @@ const f1Reminder: Command = {
         embeds: [embed],
       });
 
-      await interaction.reply({
-        content: `Sent a test reminder in <#${settings.channel_id}>.`,
-        flags: MessageFlags.Ephemeral,
-      });
+      await interaction.editReply(`Sent a test reminder in <#${settings.channel_id}>.`);
       return;
     }
 
     if (sub === "enable") {
-      await upsertF1ReminderSettings({ guild_id: guildId, enabled: true });
-      await interaction.reply({
-        content: "F1 weekend reminders have been **enabled**. Make sure to set a channel and role.",
-        flags: MessageFlags.Ephemeral,
-      });
+      await saveSettingsOrError(
+        interaction,
+        { guild_id: guildId, enabled: true },
+        "F1 weekend reminders have been **enabled**. Make sure to set a channel and role."
+      );
       return;
     }
 
     if (sub === "disable") {
-      await upsertF1ReminderSettings({ guild_id: guildId, enabled: false });
-      await interaction.reply({
-        content: "F1 weekend reminders have been **disabled** for this server.",
-        flags: MessageFlags.Ephemeral,
-      });
+      await saveSettingsOrError(
+        interaction,
+        { guild_id: guildId, enabled: false },
+        "F1 weekend reminders have been **disabled** for this server."
+      );
       return;
     }
 
@@ -170,36 +173,30 @@ const f1Reminder: Command = {
         (interaction.channel as GuildTextBasedChannel | null);
 
       if (!channel || !("guildId" in channel)) {
-        await interaction.reply({
-          content: "Please choose a text channel in this server.",
-          flags: MessageFlags.Ephemeral,
-        });
+        await interaction.editReply("Please choose a text channel in this server.");
         return;
       }
 
-      await upsertF1ReminderSettings({ guild_id: guildId, channel_id: channel.id });
-      await interaction.reply({
-        content: `F1 reminders will be sent in ${channel}.`,
-        flags: MessageFlags.Ephemeral,
-      });
+      await saveSettingsOrError(
+        interaction,
+        { guild_id: guildId, channel_id: channel.id },
+        `F1 reminders will be sent in ${channel}.`
+      );
       return;
     }
 
     if (sub === "set-role") {
       const role = interaction.options.getRole("role") as Role | null;
       if (!role || !interaction.guild.roles.cache.has(role.id)) {
-        await interaction.reply({
-          content: "Please choose a valid role from this server.",
-          flags: MessageFlags.Ephemeral,
-        });
+        await interaction.editReply("Please choose a valid role from this server.");
         return;
       }
 
-      await upsertF1ReminderSettings({ guild_id: guildId, role_id: role.id });
-      await interaction.reply({
-        content: `F1 reminders will mention ${role}.`,
-        flags: MessageFlags.Ephemeral,
-      });
+      await saveSettingsOrError(
+        interaction,
+        { guild_id: guildId, role_id: role.id },
+        `F1 reminders will mention ${role}.`
+      );
     }
   },
 };

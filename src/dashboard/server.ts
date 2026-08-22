@@ -22,6 +22,7 @@ import {
 import { getGuildCalendarMembers } from "../calendar/memberCalendars.js";
 import { getGuildTimetableForDates } from "../calendar/timetableService.js";
 import { serializeEventForApi } from "../calendar/timetableViews.js";
+import { inclusiveDaySpan, MAX_TIMETABLE_RANGE_DAYS } from "../../shared/timetable/dates.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isProduction = process.env.NODE_ENV === "production";
@@ -93,6 +94,15 @@ async function getGuildMemberDisplayName(userId: string): Promise<string | null>
   }
 }
 
+function oauthStatesMatch(callbackState: unknown, sessionState: unknown): boolean {
+  if (typeof callbackState !== "string" || typeof sessionState !== "string") return false;
+  if (!callbackState || !sessionState) return false;
+  const left = Buffer.from(callbackState);
+  const right = Buffer.from(sessionState);
+  if (left.length !== right.length) return false;
+  return crypto.timingSafeEqual(left, right);
+}
+
 function requireSession(req: Request, res: Response, next: NextFunction): void {
   const session = req.session as SessionData;
   if (!session?.user || !session.guildVerified) {
@@ -108,17 +118,22 @@ function requireSession(req: Request, res: Response, next: NextFunction): void {
   }
 
   void (async () => {
-    const member = await botConfirmsGuildMember(session.user!.id);
-    if (member === false) {
-      req.session = null;
-      res.status(401).json({ error: "Not a guild member" });
-      return;
+    try {
+      const member = await botConfirmsGuildMember(session.user!.id);
+      if (member === false) {
+        req.session = null;
+        res.status(401).json({ error: "Not a guild member" });
+        return;
+      }
+      // member === true, or null (bot/guild not ready) — refresh timestamp only on success
+      if (member === true) {
+        session.guildCheckedAt = now;
+      }
+      next();
+    } catch (err) {
+      console.error("requireSession guild recheck:", err);
+      res.status(401).json({ error: "Not authenticated" });
     }
-    // member === true, or null (bot/guild not ready) — refresh timestamp only on success
-    if (member === true) {
-      session.guildCheckedAt = now;
-    }
-    next();
   })();
 }
 
@@ -194,47 +209,52 @@ export function createDashboardApp(): express.Express {
   });
 
   app.get("/api/auth/callback", async (req: Request, res: Response) => {
-    const { code, state } = req.query as { code?: string; state?: string };
-    const session = req.session as SessionData;
-    if (!code || state !== session.state) {
-      res.redirect("/?error=invalid_callback");
-      return;
-    }
-    delete session.state;
+    try {
+      const { code, state } = req.query as { code?: string; state?: string };
+      const session = req.session as SessionData;
+      if (typeof code !== "string" || !code || !oauthStatesMatch(state, session.state)) {
+        res.redirect("/?error=invalid_callback");
+        return;
+      }
+      delete session.state;
 
-    const redirectUri = `${DASHBOARD_URL}/api/auth/callback`;
-    const body = new URLSearchParams({
-      client_id: CLIENT_ID,
-      client_secret: CLIENT_SECRET,
-      code,
-      grant_type: "authorization_code",
-      redirect_uri: redirectUri,
-    });
-    const tokenRes = await fetch("https://discord.com/api/oauth2/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: body.toString(),
-    });
-    if (!tokenRes.ok) {
+      const redirectUri = `${DASHBOARD_URL}/api/auth/callback`;
+      const body = new URLSearchParams({
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET,
+        code,
+        grant_type: "authorization_code",
+        redirect_uri: redirectUri,
+      });
+      const tokenRes = await fetch("https://discord.com/api/oauth2/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString(),
+      });
+      if (!tokenRes.ok) {
+        res.redirect("/?error=token_exchange");
+        return;
+      }
+
+      const tokenData = (await tokenRes.json()) as { access_token: string };
+      const accessToken = tokenData.access_token;
+      const user = await discordUserApi<DiscordUser>(accessToken, "/users/@me");
+
+      const guildId = getGuildId();
+      const isMember = await userIsGuildMember(accessToken, guildId);
+      if (!isMember) {
+        res.redirect("/?error=not_member");
+        return;
+      }
+
+      session.user = user;
+      session.guildVerified = true;
+      session.guildCheckedAt = Date.now();
+      res.redirect("/timetable");
+    } catch (err) {
+      console.error("oauth callback:", err);
       res.redirect("/?error=token_exchange");
-      return;
     }
-
-    const tokenData = (await tokenRes.json()) as { access_token: string };
-    const accessToken = tokenData.access_token;
-    const user = await discordUserApi<DiscordUser>(accessToken, "/users/@me");
-
-    const guildId = getGuildId();
-    const isMember = await userIsGuildMember(accessToken, guildId);
-    if (!isMember) {
-      res.redirect("/?error=not_member");
-      return;
-    }
-
-    session.user = user;
-    session.guildVerified = true;
-    session.guildCheckedAt = Date.now();
-    res.redirect("/settings");
   });
 
   app.post("/api/logout", (req: Request, res: Response) => {
@@ -385,6 +405,10 @@ export function createDashboardApp(): express.Express {
     }
     if (from > to) {
       res.status(400).json({ error: "from must be on or before to" });
+      return;
+    }
+    if (inclusiveDaySpan(from, to) > MAX_TIMETABLE_RANGE_DAYS) {
+      res.status(400).json({ error: `range must be at most ${MAX_TIMETABLE_RANGE_DAYS} days` });
       return;
     }
 

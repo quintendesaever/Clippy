@@ -23,6 +23,18 @@ export async function getGuildMemberCalendars(guildId: string): Promise<MemberCa
     }));
 }
 
+export async function deleteMemberCalendar(guildId: string, userId: string): Promise<void> {
+  const { error } = await supabase
+    .from("member_calendars")
+    .delete()
+    .eq("guild_id", guildId)
+    .eq("user_id", userId);
+
+  if (error) {
+    throw new Error(`Failed to delete member calendar: ${error.message}`);
+  }
+}
+
 export async function getGuildCalendarMembers(guildId: string): Promise<
   { user_id: string; initials: string; timezone: string; show_location: boolean }[]
 > {

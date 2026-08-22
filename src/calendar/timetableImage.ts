@@ -10,9 +10,11 @@ import type { GuildTimetable, TimetableEvent } from "./types.js";
 import {
   clipEventToGrid,
   createTimelineLayout,
+  groupAllDayEvents,
   groupDayEvents,
   packEventsIntoRows,
   timeToX,
+  type RenderCard,
   type TimelineLayout,
 } from "../../shared/timetable/layout.js";
 import { colorForTypeBadge, labelForTypeBadge } from "../../shared/timetable/eventMeta.js";
@@ -23,12 +25,14 @@ import {
   AVATAR_OVERLAP,
   AVATAR_SIZE,
   CARD_CONTENT_GAP,
+  CARD_GAP,
   CARD_INNER_PAD,
   CARD_RADIUS,
   FONT,
   GRID_INSET_X,
   HEADER_BODY_GAP,
   HEADER_HEIGHT,
+  ALL_DAY_ROW_HEIGHT,
   HOUR_LABEL_FONT_SIZE,
   OUTER_PAD_BOTTOM,
   OUTER_PAD_TOP,
@@ -45,26 +49,48 @@ import {
 
 const WIDTH = TIMETABLE_WIDTH;
 
-function resolveInterFontPath(): string {
+function resolveInterFontPath(): string | null {
   const here = path.dirname(fileURLToPath(import.meta.url));
   const candidates = [
     path.resolve(process.cwd(), "assets/fonts/Inter-Regular.ttf"),
     path.resolve(here, "../../../assets/fonts/Inter-Regular.ttf"),
     path.resolve(here, "../../assets/fonts/Inter-Regular.ttf"),
   ];
-  const found = candidates.find((candidate) => existsSync(candidate));
-  if (!found) {
-    throw new Error(`Inter Regular not found. Looked in: ${candidates.join(", ")}`);
+  return candidates.find((candidate) => existsSync(candidate)) ?? null;
+}
+
+function resolveDejaVuFontPath(): string | null {
+  const candidates = [
+    "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/ttf-dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/clippy/DejaVuSans.ttf",
+  ];
+  return candidates.find((candidate) => existsSync(candidate)) ?? null;
+}
+
+function resolvePngFont(): { fontFiles: string[]; defaultFontFamily: string } {
+  const inter = resolveInterFontPath();
+  if (inter) {
+    return { fontFiles: [inter], defaultFontFamily: FONT };
   }
-  return found;
+  const dejavu = resolveDejaVuFontPath();
+  if (dejavu) {
+    console.warn("Inter Regular not found; falling back to DejaVu Sans for timetable PNGs.");
+    return { fontFiles: [dejavu], defaultFontFamily: "DejaVu Sans" };
+  }
+  throw new Error(
+    "Inter Regular not found and no DejaVu fallback available. Expected assets/fonts/Inter-Regular.ttf"
+  );
 }
 
 function svgToPng(svg: string): Buffer {
+  const font = resolvePngFont();
   const resvg = new Resvg(svg, {
     font: {
-      fontFiles: [resolveInterFontPath()],
+      fontFiles: font.fontFiles,
       loadSystemFonts: false,
-      defaultFontFamily: FONT,
+      defaultFontFamily: font.defaultFontFamily,
     },
   });
   return Buffer.from(resvg.render().asPng());
@@ -92,8 +118,8 @@ function formatCardTimeRange(start: Date, end: Date, timezone: string): string {
   return `${fmt(s)}–${fmt(e)}`;
 }
 
-function rowTop(rowIndex: number): number {
-  return HEADER_HEIGHT + HEADER_BODY_GAP + rowIndex * (ROW_HEIGHT + ROW_GAP);
+function rowTop(rowIndex: number, allDayOffset: number): number {
+  return HEADER_HEIGHT + HEADER_BODY_GAP + allDayOffset + rowIndex * (ROW_HEIGHT + ROW_GAP);
 }
 
 function createLayout(events: TimetableEvent[], timezone: string): TimelineLayout {
@@ -600,14 +626,59 @@ function buildRowCards(
   });
 }
 
-function buildRow(
-  rowIndex: number,
-  cards: import("../../shared/timetable/layout.js").RenderCard[],
-  layout: TimelineLayout,
-  timezone: string,
+function buildAllDayStrip(
+  cards: RenderCard[],
   avatarDataUrls: Map<string, string>
 ): string[] {
-  const y = rowTop(rowIndex);
+  const y = HEADER_HEIGHT + HEADER_BODY_GAP;
+  const height = ALL_DAY_ROW_HEIGHT;
+  const parts: string[] = [
+    `<rect x="0" y="${y}" width="${WIDTH}" height="${height}" fill="${THEME.dark}"/>`,
+  ];
+  if (cards.length === 0) return parts;
+
+  const gap = CARD_GAP;
+  const usable = WIDTH - 2 * GRID_INSET_X;
+  const cardWidth = Math.max(120, (usable - gap * (cards.length - 1)) / cards.length);
+  const avatarSize = 28;
+
+  cards.forEach((card, index) => {
+    const x = GRID_INSET_X + index * (cardWidth + gap);
+    const fill = card.source === "activity" ? ACTIVITY_CARD_FILL : THEME.card;
+    const stroke = card.source === "activity" ? ACTIVITY_CARD_BORDER : THEME.border;
+    const cardId = `allday-${index}`;
+    parts.push(
+      `<rect x="${x}" y="${y + 6}" width="${cardWidth}" height="${height - 12}" rx="${CARD_RADIUS}" fill="${fill}" stroke="${stroke}" stroke-width="1"/>`
+    );
+    const stack = buildAvatarStack(
+      x + CARD_INNER_PAD,
+      y + height / 2,
+      card.userIds,
+      avatarDataUrls,
+      cardId,
+      avatarSize
+    );
+    parts.push(...stack.clipDefs, ...stack.parts);
+    const titleX = stack.endX + 8;
+    const titleMax = x + cardWidth - CARD_INNER_PAD - titleX;
+    const title = truncateToWidth(card.title, Math.max(titleMax, 12), 16);
+    parts.push(
+      `<text x="${titleX}" y="${y + height / 2 + 5}" fill="${THEME.white}" font-size="16" font-family="${FONT}">${escapeXml(title)}</text>`
+    );
+  });
+
+  return parts;
+}
+
+function buildRow(
+  rowIndex: number,
+  cards: RenderCard[],
+  layout: TimelineLayout,
+  timezone: string,
+  avatarDataUrls: Map<string, string>,
+  allDayOffset: number
+): string[] {
+  const y = rowTop(rowIndex, allDayOffset);
   return [
     `<rect x="0" y="${y}" width="${WIDTH}" height="${ROW_HEIGHT}" fill="${THEME.dark}"/>`,
     ...buildHourGridLines(y, ROW_HEIGHT, layout),
@@ -623,17 +694,24 @@ export function buildTimelineSvg(
   const dayEvents = timetable.eventsByDay.get(dayKey) ?? [];
   const grouped = groupDayEvents(dayEvents);
   const packedRows = packEventsIntoRows(grouped);
+  const allDayCards = groupAllDayEvents(dayEvents);
   const rowCount = Math.max(packedRows.length, 1);
   const layout = createLayout(dayEvents, timetable.guildTimezone);
+  const allDayOffset = allDayCards.length > 0 ? ALL_DAY_ROW_HEIGHT + HEADER_BODY_GAP : 0;
   const rowsHeight = rowCount * ROW_HEIGHT + Math.max(0, rowCount - 1) * ROW_GAP;
-  const contentHeight = HEADER_HEIGHT + HEADER_BODY_GAP + rowsHeight;
+  const contentHeight = HEADER_HEIGHT + HEADER_BODY_GAP + allDayOffset + rowsHeight;
   const svgWidth = WIDTH + 2 * OUTER_PAD_X;
   const svgHeight = contentHeight + OUTER_PAD_TOP + OUTER_PAD_BOTTOM;
 
   const inner: string[] = [...buildHourHeader(layout)];
+  if (allDayCards.length > 0) {
+    inner.push(...buildAllDayStrip(allDayCards, avatarDataUrls));
+  }
 
   for (let i = 0; i < rowCount; i++) {
-    inner.push(...buildRow(i, packedRows[i] ?? [], layout, timetable.guildTimezone, avatarDataUrls));
+    inner.push(
+      ...buildRow(i, packedRows[i] ?? [], layout, timetable.guildTimezone, avatarDataUrls, allDayOffset)
+    );
   }
 
   const parts: string[] = [

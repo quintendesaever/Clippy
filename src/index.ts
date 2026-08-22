@@ -15,6 +15,7 @@ import { ensureGuild } from "./stats/helpers.js";
 import { syncGuildMembers } from "./stats/members.js";
 import { startF1ReminderJob } from "./f1/reminderJob.js";
 import { handleTimetableButton } from "./calendar/timetableInteractions.js";
+import { deleteMemberCalendar } from "./calendar/memberCalendars.js";
 
 const token = process.env.DISCORD_TOKEN?.trim();
 if (!token) {
@@ -116,6 +117,15 @@ client.on("interactionCreate", async (interaction) => {
   }
 });
 
+client.on("guildMemberRemove", async (member) => {
+  if (member.guild.id !== guildId) return;
+  try {
+    await deleteMemberCalendar(guildId, member.id);
+  } catch (err) {
+    console.error("guildMemberRemove calendar cleanup:", err);
+  }
+});
+
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
   if (!message.guildId) return;
@@ -153,7 +163,7 @@ client.on("messageReactionRemove", async (reaction, user) => {
   );
 });
 
-client.on("messageBulkDelete", async (messages) => {
+client.on("messageDeleteBulk", async (messages) => {
   const first = messages.first();
   if (!first) return;
   let resolvedGuildId: string | null | undefined = first.guildId ?? undefined;

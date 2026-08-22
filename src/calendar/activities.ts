@@ -1,16 +1,9 @@
 import { toZonedTime } from "date-fns-tz";
+import { addCalendarDays, dayKeyInTimezone } from "../../shared/timetable/dates.js";
 import { supabase } from "../supabase.js";
 import { ensureGuild, getGuildTimezone } from "../stats/helpers.js";
 import { upsertMember } from "../stats/members.js";
 import type { TimetableEvent } from "./types.js";
-
-function dayKeyInTimezone(date: Date, timezone: string): string {
-  const zoned = toZonedTime(date, timezone);
-  const year = zoned.getFullYear();
-  const month = String(zoned.getMonth() + 1).padStart(2, "0");
-  const day = String(zoned.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
 
 const TITLE_MAX = 80;
 const LOCATION_MAX = 120;
@@ -87,12 +80,17 @@ export function validateActivityInput(
 
   const startDay = dayKeyInTimezone(start, guildTimezone);
   const endDay = dayKeyInTimezone(end, guildTimezone);
-  if (startDay !== endDay) {
-    throw new ActivityValidationError("activity must start and end on the same day");
-  }
-
   const startZoned = toZonedTime(start, guildTimezone);
   const endZoned = toZonedTime(end, guildTimezone);
+  const isMidnightEnd =
+    endZoned.getHours() === 0 &&
+    endZoned.getMinutes() === 0 &&
+    end.getTime() > start.getTime();
+  const sameDay = startDay === endDay;
+  const endsNextMidnight = isMidnightEnd && endDay === addCalendarDays(startDay, 1);
+  if (!sameDay && !endsNextMidnight) {
+    throw new ActivityValidationError("activity must start and end on the same day");
+  }
   if (
     startZoned.getHours() === 0 &&
     startZoned.getMinutes() === 0 &&
@@ -275,6 +273,14 @@ export async function createActivity(params: {
     });
 
   if (participantError) {
+    const { error: cleanupError } = await supabase
+      .from("timetable_activities")
+      .delete()
+      .eq("id", row.id)
+      .eq("guild_id", guildId);
+    if (cleanupError) {
+      console.error("createActivity: failed to roll back activity after participant error", cleanupError);
+    }
     throw new Error(`Failed to add activity creator: ${participantError.message}`);
   }
 

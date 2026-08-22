@@ -88,21 +88,22 @@ export async function handleMessageReactionAdd(
   const emojiId = emoji.id || null;
   const emojiName = emoji.name ?? emoji.identifier ?? "unknown";
 
-  const { data: existing } = await supabase
+  let existingQuery = supabase
     .from("message_reactions")
     .select("count")
     .eq("message_id", ourMessageId)
-    .eq("emoji_id", emojiId)
-    .eq("emoji_name", emojiName)
-    .maybeSingle();
+    .eq("emoji_name", emojiName);
+  existingQuery = emojiId == null ? existingQuery.is("emoji_id", null) : existingQuery.eq("emoji_id", emojiId);
+  const { data: existing } = await existingQuery.maybeSingle();
 
   if (existing) {
-    await supabase
+    let updateQuery = supabase
       .from("message_reactions")
       .update({ count: (existing.count ?? 0) + 1 })
       .eq("message_id", ourMessageId)
-      .eq("emoji_id", emojiId)
       .eq("emoji_name", emojiName);
+    updateQuery = emojiId == null ? updateQuery.is("emoji_id", null) : updateQuery.eq("emoji_id", emojiId);
+    await updateQuery;
   } else {
     await supabase.from("message_reactions").insert({
       message_id: ourMessageId,
@@ -134,30 +135,32 @@ export async function handleMessageReactionRemove(
   const emojiId = emoji.id || null;
   const emojiName = emoji.name ?? emoji.identifier ?? "unknown";
 
-  const { data: existing } = await supabase
+  let existingQuery = supabase
     .from("message_reactions")
     .select("count")
     .eq("message_id", ourMessageId)
-    .eq("emoji_id", emojiId)
-    .eq("emoji_name", emojiName)
-    .maybeSingle();
+    .eq("emoji_name", emojiName);
+  existingQuery = emojiId == null ? existingQuery.is("emoji_id", null) : existingQuery.eq("emoji_id", emojiId);
+  const { data: existing } = await existingQuery.maybeSingle();
 
   if (!existing) return;
   const newCount = Math.max(0, (existing.count ?? 1) - 1);
   if (newCount === 0) {
-    await supabase
+    let deleteQuery = supabase
       .from("message_reactions")
       .delete()
       .eq("message_id", ourMessageId)
-      .eq("emoji_id", emojiId)
       .eq("emoji_name", emojiName);
+    deleteQuery = emojiId == null ? deleteQuery.is("emoji_id", null) : deleteQuery.eq("emoji_id", emojiId);
+    await deleteQuery;
   } else {
-    await supabase
+    let updateQuery = supabase
       .from("message_reactions")
       .update({ count: newCount })
       .eq("message_id", ourMessageId)
-      .eq("emoji_id", emojiId)
       .eq("emoji_name", emojiName);
+    updateQuery = emojiId == null ? updateQuery.is("emoji_id", null) : updateQuery.eq("emoji_id", emojiId);
+    await updateQuery;
   }
 }
 

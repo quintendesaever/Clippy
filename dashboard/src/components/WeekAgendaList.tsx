@@ -1,12 +1,19 @@
+import { dayKeyInTimezone } from "@shared/timetable/dates";
 import { useMemo } from "react";
-import { groupDayEvents, typeBadgeKey, type LayoutEvent } from "@shared/timetable/layout";
-import { formatAgendaDay, formatTime, toISODate } from "../lib/dates";
+import {
+  eventMergeKey,
+  groupAllDayEvents,
+  groupDayEvents,
+  type LayoutEvent,
+} from "@shared/timetable/layout";
+import { formatAgendaDay, formatTime } from "../lib/dates";
 import type { TimetableEventDto } from "../types";
 import type { WeekTimelineDay } from "./WeekTimelineGrid";
 import AvatarStack from "./AvatarStack";
 
 type WeekAgendaListProps = {
   days: WeekTimelineDay[];
+  timezone: string;
   avatarByUser: Map<string, string | null>;
   onEventClick: (event: TimetableEventDto) => void;
 };
@@ -32,80 +39,63 @@ function toLayoutEvents(events: TimetableEventDto[]): LayoutEvent[] {
     allDay: ev.allDay,
     source: eventSource(ev),
     typeBadges: ev.typeBadges,
+    id: ev.id,
   }));
 }
 
-function findEvent(
-  events: TimetableEventDto[],
-  title: string,
-  startMs: number,
-  endMs: number,
-  source: "ics" | "activity",
-  typeBadges: string[]
-) {
-  const badges = typeBadgeKey(typeBadges);
-  return events.find(
-    (ev) =>
-      !ev.allDay &&
-      eventSource(ev) === source &&
-      ev.title.toLowerCase() === title.toLowerCase() &&
-      typeBadgeKey(ev.typeBadges) === badges &&
-      new Date(ev.start).getTime() === startMs &&
-      new Date(ev.end).getTime() === endMs
-  );
-}
-
-function groupAllDayEvents(events: TimetableEventDto[]): AgendaItem[] {
-  const groups = new Map<string, AgendaItem>();
-  for (const ev of events) {
-    if (!ev.allDay) continue;
-    const key = `${eventSource(ev)}|${ev.start}|${ev.end}|${ev.title.toLowerCase()}|${typeBadgeKey(ev.typeBadges)}`;
-    const existing = groups.get(key);
-    if (existing) {
-      if (!existing.userIds.includes(ev.userId)) existing.userIds.push(ev.userId);
-      continue;
-    }
-    groups.set(key, {
-      key,
-      title: ev.title,
-      timeLabel: "Hele dag",
-      userIds: [ev.userId],
-      event: ev,
-    });
-  }
-  return [...groups.values()];
-}
-
-function timedAgendaItems(events: TimetableEventDto[]): AgendaItem[] {
-  return groupDayEvents(toLayoutEvents(events)).flatMap((card) => {
-    const ev = findEvent(events, card.title, card.startMs, card.endMs, card.source, card.typeBadges);
-    if (!ev) return [];
-    return [
-      {
-        key: `${card.source}-${card.startMs}-${card.title}-${typeBadgeKey(card.typeBadges)}`,
-        title: card.title,
-        timeLabel: `${formatTime(ev.start)}–${formatTime(ev.end)}`,
-        userIds: card.userIds,
-        event: ev,
-      },
-    ];
+function lookupKeyForDto(ev: TimetableEventDto): string {
+  return eventMergeKey({
+    source: eventSource(ev),
+    id: ev.id,
+    start: new Date(ev.start),
+    end: new Date(ev.end),
+    title: ev.title,
+    typeBadges: ev.typeBadges,
   });
 }
 
 export default function WeekAgendaList({
   days,
+  timezone,
   avatarByUser,
   onEventClick,
 }: WeekAgendaListProps) {
-  const today = toISODate(new Date());
+  const today = dayKeyInTimezone(new Date(), timezone);
 
   const daySections = useMemo(
     () =>
-      days.map((day) => ({
-        ...day,
-        items: [...groupAllDayEvents(day.events), ...timedAgendaItems(day.events)],
-      })),
-    [days]
+      days.map((day) => {
+        const layoutEvents = toLayoutEvents(day.events);
+        const lookup = new Map(day.events.map((ev) => [lookupKeyForDto(ev), ev]));
+        const allDayItems: AgendaItem[] = groupAllDayEvents(layoutEvents).flatMap((card) => {
+          const ev = lookup.get(eventMergeKey(card));
+          if (!ev) return [];
+          return [
+            {
+              key: eventMergeKey(card),
+              title: card.title,
+              timeLabel: "Hele dag",
+              userIds: card.userIds,
+              event: ev,
+            },
+          ];
+        });
+        const timedItems: AgendaItem[] = groupDayEvents(layoutEvents).flatMap((card) => {
+          const ev = lookup.get(eventMergeKey(card));
+          if (!ev) return [];
+          return [
+            {
+              key: eventMergeKey(card),
+              title: card.title,
+              timeLabel: `${formatTime(ev.start, timezone)}–${formatTime(ev.end, timezone)}`,
+              userIds: card.userIds,
+              event: ev,
+            },
+          ];
+        });
+        return { ...day, items: [...allDayItems, ...timedItems] };
+      }),
+    [days, timezone]
   );
 
   return (

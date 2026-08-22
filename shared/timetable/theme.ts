@@ -17,6 +17,7 @@ export const HOUR_MAX = 24;
 export const DEFAULT_DISPLAY_HOUR_START = 8;
 export const DEFAULT_DISPLAY_HOUR_END = 18;
 export const HEADER_HEIGHT = 44;
+export const ALL_DAY_ROW_HEIGHT = 52;
 export const ROW_HEIGHT = 132;
 export const ROW_GAP = 12;
 export const OUTER_PAD_X = 14;

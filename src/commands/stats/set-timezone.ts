@@ -2,6 +2,7 @@ import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
 import { supabase } from "../../supabase.js";
 import { ensureGuild } from "../../stats/helpers.js";
 import { syncGuildMembers } from "../../stats/members.js";
+import { isValidIanaTimeZone } from "../../../shared/timetable/dates.js";
 import type { Command } from "../../types/command.js";
 
 export const setTimezone: Command = {
@@ -37,6 +38,13 @@ export const setTimezone: Command = {
 
     if (sub === "set-timezone") {
       const timezone = interaction.options.getString("timezone", true).trim();
+      if (!isValidIanaTimeZone(timezone)) {
+        await interaction.reply({
+          content: `Invalid timezone \`${timezone}\`. Use an IANA name such as \`Europe/Brussels\`.`,
+          ephemeral: true,
+        });
+        return;
+      }
 
       const { error } = await supabase.from("guilds").upsert(
         {

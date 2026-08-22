@@ -11,6 +11,7 @@ import {
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { getDashboardUrl, getPublicDashboardUrl } from "../config.js";
+import { withoutEmptyWeekendDays } from "../../shared/timetable/weekDays.js";
 import {
   descriptionContainsLocation,
   redactLocationFromDescription,
@@ -19,7 +20,7 @@ import { renderTimetablePng } from "./timetableImage.js";
 import { dayKeyInTimezone, getWeekDayKeys, getWeekMondayKey } from "./timetableService.js";
 import type { GuildTimetable, TimetableEvent } from "./types.js";
 
-const DAY_LABELS = ["Ma", "Di", "Wo", "Do", "Vr", "Za"];
+const DAY_LABELS = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
 const PNG_ATTACHMENT_NAME = "rooster.png";
 const BUTTONS_PER_ROW = 3;
 
@@ -65,8 +66,9 @@ function buildDayButtons(
     return makeDayButton(dayKey, label);
   });
 
-  const showSaturday = (timetable.eventsByDay.get(dayKeys[5]) ?? []).length > 0;
-  const visibleDays = showSaturday ? dayButtons : dayButtons.slice(0, 5);
+  const showDay = (dayKey: string) => (timetable.eventsByDay.get(dayKey) ?? []).length > 0;
+  const visibleKeys = withoutEmptyWeekendDays(dayKeys, showDay);
+  const visibleDays = visibleKeys.map((dayKey) => dayButtons[dayKeys.indexOf(dayKey)]!);
 
   const publicDashboardUrl = getPublicDashboardUrl();
   const linkButtons = [
@@ -81,6 +83,13 @@ function buildDayButtons(
   ];
 
   return [...chunkButtons(visibleDays), ...chunkButtons(linkButtons)];
+}
+
+function icsLoadFooter(timetable: GuildTimetable): string {
+  const failed = timetable.members.filter((member) => member.error);
+  if (failed.length === 0) return "";
+  if (failed.length === 1) return failed[0]!.error ?? "Een kalender kon niet geladen worden.";
+  return `${failed.length} kalenders konden niet geladen worden.`;
 }
 
 export async function buildTimetableView(
@@ -100,7 +109,7 @@ export async function buildTimetableView(
       };
     }
     return {
-      content: "",
+      content: icsLoadFooter(timetable),
       components,
       files: [new AttachmentBuilder(emptyDayPng, { name: PNG_ATTACHMENT_NAME })],
       clearEmbeds: true,
@@ -109,8 +118,7 @@ export async function buildTimetableView(
 
   const png = await renderTimetablePng(timetable, dayKey);
   const files = [new AttachmentBuilder(png, { name: PNG_ATTACHMENT_NAME })];
-
-  return { content: "", components, files, clearEmbeds: true };
+  return { content: icsLoadFooter(timetable), components, files, clearEmbeds: true };
 }
 
 export function toTimetableReply(view: TimetableView) {

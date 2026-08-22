@@ -925,6 +925,35 @@ select.formSelect {
   background: inherit;
 }
 
+.weekTimelineAllDay {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0 0.35rem 0.2rem;
+  z-index: 1;
+}
+
+.weekTimelineAllDayChip,
+.weekGridAllDayChip {
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-accent, #5865f2) 18%, var(--color-card));
+  color: var(--color-text);
+  border-radius: 999px;
+  font-size: calc(0.7rem * var(--tt-font-scale, 1));
+  padding: 0.15rem 0.55rem;
+  cursor: pointer;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.weekTimelineAllDayChipActivity,
+.weekGridAllDayChipActivity {
+  border-color: color-mix(in srgb, #f0b232 45%, var(--color-border));
+  background: color-mix(in srgb, #f0b232 22%, var(--color-card));
+}
+
 .weekTimelineGridOverlay {
   position: absolute;
   inset: 0;
@@ -1157,8 +1186,17 @@ select.formSelect {
 }
 
 .weekGridDayDate {
-  font-size: calc(0.75rem * var(--tt-font-scale, 1));
   color: var(--color-text-muted);
+  font-size: 0.85em;
+}
+
+.weekGridAllDay {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.2rem;
+  width: 100%;
+  margin-top: 0.25rem;
 }
 
 .weekGridTimeLabel {
@@ -1378,6 +1416,12 @@ select.formSelect {
 
 .eventPopupBody dd {
   margin: 0.15rem 0 0;
+}
+
+.eventPopupParticipants {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .locationBlurred {

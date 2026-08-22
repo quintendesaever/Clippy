@@ -1,4 +1,11 @@
-export const DAY_LABELS = ["Ma", "Di", "Wo", "Do", "Vr", "Za"] as const;
+import {
+  addCalendarDays,
+  dayKeyInTimezone,
+  formatTimeInTimezone,
+  getWeekMondayKey,
+} from "@shared/timetable/dates";
+
+export const DAY_LABELS = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"] as const;
 export const DAY_FULL_LABELS = [
   "Maandag",
   "Dinsdag",
@@ -6,6 +13,7 @@ export const DAY_FULL_LABELS = [
   "Donderdag",
   "Vrijdag",
   "Zaterdag",
+  "Zondag",
 ] as const;
 
 const MONTHS_SHORT = [
@@ -23,13 +31,10 @@ const MONTHS_SHORT = [
   "dec",
 ] as const;
 
-export function getWeekMonday(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
+export function getWeekMonday(date: Date, timezone: string): Date {
+  const key = getWeekMondayKey(date, timezone);
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d);
 }
 
 export function toISODate(date: Date): string {
@@ -44,21 +49,16 @@ export function formatDayMonth(iso: string): string {
   return `${d}/${m}`;
 }
 
-export function formatTime(iso: string): string {
-  const date = new Date(iso);
-  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+export function formatTime(iso: string, timezone: string): string {
+  return formatTimeInTimezone(iso, timezone);
 }
 
-export function eventDayKey(iso: string): string {
-  return iso.slice(0, 10);
+export function eventDayKey(iso: string, timezone: string): string {
+  return dayKeyInTimezone(new Date(iso), timezone);
 }
 
-export function weekDayDates(weekMonday: Date): string[] {
-  return DAY_LABELS.map((_, i) =>
-    toISODate(
-      new Date(weekMonday.getFullYear(), weekMonday.getMonth(), weekMonday.getDate() + i)
-    )
-  );
+export function weekDayDates(weekMondayIso: string): string[] {
+  return DAY_LABELS.map((_, i) => addCalendarDays(weekMondayIso, i));
 }
 
 export function formatAgendaDay(iso: string): string {
@@ -75,3 +75,5 @@ export function formatWeekRange(startIso: string, endIso: string): string {
   if (sm === em) return `${sd}–${ed} ${MONTHS_SHORT[sm - 1]}`;
   return `${sd} ${MONTHS_SHORT[sm - 1]} – ${ed} ${MONTHS_SHORT[em - 1]}`;
 }
+
+export { addCalendarDays, getWeekMondayKey };

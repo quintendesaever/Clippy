@@ -1,4 +1,6 @@
+import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import { useEffect, useState } from "react";
+import { addCalendarDays, dayKeyInTimezone, formatTimeInTimezone } from "@shared/timetable/dates";
 import { createActivity, updateActivity } from "../api";
 import Button from "./Button";
 import type { TimetableEventDto } from "../types";
@@ -11,6 +13,7 @@ export type ActivityFormPrefill = {
 
 type ActivityFormProps = {
   mode: "create" | "edit";
+  timezone: string;
   initial?: TimetableEventDto | null;
   prefill?: ActivityFormPrefill | null;
   onClose: () => void;
@@ -28,18 +31,21 @@ function roundToHalfHour(date: Date): { hour: number; minute: number } {
   return { hour: Math.floor(clamped / 60), minute: clamped % 60 };
 }
 
-function defaultTimes(): { dayKey: string; startTime: string; endTime: string } {
-  const now = new Date();
-  const { hour, minute } = roundToHalfHour(now);
+function defaultTimes(timezone: string): { dayKey: string; startTime: string; endTime: string } {
+  const nowZoned = toZonedTime(new Date(), timezone);
+  const { hour, minute } = roundToHalfHour(nowZoned);
   const endTotal = Math.min(hour * 60 + minute + 60, 22 * 60);
   return {
-    dayKey: `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`,
+    dayKey: dayKeyInTimezone(new Date(), timezone),
     startTime: `${pad2(hour)}:${pad2(minute)}`,
     endTime: `${pad2(Math.floor(endTotal / 60))}:${pad2(endTotal % 60)}`,
   };
 }
 
-function fromEvent(event: TimetableEventDto): {
+function fromEvent(
+  event: TimetableEventDto,
+  timezone: string
+): {
   title: string;
   dayKey: string;
   startTime: string;
@@ -49,32 +55,43 @@ function fromEvent(event: TimetableEventDto): {
 } {
   const start = new Date(event.start);
   const end = new Date(event.end);
+  const startDay = dayKeyInTimezone(start, timezone);
+  const endDay = dayKeyInTimezone(end, timezone);
+  const endTime = formatTimeInTimezone(end, timezone);
   return {
     title: event.title,
-    dayKey: `${start.getFullYear()}-${pad2(start.getMonth() + 1)}-${pad2(start.getDate())}`,
-    startTime: `${pad2(start.getHours())}:${pad2(start.getMinutes())}`,
-    endTime: `${pad2(end.getHours())}:${pad2(end.getMinutes())}`,
+    dayKey: startDay,
+    startTime: formatTimeInTimezone(start, timezone),
+    endTime: endTime === "00:00" && endDay !== startDay ? "00:00" : endTime,
     location: event.location ?? "",
     description: event.description ?? "",
   };
 }
 
-function localDateTimeToIso(dayKey: string, time: string): string {
+function zonedDateTimeToIso(dayKey: string, time: string, timezone: string): string {
   const [y, m, d] = dayKey.split("-").map(Number);
   const [hh, mm] = time.split(":").map(Number);
-  return new Date(y, m - 1, d, hh, mm, 0, 0).toISOString();
+  return fromZonedTime(new Date(y, m - 1, d, hh, mm, 0, 0), timezone).toISOString();
+}
+
+function activityEndIso(dayKey: string, endTime: string, timezone: string): string {
+  if (endTime === "00:00") {
+    return zonedDateTimeToIso(addCalendarDays(dayKey, 1), "00:00", timezone);
+  }
+  return zonedDateTimeToIso(dayKey, endTime, timezone);
 }
 
 export default function ActivityForm({
   mode,
+  timezone,
   initial,
   prefill,
   onClose,
   onSaved,
 }: ActivityFormProps) {
-  const defaults = defaultTimes();
+  const defaults = defaultTimes(timezone);
   const seeded = initial
-    ? fromEvent(initial)
+    ? fromEvent(initial, timezone)
     : {
         title: "",
         dayKey: prefill?.dayKey ?? defaults.dayKey,
@@ -108,8 +125,8 @@ export default function ActivityForm({
     try {
       const payload = {
         title,
-        start: localDateTimeToIso(dayKey, startTime),
-        end: localDateTimeToIso(dayKey, endTime),
+        start: zonedDateTimeToIso(dayKey, startTime, timezone),
+        end: activityEndIso(dayKey, endTime, timezone),
         location: location.trim() || null,
         description: description.trim() || null,
       };

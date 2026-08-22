@@ -8,17 +8,6 @@ import PagePanel from "../components/PagePanel";
 import { useTheme, type ThemePreference } from "../hooks/useTheme";
 import type { CalendarEntry, DiscordUser } from "../types";
 
-const TIMEZONE_OPTIONS = [
-  "Europe/Brussels",
-  "Europe/Amsterdam",
-  "Europe/Berlin",
-  "Europe/Paris",
-  "Europe/London",
-  "UTC",
-] as const;
-
-const DEFAULT_TIMEZONE = TIMEZONE_OPTIONS[0];
-
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: "dark", label: "Donker" },
   { value: "light", label: "Licht" },
@@ -29,7 +18,6 @@ export default function Settings({ user }: { user: DiscordUser }) {
   const { preference, setPreference } = useTheme();
   const [initials, setInitials] = useState("");
   const [icsUrl, setIcsUrl] = useState("");
-  const [timezone, setTimezone] = useState<string>(DEFAULT_TIMEZONE);
   const [showLocation, setShowLocation] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -46,7 +34,6 @@ export default function Settings({ user }: { user: DiscordUser }) {
           setExisting(cal.calendar);
           setInitials(cal.calendar.initials);
           setIcsUrl(cal.calendar.ics_url ?? "");
-          setTimezone(cal.calendar.timezone || DEFAULT_TIMEZONE);
           setShowLocation(Boolean(cal.calendar.show_location));
         }
       })
@@ -63,11 +50,6 @@ export default function Settings({ user }: { user: DiscordUser }) {
     };
   }, []);
 
-  const timezoneOptions =
-    timezone && !(TIMEZONE_OPTIONS as readonly string[]).includes(timezone)
-      ? [...TIMEZONE_OPTIONS, timezone]
-      : [...TIMEZONE_OPTIONS];
-
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -77,7 +59,6 @@ export default function Settings({ user }: { user: DiscordUser }) {
       const result = await saveCalendar({
         initials,
         ics_url: icsUrl || undefined,
-        timezone: timezone || undefined,
         show_location: showLocation,
       });
       if (result.calendar) {
@@ -102,7 +83,6 @@ export default function Settings({ user }: { user: DiscordUser }) {
       setExisting(null);
       setInitials("");
       setIcsUrl("");
-      setTimezone(DEFAULT_TIMEZONE);
       setShowLocation(false);
       setMessage("Kalender verwijderd.");
     } catch (err) {
@@ -163,20 +143,6 @@ export default function Settings({ user }: { user: DiscordUser }) {
                   onChange={(e) => setIcsUrl(e.target.value)}
                   placeholder="https://…/calendar.ics"
                 />
-              </label>
-              <label className="formLabel">
-                Tijdzone
-                <select
-                  className="formInput formSelect"
-                  value={timezone}
-                  onChange={(e) => setTimezone(e.target.value)}
-                >
-                  {timezoneOptions.map((tz) => (
-                    <option key={tz} value={tz}>
-                      {tz}
-                    </option>
-                  ))}
-                </select>
               </label>
               <label className="formToggleRow">
                 <span>Toon locatie aan andere leden</span>

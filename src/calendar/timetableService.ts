@@ -1,5 +1,9 @@
-import { addDays, startOfWeek } from "date-fns";
-import { fromZonedTime, toZonedTime } from "date-fns-tz";
+import { fromZonedTime } from "date-fns-tz";
+import {
+  dayKeyInTimezone,
+  getWeekDayKeys as calendarWeekDayKeys,
+  getWeekMondayKey,
+} from "../../shared/timetable/dates.js";
 import { getGuildTimezone } from "../stats/helpers.js";
 import { getGuildActivitiesInRange } from "./activities.js";
 import { colorForInitials } from "./eventUtils.js";
@@ -14,13 +18,7 @@ import type {
   TimetableMember,
 } from "./types.js";
 
-export function dayKeyInTimezone(date: Date, timezone: string): string {
-  const zoned = toZonedTime(date, timezone);
-  const year = zoned.getFullYear();
-  const month = String(zoned.getMonth() + 1).padStart(2, "0");
-  const day = String(zoned.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
+export { dayKeyInTimezone, getWeekMondayKey } from "../../shared/timetable/dates.js";
 
 function groupEventsByDay(events: TimetableEvent[], timezone: string): Map<string, TimetableEvent[]> {
   const grouped = new Map<string, TimetableEvent[]>();
@@ -71,8 +69,13 @@ async function loadMemberEvents(
     const events = parseIcsEvents(content, member.user_id, member.initials, rangeStart, rangeEnd);
     return { userId: member.user_id, initials: member.initials, events };
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return { userId: member.user_id, initials: member.initials, events: [], error: message };
+    console.error(`timetable: failed to load calendar for ${member.initials}:`, err);
+    return {
+      userId: member.user_id,
+      initials: member.initials,
+      events: [],
+      error: `Kalender van ${member.initials} kon niet geladen worden.`,
+    };
   }
 }
 
@@ -104,9 +107,8 @@ function buildGuildTimetable(
 export async function getGuildTimetable(guildId: string): Promise<GuildTimetable> {
   const guildTimezone = await getGuildTimezone(guildId);
   const mondayKey = getWeekMondayKey(new Date(), guildTimezone);
-  const [year, month, day] = mondayKey.split("-").map(Number);
-  const mondayNoon = fromZonedTime(new Date(year, month - 1, day, 12, 0, 0), guildTimezone);
-  const sundayKey = dayKeyInTimezone(addDays(mondayNoon, 6), guildTimezone);
+  const dayKeys = calendarWeekDayKeys(mondayKey);
+  const sundayKey = dayKeys[6]!;
   return getGuildTimetableForDates(guildId, mondayKey, sundayKey);
 }
 
@@ -137,18 +139,6 @@ export async function getGuildTimetableForDay(
   return getGuildTimetableForDates(guildId, dayKey, dayKey);
 }
 
-export function getWeekDayKeys(weekStartDayKey: string, timezone: string): string[] {
-  const [y, m, d] = weekStartDayKey.split("-").map(Number);
-  const monday = fromZonedTime(new Date(y, m - 1, d, 12, 0, 0), timezone);
-  const keys: string[] = [];
-  for (let i = 0; i < 6; i++) {
-    keys.push(dayKeyInTimezone(addDays(monday, i), timezone));
-  }
-  return keys;
-}
-
-export function getWeekMondayKey(date: Date, timezone: string): string {
-  const zoned = toZonedTime(date, timezone);
-  const monday = startOfWeek(zoned, { weekStartsOn: 1 });
-  return dayKeyInTimezone(monday, timezone);
+export function getWeekDayKeys(_weekStartDayKey: string, _timezone?: string): string[] {
+  return calendarWeekDayKeys(_weekStartDayKey);
 }

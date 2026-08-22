@@ -4,6 +4,7 @@ type WeekNavProps = {
   onPrev: () => void;
   onThisWeek: () => void;
   onNext: () => void;
+  disabled?: boolean;
 };
 
 function ChevronLeftIcon() {
@@ -30,7 +31,7 @@ function ChevronRightIcon() {
   );
 }
 
-export default function WeekNav({ onPrev, onThisWeek, onNext }: WeekNavProps) {
+export default function WeekNav({ onPrev, onThisWeek, onNext, disabled }: WeekNavProps) {
   return (
     <div className="timetableWeekNav">
       <Button
@@ -38,11 +39,18 @@ export default function WeekNav({ onPrev, onThisWeek, onNext }: WeekNavProps) {
         size="small"
         className="weekNavIconBtn weekNavPrev"
         onClick={onPrev}
+        disabled={disabled}
         aria-label="Vorige week"
       >
         <ChevronLeftIcon />
       </Button>
-      <Button variant="secondary" size="small" className="weekNavThisWeek" onClick={onThisWeek}>
+      <Button
+        variant="secondary"
+        size="small"
+        className="weekNavThisWeek"
+        onClick={onThisWeek}
+        disabled={disabled}
+      >
         Deze week
       </Button>
       <Button
@@ -50,6 +58,7 @@ export default function WeekNav({ onPrev, onThisWeek, onNext }: WeekNavProps) {
         size="small"
         className="weekNavIconBtn weekNavNext"
         onClick={onNext}
+        disabled={disabled}
         aria-label="Volgende week"
       >
         <ChevronRightIcon />

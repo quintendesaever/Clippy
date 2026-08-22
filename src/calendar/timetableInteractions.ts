@@ -1,5 +1,5 @@
 import type { ButtonInteraction } from "discord.js";
-import { getGuildTimetable } from "./timetableService.js";
+import { getWeekDayKeys, getWeekMondayKey, getGuildTimetable } from "./timetableService.js";
 import { buildTimetableView, toTimetableReply } from "./timetableViews.js";
 
 export async function handleTimetableButton(interaction: ButtonInteraction): Promise<boolean> {
@@ -19,6 +19,16 @@ export async function handleTimetableButton(interaction: ButtonInteraction): Pro
 
   try {
     const timetable = await getGuildTimetable(interaction.guildId);
+    const weekMonday = getWeekMondayKey(new Date(), timetable.guildTimezone);
+    const currentWeekKeys = getWeekDayKeys(weekMonday, timetable.guildTimezone);
+    if (!currentWeekKeys.includes(dayKey)) {
+      await interaction.followUp({
+        content: "Dit rooster is verouderd — gebruik /timetable",
+        ephemeral: true,
+      });
+      return true;
+    }
+
     const view = await buildTimetableView(timetable, dayKey);
     await interaction.editReply(toTimetableReply(view));
   } catch (err) {

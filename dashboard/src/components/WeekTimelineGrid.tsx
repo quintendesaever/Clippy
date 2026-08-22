@@ -2,11 +2,12 @@ import { useMemo } from "react";
 import {
   clipEventToGrid,
   createTimelineLayout,
+  eventMergeKey,
   formatHourLabel,
+  groupAllDayEvents,
   groupDayEvents,
   packEventsIntoRows,
   timeToPercent,
-  typeBadgeKey,
   type LayoutEvent,
   type RenderCard,
 } from "@shared/timetable/layout";
@@ -29,8 +30,8 @@ type WeekTimelineGridProps = {
   scrollable?: boolean;
 };
 
-function formatCardTimeRange(start: Date, end: Date): string {
-  return `${formatTime(start.toISOString())}–${formatTime(end.toISOString())}`;
+function formatCardTimeRange(start: Date, end: Date, timezone: string): string {
+  return `${formatTime(start.toISOString(), timezone)}–${formatTime(end.toISOString(), timezone)}`;
 }
 
 function eventSource(ev: TimetableEventDto): "ics" | "activity" {
@@ -46,38 +47,31 @@ function toLayoutEvents(events: TimetableEventDto[]): LayoutEvent[] {
     allDay: ev.allDay,
     source: eventSource(ev),
     typeBadges: ev.typeBadges,
+    id: ev.id,
   }));
 }
 
-function eventLookupKey(
-  source: "ics" | "activity",
-  start: string,
-  end: string,
-  title: string,
-  typeBadges: string[] | undefined
-): string {
-  return `${source}|${start}|${end}|${title.toLowerCase()}|${typeBadgeKey(typeBadges)}`;
+function lookupKeyForDto(ev: TimetableEventDto): string {
+  return eventMergeKey({
+    source: eventSource(ev),
+    id: ev.id,
+    start: new Date(ev.start),
+    end: new Date(ev.end),
+    title: ev.title,
+    typeBadges: ev.typeBadges,
+  });
+}
+
+function lookupKeyForCard(card: RenderCard): string {
+  return eventMergeKey(card);
 }
 
 function buildEventLookup(events: TimetableEventDto[]): Map<string, TimetableEventDto> {
   const map = new Map<string, TimetableEventDto>();
   for (const ev of events) {
-    map.set(
-      eventLookupKey(eventSource(ev), ev.start, ev.end, ev.title, ev.typeBadges),
-      ev
-    );
+    map.set(lookupKeyForDto(ev), ev);
   }
   return map;
-}
-
-function lookupKeyForCard(card: RenderCard): string {
-  return eventLookupKey(
-    card.source,
-    card.start.toISOString(),
-    card.end.toISOString(),
-    card.title,
-    card.typeBadges
-  );
 }
 
 function cardPositionPercent(
@@ -127,11 +121,13 @@ export default function WeekTimelineGrid({
         const layoutEvents = toLayoutEvents(day.events);
         const grouped = groupDayEvents(layoutEvents);
         const packed = packEventsIntoRows(grouped);
-        const isEmpty = packed.length === 0;
-        const rows = isEmpty ? [[]] : packed;
+        const allDay = groupAllDayEvents(layoutEvents);
+        const isEmpty = packed.length === 0 && allDay.length === 0;
+        const rows = packed.length === 0 ? [[]] : packed;
         return {
           ...day,
           packedRows: rows,
+          allDay,
           isEmpty,
           eventLookup: buildEventLookup(day.events),
         };
@@ -172,6 +168,23 @@ export default function WeekTimelineGrid({
               <span className="weekTimelineDayDate">{formatDayMonth(day.dayKey)}</span>
             </div>
             <div className="weekTimelineDayBody">
+              {day.allDay.length > 0 && (
+                <div className="weekTimelineAllDay">
+                  {day.allDay.map((card) => {
+                    const ev = day.eventLookup.get(lookupKeyForCard(card));
+                    return (
+                      <button
+                        key={lookupKeyForCard(card)}
+                        type="button"
+                        className={`weekTimelineAllDayChip${card.source === "activity" ? " weekTimelineAllDayChipActivity" : ""}`}
+                        onClick={() => handleCardClick(card, day.eventLookup)}
+                      >
+                        {ev?.title ?? card.title}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               <div className="weekTimelineGridOverlay" aria-hidden>
                 {Array.from({ length: layout.hourCount + 1 }, (_, i) => (
                   <div
@@ -193,9 +206,9 @@ export default function WeekTimelineGrid({
                     const ev = day.eventLookup.get(key);
                     return (
                       <EventCard
-                        key={`${card.source}-${card.startMs}-${cardIndex}`}
+                        key={`${key}-${cardIndex}`}
                         title={card.title}
-                        timeLabel={formatCardTimeRange(card.start, card.end)}
+                        timeLabel={formatCardTimeRange(card.start, card.end, timezone)}
                         userIds={card.userIds}
                         avatarByUser={avatarByUser}
                         leftPercent={pos.leftPercent}

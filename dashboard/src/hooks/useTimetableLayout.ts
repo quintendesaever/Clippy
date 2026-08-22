@@ -5,17 +5,19 @@ export type TimetableLayout = "agenda" | "timeline";
 
 const STORAGE_KEY = "clippy.timetableLayout";
 
-function readLayout(): TimetableLayout {
+function readLayout(isMobile: boolean): TimetableLayout {
   try {
-    return localStorage.getItem(STORAGE_KEY) === "agenda" ? "agenda" : "timeline";
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === "agenda" || stored === "timeline") return stored;
   } catch {
-    return "timeline";
+    /* ignore */
   }
+  return isMobile ? "agenda" : "timeline";
 }
 
 export function useTimetableLayout() {
   const isMobile = useIsMobile();
-  const [layout, setLayoutState] = useState<TimetableLayout>(readLayout);
+  const [layout, setLayoutState] = useState<TimetableLayout>(() => readLayout(isMobile));
 
   function setLayout(next: TimetableLayout) {
     setLayoutState(next);
