@@ -106,7 +106,36 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 | `SESSION_SECRET` | dashboard | Random string for session cookies |
 | `DASHBOARD_URL` | dashboard | `https://dashboard.clippybot.be` in prod |
 | `DASHBOARD_PORT` | optional | Default `3000` |
-| `F1_REMINDER_TEST` | optional | `1` for short test intervals |
+| `F1_REMINDER_TEST` | optional | `1` for short F1 reminder poll/timing intervals |
+| `F1_PREDICTION_URL` | optional | Fallback URL for the F1 **Make predictions** button. Prefer `/f1-reminder set-prediction-url` in Discord. If neither is set, the button is omitted. |
+
+## F1 prediction reminders
+
+`/f1-reminder` sends one active Discord message per Grand Prix:
+
+1. 3 days before the prediction deadline (qualifying start minus 15 minutes)
+2. 3 hours before the deadline
+3. 1 hour before the race
+4. Race results after published classification and championship standings are available
+
+Configure channel, role, and prediction URL with `/f1-reminder set-channel`, `set-role`, and `set-prediction-url`. The guild timezone from `/stats set-timezone` is used for displayed times.
+
+### Testing F1 reminders immediately
+
+Do **not** wait for the next race weekend. Preview each stage in the configured F1 channel:
+
+```
+/f1-reminder test-send stage:predictions_open
+/f1-reminder test-send stage:final_prediction
+/f1-reminder test-send stage:race_soon
+/f1-reminder test-send stage:results
+```
+
+These use the real delete→send→persist message lifecycle (so you can verify replacement and role mentions) but they **do not** mark the real Grand Prix stage as sent. Results previews use sample data labeled TEST and a preview-only statistics button.
+
+`/f1-reminder status` shows scheduler state (next stage, deadline, results retry). `/f1-reminder test-schedule` explains the same workflow.
+
+`F1_REMINDER_TEST=1` only shortens poll/offset constants. It does not move the real calendar to today, so leave it off in production.
 
 ## Project structure
 

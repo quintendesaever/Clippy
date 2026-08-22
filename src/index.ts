@@ -16,6 +16,7 @@ import { syncGuildMembers } from "./stats/members.js";
 import { startF1ReminderJob } from "./f1/reminderJob.js";
 import { startTimetablePanelJob } from "./calendar/timetablePanelJob.js";
 import { handleTimetableButton } from "./calendar/timetableInteractions.js";
+import { handleF1Button } from "./f1/interactions.js";
 import { deleteMemberCalendar } from "./calendar/memberCalendars.js";
 
 const token = process.env.DISCORD_TOKEN?.trim();
@@ -81,8 +82,10 @@ client.once("clientReady", async () => {
 client.on("interactionCreate", async (interaction) => {
   if (interaction.isButton()) {
     try {
-      const handled = await handleTimetableButton(interaction);
-      if (handled) return;
+      const handledTimetable = await handleTimetableButton(interaction);
+      if (handledTimetable) return;
+      const handledF1 = await handleF1Button(interaction);
+      if (handledF1) return;
     } catch (err) {
       console.error("Error handling button:", err);
     }
