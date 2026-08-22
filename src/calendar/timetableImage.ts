@@ -8,11 +8,10 @@ import { getGuildId } from "../config.js";
 import { supabase } from "../supabase.js";
 import type { GuildTimetable, TimetableEvent } from "./types.js";
 import {
+  calculateDayLayout,
   clipEventToGrid,
   createTimelineLayout,
   groupAllDayEvents,
-  groupDayEvents,
-  packEventsIntoRows,
   timeToX,
   type RenderCard,
   type TimelineLayout,
@@ -692,8 +691,7 @@ export function buildTimelineSvg(
   avatarDataUrls: Map<string, string>
 ): string {
   const dayEvents = timetable.eventsByDay.get(dayKey) ?? [];
-  const grouped = groupDayEvents(dayEvents);
-  const packedRows = packEventsIntoRows(grouped);
+  const packedRows = calculateDayLayout(dayEvents);
   const allDayCards = groupAllDayEvents(dayEvents);
   const rowCount = Math.max(packedRows.length, 1);
   const layout = createLayout(dayEvents, timetable.guildTimezone);

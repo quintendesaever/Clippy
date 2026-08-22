@@ -259,3 +259,90 @@ export function packEventsIntoRows(cards: RenderCard[]): RenderCard[][] {
   }
   return rows;
 }
+
+function countUsers(cards: RenderCard[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const card of cards) {
+    for (const userId of card.userIds) {
+      counts.set(userId, (counts.get(userId) ?? 0) + 1);
+    }
+  }
+  return counts;
+}
+
+function compareUsersByPriority(a: string, b: string, counts: Map<string, number>): number {
+  const diff = (counts.get(b) ?? 0) - (counts.get(a) ?? 0);
+  if (diff !== 0) return diff;
+  if (a < b) return -1;
+  if (a > b) return 1;
+  return 0;
+}
+
+function primaryOwner(card: RenderCard, rank: Map<string, number>): string {
+  let best = card.userIds[0] ?? "";
+  let bestRank = rank.get(best) ?? Number.POSITIVE_INFINITY;
+  for (let i = 1; i < card.userIds.length; i++) {
+    const userId = card.userIds[i]!;
+    const userRank = rank.get(userId) ?? Number.POSITIVE_INFINITY;
+    if (userRank < bestRank) {
+      best = userId;
+      bestRank = userRank;
+    }
+  }
+  return best;
+}
+
+function sublaneFits(lane: RenderCard[], sublane: RenderCard[]): boolean {
+  return !sublane.some((card) => lane.some((existing) => cardsOverlap(existing, card)));
+}
+
+function compareCardsInLane(a: RenderCard, b: RenderCard): number {
+  if (a.startMs !== b.startMs) return a.startMs - b.startMs;
+  return a.title.localeCompare(b.title);
+}
+
+/**
+ * Per-day vertical layout: rank users by that day's activity count, keep each
+ * user's cards together, then compact non-overlapping users into shared lanes.
+ */
+export function calculateDayLayout(events: LayoutEvent[]): RenderCard[][] {
+  const cards = groupDayEvents(events);
+  if (cards.length === 0) return [];
+
+  const counts = countUsers(cards);
+  const userOrder = [...counts.keys()].sort((a, b) => compareUsersByPriority(a, b, counts));
+  const rank = new Map(userOrder.map((userId, index) => [userId, index]));
+
+  const byOwner = new Map<string, RenderCard[]>();
+  for (const card of cards) {
+    const owner = primaryOwner(card, rank);
+    const owned = byOwner.get(owner);
+    if (owned) owned.push(card);
+    else byOwner.set(owner, [card]);
+  }
+
+  const lanes: RenderCard[][] = [];
+  for (const userId of userOrder) {
+    const owned = byOwner.get(userId);
+    if (!owned?.length) continue;
+
+    owned.sort(compareCardsInLane);
+    const sublanes = packEventsIntoRows(owned);
+    for (const sublane of sublanes) {
+      let placed = false;
+      for (const lane of lanes) {
+        if (sublaneFits(lane, sublane)) {
+          lane.push(...sublane);
+          placed = true;
+          break;
+        }
+      }
+      if (!placed) lanes.push([...sublane]);
+    }
+  }
+
+  for (const lane of lanes) {
+    lane.sort(compareCardsInLane);
+  }
+  return lanes;
+}

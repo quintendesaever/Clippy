@@ -1,12 +1,11 @@
 import { useMemo } from "react";
 import {
+  calculateDayLayout,
   clipEventToGrid,
   createTimelineLayout,
   eventMergeKey,
   formatHourLabel,
   groupAllDayEvents,
-  groupDayEvents,
-  packEventsIntoRows,
   timeToPercent,
   type LayoutEvent,
   type RenderCard,
@@ -122,8 +121,7 @@ export default function WeekTimelineGrid({
     () =>
       days.map((day) => {
         const layoutEvents = toLayoutEvents(day.events);
-        const grouped = groupDayEvents(layoutEvents);
-        const packed = packEventsIntoRows(grouped);
+        const packed = calculateDayLayout(layoutEvents);
         const allDay = groupAllDayEvents(layoutEvents);
         const isEmpty = packed.length === 0 && allDay.length === 0;
         const rows = packed.length === 0 ? [[]] : packed;
