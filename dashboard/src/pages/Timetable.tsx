@@ -163,7 +163,6 @@ export default function Timetable({ user }: { user: DiscordUser }) {
       >
         <div className="pageLayoutContent">
           {displayError && <p className="errorMsg">{displayError}</p>}
-          {loading && <p className="timetableLoading">Rooster laden…</p>}
 
           {hasWeekData && (
             <>
@@ -177,8 +176,17 @@ export default function Timetable({ user }: { user: DiscordUser }) {
                 {showToggle && (
                   <TimetableLayoutToggle value={layout} onChange={setLayout} />
                 )}
-                <span className="timetableWeekLabel">
-                  {formatWeekRange(dayDates[0], dayDates[dayDates.length - 1])}
+                <span
+                  className={`timetableWeekLabel${loading ? " timetableWeekLabelLoading" : ""}`}
+                >
+                  <span className="timetableWeekRange">
+                    {formatWeekRange(dayDates[0], dayDates[dayDates.length - 1])}
+                  </span>
+                  {loading && (
+                    <span className="timetableLoading" role="status">
+                      Rooster laden…
+                    </span>
+                  )}
                 </span>
                 <MemberFilter calendars={calendars} selected={selected} onToggle={toggleMember} />
               </div>

@@ -177,6 +177,7 @@ a:hover {
 }
 
 .timetableWeekLabel {
+  position: relative;
   flex: 1;
   min-width: 0;
   order: 2;
@@ -185,6 +186,19 @@ a:hover {
   color: var(--color-text-muted);
   font-size: 0.875rem;
   line-height: 1.2;
+}
+
+.timetableWeekLabelLoading .timetableWeekRange {
+  visibility: hidden;
+}
+
+.timetableWeekLabel .timetableLoading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
 }
 
 .timetableToolbar .timetableWeekNav {
