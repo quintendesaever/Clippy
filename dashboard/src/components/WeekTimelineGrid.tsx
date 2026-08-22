@@ -13,6 +13,8 @@ import {
 } from "@shared/timetable/layout";
 import { TIMETABLE_WIDTH, GRID_INSET_X } from "@shared/timetable/theme";
 import { formatDayMonth, formatTime } from "../lib/dates";
+import { webCalendarTitle } from "../lib/eventTitle";
+import { useShowTypePrefix } from "../hooks/usePreferences";
 import type { TimetableEventDto } from "../types";
 import EventCard from "./EventCard";
 
@@ -97,6 +99,7 @@ export default function WeekTimelineGrid({
   onEventClick,
   scrollable = false,
 }: WeekTimelineGridProps) {
+  const showTypePrefix = useShowTypePrefix();
   const allEvents = useMemo(() => days.flatMap((d) => d.events), [days]);
 
   const layout = useMemo(
@@ -179,7 +182,7 @@ export default function WeekTimelineGrid({
                         className={`weekTimelineAllDayChip${card.source === "activity" ? " weekTimelineAllDayChipActivity" : ""}`}
                         onClick={() => handleCardClick(card, day.eventLookup)}
                       >
-                        {ev?.title ?? card.title}
+                        {webCalendarTitle(ev ?? card, showTypePrefix)}
                       </button>
                     );
                   })}
@@ -207,7 +210,7 @@ export default function WeekTimelineGrid({
                     return (
                       <EventCard
                         key={`${key}-${cardIndex}`}
-                        title={card.title}
+                        title={webCalendarTitle(ev ?? card, showTypePrefix)}
                         timeLabel={formatCardTimeRange(card.start, card.end, timezone)}
                         userIds={card.userIds}
                         avatarByUser={avatarByUser}

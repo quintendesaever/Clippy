@@ -6,6 +6,7 @@ import Button from "../components/Button";
 import PageLayout from "../components/PageLayout";
 import PagePanel from "../components/PagePanel";
 import { useTheme, type ThemePreference } from "../hooks/useTheme";
+import { usePreferences } from "../hooks/usePreferences";
 import type { CalendarEntry, DiscordUser } from "../types";
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
@@ -16,11 +17,14 @@ const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
 
 export default function Settings({ user }: { user: DiscordUser }) {
   const { preference, setPreference } = useTheme();
+  const { showTypePrefix, setShowTypePrefix } = usePreferences();
   const [initials, setInitials] = useState("");
   const [icsUrl, setIcsUrl] = useState("");
   const [showLocation, setShowLocation] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingPrefix, setSavingPrefix] = useState(false);
+  const [prefixError, setPrefixError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [existing, setExisting] = useState<CalendarEntry | null>(null);
@@ -49,6 +53,18 @@ export default function Settings({ user }: { user: DiscordUser }) {
       cancelled = true;
     };
   }, []);
+
+  async function handleTypePrefixToggle(checked: boolean) {
+    setSavingPrefix(true);
+    setPrefixError(null);
+    try {
+      await setShowTypePrefix(checked);
+    } catch (err) {
+      setPrefixError(err instanceof Error ? err.message : "Opslaan mislukt");
+    } finally {
+      setSavingPrefix(false);
+    }
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -97,7 +113,7 @@ export default function Settings({ user }: { user: DiscordUser }) {
       <PageLayout title="Instellingen" subtitle="Weergave en kalender">
         <PagePanel className="pagePanelNarrow">
           <h2 className="cardTitle">Weergave</h2>
-          <p className="cardHint">Kies een thema voor het dashboard.</p>
+          <p className="cardHint">Thema en weergave van het dashboard.</p>
           <div className="topBarTabs themePicker" role="radiogroup" aria-label="Thema">
             {THEME_OPTIONS.map((option) => (
               <button
@@ -112,6 +128,25 @@ export default function Settings({ user }: { user: DiscordUser }) {
               </button>
             ))}
           </div>
+          <label className="formToggleRow">
+            <span>Toon type in titel</span>
+            <span className="toggleSwitch">
+              <input
+                type="checkbox"
+                checked={showTypePrefix}
+                disabled={savingPrefix}
+                onChange={(e) => handleTypePrefixToggle(e.target.checked)}
+              />
+              <span className="toggleTrack" aria-hidden="true">
+                <span className="toggleThumb" />
+              </span>
+            </span>
+          </label>
+          <p className="cardHint">
+            Zet Hoorcollege, Project, … voor de vaknaam op het webrooster. Dit wordt bewaard in je
+            account, dus het geldt op elk apparaat. Discord blijft type als pill tonen.
+          </p>
+          {prefixError && <p className="errorMsg">{prefixError}</p>}
         </PagePanel>
         {loading ? (
           <p className="timetableLoading">Laden…</p>

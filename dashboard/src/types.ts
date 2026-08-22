@@ -8,6 +8,7 @@ export interface DiscordUser {
 
 export interface MeResponse {
   user: DiscordUser;
+  show_type_prefix: boolean;
 }
 
 export interface CalendarEntry {

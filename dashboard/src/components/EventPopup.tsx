@@ -2,6 +2,8 @@ import { labelForTypeBadge } from "@shared/timetable/eventMeta";
 import { useState } from "react";
 import { deleteActivity, joinActivity, leaveActivity } from "../api";
 import type { TimetableEventDto } from "../types";
+import { webCalendarTitle } from "../lib/eventTitle";
+import { useShowTypePrefix } from "../hooks/usePreferences";
 import { formatTime } from "../lib/dates";
 import AvatarStack from "./AvatarStack";
 import Button from "./Button";
@@ -29,6 +31,7 @@ export default function EventPopup({
 }: EventPopupProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const showTypePrefix = useShowTypePrefix();
 
   const showFullTitle = Boolean(event.rawTitle && event.rawTitle !== event.title);
   const typeLabels = event.typeBadges.map(labelForTypeBadge);
@@ -93,7 +96,7 @@ export default function EventPopup({
     <div className="eventPopupOverlay" onClick={onClose}>
       <div className="eventPopup" onClick={(e) => e.stopPropagation()}>
         <div className="eventPopupHeader">
-          <h3 className="eventPopupTitle">{event.title}</h3>
+          <h3 className="eventPopupTitle">{webCalendarTitle(event, showTypePrefix)}</h3>
           <button
             type="button"
             className="eventPopupClose"

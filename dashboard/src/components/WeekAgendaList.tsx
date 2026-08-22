@@ -7,6 +7,8 @@ import {
   type LayoutEvent,
 } from "@shared/timetable/layout";
 import { formatAgendaDay, formatTime } from "../lib/dates";
+import { webCalendarTitle } from "../lib/eventTitle";
+import { useShowTypePrefix } from "../hooks/usePreferences";
 import type { TimetableEventDto } from "../types";
 import type { WeekTimelineDay } from "./WeekTimelineGrid";
 import AvatarStack from "./AvatarStack";
@@ -61,6 +63,7 @@ export default function WeekAgendaList({
   onEventClick,
 }: WeekAgendaListProps) {
   const today = dayKeyInTimezone(new Date(), timezone);
+  const showTypePrefix = useShowTypePrefix();
 
   const daySections = useMemo(
     () =>
@@ -73,7 +76,7 @@ export default function WeekAgendaList({
           return [
             {
               key: eventMergeKey(card),
-              title: card.title,
+              title: webCalendarTitle(ev, showTypePrefix),
               timeLabel: "Hele dag",
               userIds: card.userIds,
               event: ev,
@@ -86,7 +89,7 @@ export default function WeekAgendaList({
           return [
             {
               key: eventMergeKey(card),
-              title: card.title,
+              title: webCalendarTitle(ev, showTypePrefix),
               timeLabel: `${formatTime(ev.start, timezone)}–${formatTime(ev.end, timezone)}`,
               userIds: card.userIds,
               event: ev,
@@ -95,7 +98,7 @@ export default function WeekAgendaList({
         });
         return { ...day, items: [...allDayItems, ...timedItems] };
       }),
-    [days, timezone]
+    [days, timezone, showTypePrefix]
   );
 
   return (

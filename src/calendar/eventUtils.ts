@@ -57,6 +57,21 @@ function extractTypeFromDescription(description?: string): { badge: string; titl
   return null;
 }
 
+function tidyCourseTitle(raw: string): string {
+  const parts = raw
+    .split(/[/|;]+/)
+    .map((part) =>
+      part
+        .replace(/^[-\u2013\u2014.:\s]+/, "")
+        .replace(/[-\u2013\u2014.:\s]+$/, "")
+        .replace(/\s+/g, " ")
+        .trim()
+    )
+    .filter(Boolean);
+  const joined = parts.join(" ").replace(/\s+/g, " ").trim();
+  return (joined.split(",")[0]?.trim() || joined).trim();
+}
+
 export function parseActivitySummary(
   raw: string,
   description?: string
@@ -64,17 +79,20 @@ export function parseActivitySummary(
   let s = (raw || "").trim();
   // MyTimetable draft marker + leading course codes (incl. WI2180LR-II)
   s = s.replace(/^\s*\[DRAFT\]\s*/i, "").trim();
-  s = s.replace(/^\s*[A-Z]+\d+[A-Z0-9]*(?:-[A-Z0-9]+)*\s*[.\-:\s]+\s*/i, "").trim();
+  const leadingCode = /^\s*[A-Z]+\d+[A-Z0-9]*(?:-[A-Z0-9]+)*\s*[/.\-:\s]+/i;
+  while (leadingCode.test(s)) {
+    s = s.replace(leadingCode, "").trim();
+  }
 
   const typeBadges: string[] = [];
   let titleTypeLabel: string | undefined;
 
   for (const { pattern, badge, titleLabel } of TYPE_PATTERNS) {
-    if (pattern.test(s)) {
-      s = s.replace(pattern, " ");
-      if (!typeBadges.includes(badge)) typeBadges.push(badge);
-      if (!titleTypeLabel) titleTypeLabel = titleLabel;
-    }
+    const next = s.replace(new RegExp(pattern.source, "gi"), " ");
+    if (next === s) continue;
+    s = next;
+    if (!typeBadges.includes(badge)) typeBadges.push(badge);
+    if (!titleTypeLabel) titleTypeLabel = titleLabel;
   }
 
   if (!titleTypeLabel) {
@@ -91,15 +109,9 @@ export function parseActivitySummary(
     .replace(/\bGR\d+\b/gi, " ")
     .replace(/\s*[(\[]\s*[A-Za-z]+\s*[)\]]\s*$/i, " ")
     .replace(/\s*\(\s*\)\s*/g, " ")
-    .replace(/\s*\[\s*\]\s*/g, " ")
-    .replace(/\s*[-\–—]+\s*$/i, "")
-    .replace(/^\s*[-\–—]+\s*/i, "")
-    .replace(/\s+/g, " ")
-    .trim();
+    .replace(/\s*\[\s*\]\s*/g, " ");
 
-  // Keep course name only (first comma segment) for compact cards everywhere
-  const courseOnly = s.split(",")[0]?.trim() ?? "";
-  const title = courseOnly || s || "(geen titel)";
+  const title = tidyCourseTitle(s) || "(geen titel)";
 
   return { title, typeBadges };
 }

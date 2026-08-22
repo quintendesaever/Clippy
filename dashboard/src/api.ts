@@ -31,6 +31,15 @@ export async function getMe(): Promise<MeResponse> {
   return fetchApi<MeResponse>("/api/me");
 }
 
+export async function savePreferences(data: {
+  show_type_prefix: boolean;
+}): Promise<{ show_type_prefix: boolean }> {
+  return fetchApi<{ show_type_prefix: boolean }>("/api/preferences", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
 export async function logout(): Promise<void> {
   await fetchApi<{ ok: boolean }>("/api/logout", { method: "POST" });
 }

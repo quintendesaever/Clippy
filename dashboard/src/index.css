@@ -682,6 +682,7 @@ select.formSelect {
 
 .themePicker {
   width: 100%;
+  margin-bottom: 1.25rem;
 }
 
 .themePicker .topBarTab {
@@ -1215,29 +1216,33 @@ select.formSelect {
 
 .weekGridTimeLabel {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 0.2rem 0.35rem;
+  padding: 0.15rem 0.35rem 0;
   font-size: calc(0.75rem * var(--tt-font-scale, 1));
+  line-height: 1.2;
   color: var(--color-text-muted);
   background: transparent;
-  border-top: 1px solid color-mix(in srgb, var(--color-border) 30%, transparent);
   text-align: center;
 }
 
 .weekGridDayColumn {
   position: relative;
   background: transparent;
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent 0,
-    transparent calc(var(--timeline-row-height) - 1px),
-    color-mix(in srgb, var(--color-border) 30%, transparent) calc(var(--timeline-row-height) - 1px),
-    color-mix(in srgb, var(--color-border) 30%, transparent) var(--timeline-row-height)
-  );
+}
+
+.weekGridHourLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: color-mix(in srgb, var(--color-border) 40%, transparent);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .weekGridDayColumn .eventCard {
+  z-index: 1;
   left: 4px;
   right: 4px;
   width: auto;

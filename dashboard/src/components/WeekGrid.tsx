@@ -9,6 +9,8 @@ import {
 import { useMemo, type CSSProperties } from "react";
 import { courseColorMap, courseKeyFromTitle } from "../lib/courseColor";
 import { DAY_LABELS, formatDayMonth, formatTime, eventDayKey } from "../lib/dates";
+import { webCalendarTitle } from "../lib/eventTitle";
+import { useShowTypePrefix } from "../hooks/usePreferences";
 import type { TimetableEventDto } from "../types";
 
 const BASE_ROW_HEIGHT_PX = 64;
@@ -96,6 +98,7 @@ export default function WeekGrid({
   onEventClick,
   scale = 1,
 }: WeekGridProps) {
+  const showTypePrefix = useShowTypePrefix();
   const { hourStart, hourEnd } = useMemo(
     () => computeDisplayHourRange(toLayoutEvents(events), timezone),
     [events, timezone]
@@ -140,7 +143,7 @@ export default function WeekGrid({
                       className={`weekGridAllDayChip${ev.source === "activity" ? " weekGridAllDayChipActivity" : ""}`}
                       onClick={() => onEventClick(ev)}
                     >
-                      {ev.title}
+                      {webCalendarTitle(ev, showTypePrefix)}
                     </button>
                   ))}
                 </div>
@@ -194,6 +197,16 @@ export default function WeekGrid({
                 height: hourCount * rowHeight,
               }}
             >
+              {Array.from({ length: hourCount }, (_, i) =>
+                i === 0 ? null : (
+                  <div
+                    key={`hour-${i}`}
+                    className="weekGridHourLine"
+                    style={{ top: i * rowHeight }}
+                    aria-hidden
+                  />
+                )
+              )}
               {dayEvents.map((ev) => {
                 const { startMinutes, endMinutes } = zonedStartEndMinutes(
                   new Date(ev.start),
@@ -233,13 +246,13 @@ export default function WeekGrid({
                       } as CSSProperties
                     }
                     onClick={() => onEventClick(ev)}
-                    title={`${ev.title} (${formatTime(ev.start, timezone)}–${formatTime(ev.end, timezone)})`}
+                    title={`${webCalendarTitle(ev, showTypePrefix)} (${formatTime(ev.start, timezone)}–${formatTime(ev.end, timezone)})`}
                   >
                     <span className="weekGridEventBody">
                       <span
                         className={`eventCardTitle${titleTall ? " weekGridEventTitleTall" : ""}`}
                       >
-                        {ev.title}
+                        {webCalendarTitle(ev, showTypePrefix)}
                       </span>
                       {showTime && (
                         <span className="weekGridEventTime">

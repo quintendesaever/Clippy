@@ -9,7 +9,11 @@ import type { Client } from "discord.js";
 import { supabase } from "../supabase.js";
 import { getDashboardUrl, getGuildId } from "../config.js";
 import { ensureGuild, getGuildTimezone } from "../stats/helpers.js";
-import { upsertMember } from "../stats/members.js";
+import {
+  getShowTypePrefix,
+  setShowTypePrefix,
+  upsertMember,
+} from "../stats/members.js";
 import { assertIcsUrlSafe } from "../calendar/icsFetcher.js";
 import {
   ActivityValidationError,
@@ -265,8 +269,37 @@ export function createDashboardApp(): express.Express {
   app.get("/api/me", requireSession, async (req: Request, res: Response) => {
     const session = req.session as SessionData;
     const user = session.user!;
+    const guildId = getGuildId();
     const nickname = (await getGuildMemberDisplayName(user.id)) ?? user.username;
-    res.json({ user: { ...user, nickname } });
+
+    await ensureGuild(guildId);
+    await upsertMember(guildId, user.id, user.avatar);
+    const showTypePrefix = await getShowTypePrefix(guildId, user.id);
+
+    res.json({
+      user: { ...user, nickname },
+      show_type_prefix: showTypePrefix,
+    });
+  });
+
+  app.patch("/api/preferences", requireSession, async (req: Request, res: Response) => {
+    const session = req.session as SessionData;
+    const guildId = getGuildId();
+    const userId = session.user!.id;
+
+    if (typeof req.body?.show_type_prefix !== "boolean") {
+      res.status(400).json({ error: "show_type_prefix must be a boolean" });
+      return;
+    }
+
+    await ensureGuild(guildId);
+    await upsertMember(guildId, userId, session.user!.avatar);
+    const result = await setShowTypePrefix(guildId, userId, req.body.show_type_prefix);
+    if ("error" in result) {
+      res.status(500).json({ error: result.error });
+      return;
+    }
+    res.json({ show_type_prefix: result.show_type_prefix });
   });
 
   app.get("/api/calendar", requireSession, async (req: Request, res: Response) => {

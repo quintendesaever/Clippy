@@ -63,3 +63,39 @@ export async function syncGuildMembers(guild: Guild): Promise<SyncGuildMembersRe
 
   return { count: rows.length };
 }
+
+export const DEFAULT_SHOW_TYPE_PREFIX = true;
+
+export async function getShowTypePrefix(guildId: string, userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("members")
+    .select("show_type_prefix")
+    .eq("guild_id", guildId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) {
+    console.error("stats: get show_type_prefix:", error.message);
+    return DEFAULT_SHOW_TYPE_PREFIX;
+  }
+  return data?.show_type_prefix ?? DEFAULT_SHOW_TYPE_PREFIX;
+}
+
+export async function setShowTypePrefix(
+  guildId: string,
+  userId: string,
+  showTypePrefix: boolean
+): Promise<{ show_type_prefix: boolean } | { error: string }> {
+  const { data, error } = await supabase
+    .from("members")
+    .update({
+      show_type_prefix: showTypePrefix,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("guild_id", guildId)
+    .eq("user_id", userId)
+    .select("show_type_prefix")
+    .maybeSingle();
+  if (error) return { error: error.message };
+  if (!data) return { error: "Member not found" };
+  return { show_type_prefix: Boolean(data.show_type_prefix) };
+}
