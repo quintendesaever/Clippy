@@ -163,9 +163,9 @@ export function startF1ReminderJob(client: Client): void {
     `f1 reminder: job started (testMode=${isF1TestMode() ? "yes" : "no"}, intervalMs=${timing.jobIntervalMs})`
   );
 
-  void applyF1ReminderTick(client).catch((err) =>
-    console.error("f1 reminder: startup tick failed", err)
-  );
+  void applyF1ReminderTick(client)
+    .then(() => console.log("f1 reminder: startup tick complete"))
+    .catch((err) => console.error("f1 reminder: startup tick failed", err));
 
   intervalHandle = setInterval(() => {
     void applyF1ReminderTick(client).catch((err) => console.error("f1 reminder: tick failed", err));

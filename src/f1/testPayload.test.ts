@@ -70,4 +70,16 @@ describe("buildF1TestPayload", () => {
     assert.match(payload.content, /<@&role-1>/);
     assert.match(payload.embeds[0]!.toJSON().description ?? "", /locked/i);
   });
+
+  it("defaults race-soon previews to the stage fire time so a future GP still shows predictions locked", () => {
+    const payload = buildF1TestPayload({
+      stage: "race_soon",
+      meeting,
+      timezone: "Europe/Brussels",
+      roleId: "role-1",
+      predictionUrl: null,
+    });
+    assert.match(payload.embeds[0]!.toJSON().description ?? "", /Predictions are locked/);
+    assert.doesNotMatch(payload.embeds[0]!.toJSON().description ?? "", /still open|Last chance/i);
+  });
 });
