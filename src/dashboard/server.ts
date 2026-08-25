@@ -20,6 +20,7 @@ import {
 import { recordDashboardPageView } from "./analytics/collect.js";
 import { createRequireAdmin, userIsGuildAdmin } from "./adminAuth.js";
 import { loadAdminStatsPayload, loadAdminUsersPayload, parseAdminRangePreset } from "./adminStats.js";
+import { loadDiscordStatsPayload } from "./discordStats.js";
 import { assertIcsUrlSafe } from "../calendar/icsFetcher.js";
 import {
   ActivityValidationError,
@@ -758,6 +759,20 @@ export function createDashboardApp(): express.Express {
       res.json({ users: payload.users, timezone: payload.timezone });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to load admin users";
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.get("/api/admin/discord/stats", requireSession, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const payload = await loadDiscordStatsPayload(
+        getGuildId(),
+        parseAdminRangePreset(req.query.range),
+        discordClient
+      );
+      res.json(payload);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load Discord stats";
       res.status(500).json({ error: message });
     }
   });

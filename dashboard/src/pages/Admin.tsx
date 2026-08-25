@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { toZonedTime } from "date-fns-tz";
 import { getAdminStats } from "../api";
+import { BarList, HourChart, StatCard } from "../components/AdminCharts";
 import AppShell from "../components/AppShell";
 import PageLayout from "../components/PageLayout";
 import PagePanel from "../components/PagePanel";
@@ -24,6 +25,7 @@ const PATH_LABELS: Record<string, string> = {
   "/my-timetable": "Mijn rooster",
   "/settings": "Instellingen",
   "/admin": "Beheer",
+  "/admin/discord": "Discord",
 };
 
 const DEVICE_LABELS: Record<string, string> = {
@@ -45,52 +47,6 @@ function formatDateTime(iso: string | null, timezone: string): string {
   const hh = String(zoned.getHours()).padStart(2, "0");
   const mm = String(zoned.getMinutes()).padStart(2, "0");
   return `${d}/${m} ${hh}:${mm}`;
-}
-
-function BarList({
-  items,
-  empty,
-}: {
-  items: { label: string; value: number }[];
-  empty: string;
-}) {
-  const max = Math.max(1, ...items.map((item) => item.value));
-  if (items.length === 0) return <p className="cardHint">{empty}</p>;
-  return (
-    <div className="adminBars">
-      {items.map((item) => (
-        <div key={item.label} className="adminBarRow">
-          <span className="adminBarLabel" title={item.label}>
-            {item.label}
-          </span>
-          <div className="adminBarTrack">
-            <div
-              className="adminBarFill"
-              style={{ width: `${Math.max(4, (item.value / max) * 100)}%` }}
-            />
-          </div>
-          <span className="adminBarValue">{item.value}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function HourChart({ hours }: { hours: { hour: number; count: number }[] }) {
-  const max = Math.max(1, ...hours.map((item) => item.count));
-  return (
-    <div className="adminHourChart" role="img" aria-label="Piekuren">
-      {hours.map((item) => (
-        <div key={item.hour} className="adminHourCol" title={`${item.hour}:00 · ${item.count}`}>
-          <div
-            className="adminHourBar"
-            style={{ height: `${item.count > 0 ? Math.max(6, (item.count / max) * 100) : 0}%` }}
-          />
-          {item.hour % 3 === 0 && <span className="adminHourLabel">{item.hour}</span>}
-        </div>
-      ))}
-    </div>
-  );
 }
 
 export default function Admin({ user }: { user: DiscordUser }) {
@@ -415,23 +371,5 @@ export default function Admin({ user }: { user: DiscordUser }) {
         )}
       </PageLayout>
     </AppShell>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: number | string;
-  hint?: string;
-}) {
-  return (
-    <div className="adminStatCard">
-      <p className="adminStatLabel">{label}</p>
-      <p className="adminStatValue">{value}</p>
-      {hint && <p className="adminStatHint">{hint}</p>}
-    </div>
   );
 }

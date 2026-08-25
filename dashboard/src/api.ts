@@ -4,6 +4,7 @@ import type {
   AdminRangePreset,
   AdminStatsResponse,
   AdminUsersResponse,
+  DiscordAdminStatsResponse,
   CalendarResponse,
   CalendarsResponse,
   MeResponse,
@@ -60,6 +61,11 @@ export async function recordPageView(path: string): Promise<void> {
 export async function getAdminStats(range: AdminRangePreset): Promise<AdminStatsResponse> {
   const params = new URLSearchParams({ range });
   return fetchApi<AdminStatsResponse>(`/api/admin/stats?${params}`);
+}
+
+export async function getDiscordAdminStats(range: AdminRangePreset): Promise<DiscordAdminStatsResponse> {
+  const params = new URLSearchParams({ range });
+  return fetchApi<DiscordAdminStatsResponse>(`/api/admin/discord/stats?${params}`);
 }
 
 export async function getAdminUsers(): Promise<AdminUsersResponse> {

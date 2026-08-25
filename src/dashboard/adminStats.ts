@@ -2,6 +2,7 @@ import type { Client } from "discord.js";
 import { supabase } from "../supabase.js";
 import { getGuildTimezone } from "../stats/helpers.js";
 import { formatApproximateLocation } from "./analytics/geo.js";
+import { loadMemberLabels } from "./memberLabels.js";
 import {
   aggregateUserAndActivityStats,
   aggregateWebStats,
@@ -175,26 +176,4 @@ export async function loadAdminStatsPayload(
 export async function loadAdminUsersPayload(guildId: string, client: Client | null) {
   const payload = await loadAdminStatsPayload(guildId, "all", client);
   return { users: payload.memberRows, timezone: payload.timezone };
-}
-
-async function loadMemberLabels(
-  client: Client | null,
-  guildId: string,
-  userIds: string[]
-): Promise<Map<string, { displayName: string; username: string }>> {
-  const labels = new Map<string, { displayName: string; username: string }>();
-  const guild = client?.guilds.cache.get(guildId);
-  if (!guild || userIds.length === 0) return labels;
-  try {
-    await guild.members.fetch();
-    for (const userId of userIds) {
-      const member = guild.members.cache.get(userId);
-      if (member) {
-        labels.set(userId, { displayName: member.displayName, username: member.user.username });
-      }
-    }
-  } catch (err) {
-    console.error("adminStats: fetch member labels:", err);
-  }
-  return labels;
 }

@@ -4,6 +4,7 @@ export const ALLOWED_ANALYTICS_PATHS = [
   "/my-timetable",
   "/settings",
   "/admin",
+  "/admin/discord",
 ] as const;
 
 export type AllowedAnalyticsPath = (typeof ALLOWED_ANALYTICS_PATHS)[number];

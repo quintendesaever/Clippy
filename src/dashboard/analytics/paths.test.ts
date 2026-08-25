@@ -7,6 +7,7 @@ describe("normalizeAnalyticsPath", () => {
     assert.equal(normalizeAnalyticsPath("/timetable"), "/timetable");
     assert.equal(normalizeAnalyticsPath("/"), "/");
     assert.equal(normalizeAnalyticsPath("/admin/"), "/admin");
+    assert.equal(normalizeAnalyticsPath("/admin/discord"), "/admin/discord");
   });
 
   it("rejects unknown or injected paths", () => {

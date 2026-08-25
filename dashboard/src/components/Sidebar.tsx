@@ -21,6 +21,14 @@ function ChartIcon() {
   );
 }
 
+function DiscordIcon() {
+  return (
+    <svg className="sidebarNavIcon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path d="M16.5 4.2c-1.3-.6-2.7-1-4.2-1.2-.2.3-.4.7-.5 1-1.5-.2-3.1-.2-4.6 0-.2-.3-.4-.7-.6-1-1.5.2-2.9.6-4.2 1.2C.8 7.5.3 10.7.5 13.8c1.7 1.3 3.4 2 5 2.4.4-.6.8-1.2 1.1-1.8-.6-.2-1.2-.5-1.7-.8.1-.1.3-.2.4-.3 3.4 1.6 7.1 1.6 10.4 0 .2.1.3.2.4.3-.6.3-1.1.6-1.7.8.3.6.7 1.2 1.1 1.8 1.7-.4 3.3-1.1 5-2.4.3-3.6-.5-6.8-2-9.6ZM6.9 12.3c-1 0-1.9-.9-1.9-2s.8-2 1.9-2 1.9 1 1.9 2-.8 2-1.9 2Zm6.2 0c-1 0-1.9-.9-1.9-2s.8-2 1.9-2 1.9 1 1.9 2-.9 2-1.9 2Z" />
+    </svg>
+  );
+}
+
 function SettingsIcon() {
   return (
     <svg className="sidebarNavIcon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -105,13 +113,22 @@ export default function Sidebar({ user }: { user: DiscordUser }) {
           <span className="sidebarLinkLabel">Instellingen</span>
         </Link>
         {isAdmin && (
-          <Link
-            to="/admin"
-            className={`sidebarLink ${location.pathname === "/admin" ? "sidebarLinkActive" : ""}`}
-          >
-            <ChartIcon />
-            <span className="sidebarLinkLabel">Beheer</span>
-          </Link>
+          <>
+            <Link
+              to="/admin"
+              className={`sidebarLink ${location.pathname === "/admin" ? "sidebarLinkActive" : ""}`}
+            >
+              <ChartIcon />
+              <span className="sidebarLinkLabel">Beheer</span>
+            </Link>
+            <Link
+              to="/admin/discord"
+              className={`sidebarLink ${location.pathname === "/admin/discord" ? "sidebarLinkActive" : ""}`}
+            >
+              <DiscordIcon />
+              <span className="sidebarLinkLabel">Discord</span>
+            </Link>
+          </>
         )}
       </nav>
 

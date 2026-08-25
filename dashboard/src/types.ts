@@ -161,3 +161,56 @@ export interface AdminUsersResponse {
   users: AdminUserRow[];
   timezone: string;
 }
+
+export interface DiscordAdminStatsResponse {
+  range: AdminRangePreset;
+  timezone: string;
+  from: string | null;
+  to: string;
+  summary: {
+    messagesInRange: number;
+    messagesTotal: number;
+    uniqueAuthors: number;
+    attachmentsInRange: number;
+    voiceSessionsInRange: number;
+    voiceSessionsTotal: number;
+    voiceSecondsClosed: number;
+    voiceAverageSeconds: number;
+    voiceOpenInRange: number;
+    voiceUnreliableClosed: number;
+    activeUsers: number;
+    memberCount: number | null;
+    memberCountRecordedAt: string | null;
+  };
+  messagesOverTime: { key: string; count: number }[];
+  voiceMinutesOverTime: { key: string; count: number }[];
+  peakHours: { hour: number; count: number }[];
+  topUsersByMessages: { userId: string; displayName: string; count: number }[];
+  topUsersByVoiceSeconds: { userId: string; displayName: string; seconds: number }[];
+  topChannelsByMessages: { channelId: string; name: string; count: number }[];
+  topChannelsByVoiceSeconds: { channelId: string; name: string; seconds: number }[];
+  users: DiscordAdminUserRow[];
+  recent: DiscordAdminRecentActivity[];
+}
+
+export interface DiscordAdminUserRow {
+  userId: string;
+  displayName: string;
+  username: string | null;
+  avatarHash: string | null;
+  messageCount: number;
+  voiceSessionCount: number;
+  voiceSeconds: number;
+  lastActivityAt: string | null;
+}
+
+export interface DiscordAdminRecentActivity {
+  type: "message" | "voice";
+  occurredAt: string;
+  userId: string;
+  displayName: string;
+  channelId: string;
+  channelName: string;
+  durationSeconds: number | null;
+  open: boolean;
+}

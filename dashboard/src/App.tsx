@@ -6,6 +6,7 @@ import { PreferencesProvider } from "./hooks/usePreferences";
 import { ThemeProvider } from "./hooks/useTheme";
 import type { MeResponse } from "./types";
 import Admin from "./pages/Admin";
+import DiscordAdmin from "./pages/DiscordAdmin";
 import Forbidden from "./pages/Forbidden";
 import Login from "./pages/Login";
 import MyTimetable from "./pages/MyTimetable";
@@ -27,6 +28,10 @@ function AuthedRoutes({ me }: { me: MeResponse }) {
         <Route
           path="/admin"
           element={me.is_admin ? <Admin user={me.user} /> : <Forbidden user={me.user} />}
+        />
+        <Route
+          path="/admin/discord"
+          element={me.is_admin ? <DiscordAdmin user={me.user} /> : <Forbidden user={me.user} />}
         />
         <Route path="*" element={<Navigate to="/timetable" replace />} />
       </Routes>
