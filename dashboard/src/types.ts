@@ -9,6 +9,8 @@ export interface DiscordUser {
 export interface MeResponse {
   user: DiscordUser;
   show_type_prefix: boolean;
+  share_location: boolean;
+  is_admin: boolean;
 }
 
 export interface CalendarEntry {
@@ -50,6 +52,7 @@ export interface TimetableEventDto {
   allDay: boolean;
   location: string | null;
   locationHidden?: boolean;
+  memberLocation?: string | null;
   description: string | null;
   source: TimetableEventSource;
   id?: string;
@@ -81,5 +84,80 @@ export interface TimetableResponse {
   eventsByUser: Record<string, TimetableEventDto[]>;
   activities: TimetableEventDto[];
   members: TimetableMemberDto[];
+  timezone: string;
+}
+
+export type AdminRangePreset = "today" | "7d" | "30d" | "all";
+
+export interface AdminStatsResponse {
+  range: AdminRangePreset;
+  timezone: string;
+  from: string | null;
+  to: string;
+  users: {
+    total: number;
+    active: number;
+    newDashboardUsers: number;
+    shareLocationEnabled: number;
+    shareLocationDisabled: number;
+    mostActive: { userId: string; activityCount: number; createdCount: number }[];
+  };
+  activities: {
+    total: number;
+    inRange: number;
+    perDay: { day: string; count: number }[];
+    byCreator: { userId: string; count: number }[];
+    averagePerUser: number;
+  };
+  web: {
+    pageViews: number;
+    uniqueUsers: number;
+    uniqueSessions: number;
+    visitsToday: number;
+    mostVisitedPages: { path: string; count: number }[];
+    viewsOverTime: { day: string; count: number }[];
+    peakHours: { hour: number; count: number }[];
+    peakDays: { day: string; count: number }[];
+    byCountry: { country: string; count: number }[];
+    byRegion: { region: string; country: string | null; count: number }[];
+    byCity: { city: string; region: string | null; country: string | null; count: number }[];
+    byDevice: { deviceType: string; count: number }[];
+    byBrowser: { browserFamily: string; count: number }[];
+    recentVisits: AdminRecentVisit[];
+  };
+  members: AdminUserRow[];
+}
+
+export interface AdminRecentVisit {
+  userId: string | null;
+  displayName: string | null;
+  occurredAt: string;
+  path: string;
+  country: string | null;
+  region: string | null;
+  city: string | null;
+  locationLabel: string | null;
+  deviceType: string | null;
+  browserFamily: string | null;
+}
+
+export interface AdminUserRow {
+  userId: string;
+  displayName: string;
+  username: string | null;
+  initials: string | null;
+  avatarHash: string | null;
+  activityCount: number;
+  lastActivityAt: string | null;
+  lastDashboardAt: string | null;
+  shareLocation: boolean;
+  lastDetectedLocation: string | null;
+  lastCountry: string | null;
+  lastRegion: string | null;
+  lastCity: string | null;
+}
+
+export interface AdminUsersResponse {
+  users: AdminUserRow[];
   timezone: string;
 }

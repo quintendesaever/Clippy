@@ -12,13 +12,9 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { getDashboardUrl, getPublicDashboardUrl } from "../config.js";
 import { getVisibleTimetableDayKeys } from "./timetableVisibility.js";
-import {
-  descriptionContainsLocation,
-  redactLocationFromDescription,
-} from "../../shared/timetable/eventMeta.js";
 import { renderTimetablePng } from "./timetableImage.js";
 import { dayKeyInTimezone, getWeekDayKeys, getWeekMondayKey } from "./timetableService.js";
-import type { GuildTimetable, TimetableEvent } from "./types.js";
+import type { GuildTimetable } from "./types.js";
 
 const DAY_LABELS = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
 const PNG_ATTACHMENT_NAME = "rooster.png";
@@ -164,37 +160,5 @@ export function getDefaultDayKey(timetable: GuildTimetable): string {
   return dayKeyInTimezone(new Date(), timetable.guildTimezone);
 }
 
-export function serializeEventForApi(
-  event: TimetableEvent,
-  options?: { viewerUserId?: string; showLocationByUser?: Map<string, boolean> }
-) {
-  const source = event.source ?? "ics";
-  const isActivity = source === "activity";
-  const hasLocationField = Boolean(event.location?.trim());
-  const hasLocationInDescription = descriptionContainsLocation(event.description);
-  const hasLocation = hasLocationField || hasLocationInDescription;
-  const isOwner = options?.viewerUserId != null && options.viewerUserId === event.userId;
-  const ownerAllowsLocation = options?.showLocationByUser?.get(event.userId) === true;
-  // Shared activities always show location; ICS follows the member preference.
-  const locationVisible = isActivity || isOwner || ownerAllowsLocation;
-
-  return {
-    userId: event.userId,
-    initials: event.initials,
-    title: event.title,
-    rawTitle: event.rawTitle,
-    typeBadges: event.typeBadges,
-    start: event.start.toISOString(),
-    end: event.end.toISOString(),
-    allDay: event.allDay,
-    location: locationVisible ? (event.location ?? null) : null,
-    locationHidden: hasLocation && !locationVisible,
-    description: locationVisible
-      ? (event.description ?? null)
-      : (redactLocationFromDescription(event.description) ?? null),
-    source,
-    ...(event.id ? { id: event.id } : {}),
-    ...(event.createdBy ? { createdBy: event.createdBy } : {}),
-    ...(event.participantIds?.length ? { participantIds: event.participantIds } : {}),
-  };
-}
+export { serializeEventForApi } from "./serializeEvent.js";
+export type { MemberGeo, SerializeEventOptions } from "./serializeEvent.js";

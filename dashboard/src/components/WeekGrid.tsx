@@ -222,6 +222,9 @@ export default function WeekGrid({
                 const locationLine = ev.locationHidden
                   ? "Campus · lokaal"
                   : shortLocation(ev.location);
+                const memberLocationLine = ev.memberLocation
+                  ? shortLocation(ev.memberLocation)
+                  : undefined;
                 const descriptionLine = ev.description
                   ? descriptionPreview(ev.description, 80)
                   : undefined;
@@ -265,6 +268,9 @@ export default function WeekGrid({
                         >
                           {locationLine}
                         </span>
+                      )}
+                      {showLocation && memberLocationLine && (
+                        <span className="weekGridEventMeta">{memberLocationLine}</span>
                       )}
                       {showDescription && descriptionLine && (
                         <span className="weekGridEventMeta">{descriptionLine}</span>

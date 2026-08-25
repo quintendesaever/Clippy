@@ -1,6 +1,9 @@
 import type {
   ActivityInput,
   ActivityResponse,
+  AdminRangePreset,
+  AdminStatsResponse,
+  AdminUsersResponse,
   CalendarResponse,
   CalendarsResponse,
   MeResponse,
@@ -32,12 +35,35 @@ export async function getMe(): Promise<MeResponse> {
 }
 
 export async function savePreferences(data: {
-  show_type_prefix: boolean;
-}): Promise<{ show_type_prefix: boolean }> {
-  return fetchApi<{ show_type_prefix: boolean }>("/api/preferences", {
+  show_type_prefix?: boolean;
+  share_location?: boolean;
+}): Promise<{ show_type_prefix: boolean; share_location: boolean }> {
+  return fetchApi<{ show_type_prefix: boolean; share_location: boolean }>("/api/preferences", {
     method: "PATCH",
     body: JSON.stringify(data),
   });
+}
+
+export async function recordPageView(path: string): Promise<void> {
+  try {
+    await fetch("/api/analytics/pageview", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path }),
+    });
+  } catch {
+    // Analytics must never break the dashboard.
+  }
+}
+
+export async function getAdminStats(range: AdminRangePreset): Promise<AdminStatsResponse> {
+  const params = new URLSearchParams({ range });
+  return fetchApi<AdminStatsResponse>(`/api/admin/stats?${params}`);
+}
+
+export async function getAdminUsers(): Promise<AdminUsersResponse> {
+  return fetchApi<AdminUsersResponse>("/api/admin/users");
 }
 
 export async function logout(): Promise<void> {
@@ -61,7 +87,6 @@ export async function saveCalendar(data: {
   initials: string;
   ics_url?: string;
   timezone?: string;
-  show_location?: boolean;
 }): Promise<CalendarResponse> {
   return fetchApi<CalendarResponse>("/api/calendar", {
     method: "PUT",

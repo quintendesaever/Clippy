@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { logout } from "../api";
+import { usePreferences } from "../hooks/usePreferences";
 import type { DiscordUser } from "../types";
 import { UserAvatar } from "./Avatar";
 import clippyLogo from "../assets/logoicon_clippy_01@2x.png";
@@ -8,6 +9,14 @@ function CalendarIcon() {
   return (
     <svg className="sidebarNavIcon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
       <path d="M6 2a1 1 0 0 0-1 1v1H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1V3a1 1 0 1 0-2 0v1H7V3a1 1 0 0 0-1-1Zm11 7H3v7h14V9Z" />
+    </svg>
+  );
+}
+
+function ChartIcon() {
+  return (
+    <svg className="sidebarNavIcon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path d="M3 3a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h14a1 1 0 1 0 0-2H4V4a1 1 0 0 0-1-1Zm4 8a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0v-2a1 1 0 0 1 1-1Zm4-3a1 1 0 0 1 1 1v5a1 1 0 1 1-2 0V9a1 1 0 0 1 1-1Zm4-4a1 1 0 0 1 1 1v9a1 1 0 1 1-2 0V5a1 1 0 0 1 1-1Z" />
     </svg>
   );
 }
@@ -57,6 +66,7 @@ function LogoutIcon() {
 
 export default function Sidebar({ user }: { user: DiscordUser }) {
   const location = useLocation();
+  const { isAdmin } = usePreferences();
   const displayName = user.nickname ?? user.username;
 
   async function handleLogout() {
@@ -94,6 +104,15 @@ export default function Sidebar({ user }: { user: DiscordUser }) {
           <SettingsIcon />
           <span className="sidebarLinkLabel">Instellingen</span>
         </Link>
+        {isAdmin && (
+          <Link
+            to="/admin"
+            className={`sidebarLink ${location.pathname === "/admin" ? "sidebarLinkActive" : ""}`}
+          >
+            <ChartIcon />
+            <span className="sidebarLinkLabel">Beheer</span>
+          </Link>
+        )}
       </nav>
 
       <div className="sidebarFooter">

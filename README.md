@@ -7,6 +7,7 @@ Discord bot with Supabase stats tracking and a web settings dashboard.
 - Live message, reaction, voice, and member-count stats to Supabase
 - Slash commands: `/ping`, `/stats set-timezone`, `/backfill-stats`, `/f1-reminder`
 - Settings dashboard at `https://dashboard.clippybot.be` (calendar management via Discord OAuth)
+- Admin dashboard at `/admin` (Discord Manage Server permission; web analytics and activity stats)
 - Single-server deployment (`GUILD_ID` required)
 - Docker-first: no Node.js install needed on the server
 
@@ -109,6 +110,8 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 | `F1_REMINDER_TEST` | optional | `1` for short F1 reminder poll/timing intervals |
 | `F1_PREDICTION_URL` | optional | Fallback URL for the F1 **Make predictions** button. Prefer `/f1-reminder set-prediction-url` in Discord. If neither is set, the button is omitted. |
 
+Dashboard analytics stores country/region/city from Cloudflare visitor headers (`CF-IPCountry`, `CF-IPCity`, `CF-Region`) and never keeps raw IPs. Enable **Add visitor location headers** on the `dashboard.clippybot.be` zone for city/region; country works by default. No extra API key is required.
+
 ## F1 prediction reminders
 
 `/f1-reminder` sends one active Discord message per Grand Prix:
@@ -143,4 +146,5 @@ These use the real delete→send→persist message lifecycle (so you can verify 
 - `src/stats/` — Live Supabase writers
 - `src/commands/` — Auto-discovered slash commands
 - `src/dashboard/server.ts` — Express OAuth + settings API
-- `dashboard/` — React settings UI
+- `src/dashboard/adminStats.ts` — Admin aggregates (web/user/activity)
+- `dashboard/` — React dashboard UI

@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { getMe } from "./api";
+import { PageviewTracker } from "./hooks/usePageviewAnalytics";
 import { PreferencesProvider } from "./hooks/usePreferences";
 import { ThemeProvider } from "./hooks/useTheme";
 import type { MeResponse } from "./types";
+import Admin from "./pages/Admin";
+import Forbidden from "./pages/Forbidden";
 import Login from "./pages/Login";
 import MyTimetable from "./pages/MyTimetable";
 import Settings from "./pages/Settings";
@@ -11,12 +14,20 @@ import Timetable from "./pages/Timetable";
 
 function AuthedRoutes({ me }: { me: MeResponse }) {
   return (
-    <PreferencesProvider initialShowTypePrefix={me.show_type_prefix ?? true}>
+    <PreferencesProvider
+      initialShowTypePrefix={me.show_type_prefix ?? true}
+      initialShareLocation={me.share_location ?? false}
+      isAdmin={me.is_admin === true}
+    >
       <Routes>
         <Route path="/" element={<Navigate to="/timetable" replace />} />
         <Route path="/timetable" element={<Timetable user={me.user} />} />
         <Route path="/my-timetable" element={<MyTimetable user={me.user} />} />
         <Route path="/settings" element={<Settings user={me.user} />} />
+        <Route
+          path="/admin"
+          element={me.is_admin ? <Admin user={me.user} /> : <Forbidden user={me.user} />}
+        />
         <Route path="*" element={<Navigate to="/timetable" replace />} />
       </Routes>
     </PreferencesProvider>
@@ -53,6 +64,7 @@ function AppRoutes() {
 
   return (
     <BrowserRouter>
+      <PageviewTracker />
       {me ? <AuthedRoutes me={me} /> : <GuestRoutes />}
     </BrowserRouter>
   );

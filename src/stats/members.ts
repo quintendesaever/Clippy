@@ -99,3 +99,79 @@ export async function setShowTypePrefix(
   if (!data) return { error: "Member not found" };
   return { show_type_prefix: Boolean(data.show_type_prefix) };
 }
+
+export async function getShareLocation(guildId: string, userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("members")
+    .select("share_location")
+    .eq("guild_id", guildId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) {
+    console.error("stats: get share_location:", error.message);
+    return false;
+  }
+  return Boolean(data?.share_location);
+}
+
+export async function setShareLocation(
+  guildId: string,
+  userId: string,
+  shareLocation: boolean
+): Promise<{ share_location: boolean } | { error: string }> {
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("members")
+    .update({
+      share_location: shareLocation,
+      updated_at: now,
+    })
+    .eq("guild_id", guildId)
+    .eq("user_id", userId)
+    .select("share_location")
+    .maybeSingle();
+  if (error) return { error: error.message };
+  if (!data) return { error: "Member not found" };
+
+  const { error: calendarError } = await supabase
+    .from("member_calendars")
+    .update({ show_location: shareLocation, updated_at: now })
+    .eq("guild_id", guildId)
+    .eq("user_id", userId);
+  if (calendarError) {
+    console.error("stats: sync calendar show_location:", calendarError.message);
+  }
+
+  return { share_location: Boolean(data.share_location) };
+}
+
+export type MemberGeo = {
+  country: string | null;
+  region: string | null;
+  city: string | null;
+};
+
+export async function getMemberLocationPrivacy(guildId: string): Promise<{
+  shareLocationByUser: Map<string, boolean>;
+  memberGeoByUser: Map<string, MemberGeo>;
+}> {
+  const { data, error } = await supabase
+    .from("members")
+    .select("user_id, share_location, last_country, last_region, last_city")
+    .eq("guild_id", guildId);
+  const shareLocationByUser = new Map<string, boolean>();
+  const memberGeoByUser = new Map<string, MemberGeo>();
+  if (error) {
+    console.error("stats: load member location privacy:", error.message);
+    return { shareLocationByUser, memberGeoByUser };
+  }
+  for (const row of data ?? []) {
+    shareLocationByUser.set(row.user_id, Boolean(row.share_location));
+    memberGeoByUser.set(row.user_id, {
+      country: (row.last_country as string | null) ?? null,
+      region: (row.last_region as string | null) ?? null,
+      city: (row.last_city as string | null) ?? null,
+    });
+  }
+  return { shareLocationByUser, memberGeoByUser };
+}

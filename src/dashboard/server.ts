@@ -10,10 +10,16 @@ import { supabase } from "../supabase.js";
 import { getDashboardUrl, getGuildId } from "../config.js";
 import { ensureGuild, getGuildTimezone } from "../stats/helpers.js";
 import {
+  getMemberLocationPrivacy,
+  getShareLocation,
   getShowTypePrefix,
+  setShareLocation,
   setShowTypePrefix,
   upsertMember,
 } from "../stats/members.js";
+import { recordDashboardPageView } from "./analytics/collect.js";
+import { createRequireAdmin, userIsGuildAdmin } from "./adminAuth.js";
+import { loadAdminStatsPayload, loadAdminUsersPayload, parseAdminRangePreset } from "./adminStats.js";
 import { assertIcsUrlSafe } from "../calendar/icsFetcher.js";
 import {
   ActivityValidationError,
@@ -25,7 +31,7 @@ import {
 } from "../calendar/activities.js";
 import { getGuildCalendarMembers } from "../calendar/memberCalendars.js";
 import { getGuildTimetableForDates } from "../calendar/timetableService.js";
-import { serializeEventForApi } from "../calendar/timetableViews.js";
+import { serializeEventForApi } from "../calendar/serializeEvent.js";
 import { inclusiveDaySpan, MAX_TIMETABLE_RANGE_DAYS } from "../../shared/timetable/dates.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -192,8 +198,20 @@ export function createDashboardApp(): express.Express {
     standardHeaders: true,
     legacyHeaders: false,
   });
+  const analyticsLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 40,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
   app.use("/api/auth", authLimiter);
   app.use("/api/", apiLimiter);
+
+  const requireAdmin = createRequireAdmin({
+    getClient: () => discordClient,
+    getGuildId,
+    getSessionUser: (req) => (req.session as SessionData)?.user,
+  });
 
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true });
@@ -274,11 +292,17 @@ export function createDashboardApp(): express.Express {
 
     await ensureGuild(guildId);
     await upsertMember(guildId, user.id, user.avatar);
-    const showTypePrefix = await getShowTypePrefix(guildId, user.id);
+    const [showTypePrefix, shareLocation, isAdmin] = await Promise.all([
+      getShowTypePrefix(guildId, user.id),
+      getShareLocation(guildId, user.id),
+      userIsGuildAdmin(discordClient, guildId, user.id),
+    ]);
 
     res.json({
       user: { ...user, nickname },
       show_type_prefix: showTypePrefix,
+      share_location: shareLocation,
+      is_admin: isAdmin,
     });
   });
 
@@ -287,19 +311,37 @@ export function createDashboardApp(): express.Express {
     const guildId = getGuildId();
     const userId = session.user!.id;
 
-    if (typeof req.body?.show_type_prefix !== "boolean") {
-      res.status(400).json({ error: "show_type_prefix must be a boolean" });
+    const hasPrefix = typeof req.body?.show_type_prefix === "boolean";
+    const hasShare = typeof req.body?.share_location === "boolean";
+    if (!hasPrefix && !hasShare) {
+      res.status(400).json({ error: "show_type_prefix or share_location is required" });
       return;
     }
 
     await ensureGuild(guildId);
     await upsertMember(guildId, userId, session.user!.avatar);
-    const result = await setShowTypePrefix(guildId, userId, req.body.show_type_prefix);
-    if ("error" in result) {
-      res.status(500).json({ error: result.error });
-      return;
+
+    let showTypePrefix = await getShowTypePrefix(guildId, userId);
+    let shareLocation = await getShareLocation(guildId, userId);
+
+    if (hasPrefix) {
+      const result = await setShowTypePrefix(guildId, userId, req.body.show_type_prefix);
+      if ("error" in result) {
+        res.status(500).json({ error: result.error });
+        return;
+      }
+      showTypePrefix = result.show_type_prefix;
     }
-    res.json({ show_type_prefix: result.show_type_prefix });
+    if (hasShare) {
+      const result = await setShareLocation(guildId, userId, req.body.share_location);
+      if ("error" in result) {
+        res.status(500).json({ error: result.error });
+        return;
+      }
+      shareLocation = result.share_location;
+    }
+
+    res.json({ show_type_prefix: showTypePrefix, share_location: shareLocation });
   });
 
   app.get("/api/calendar", requireSession, async (req: Request, res: Response) => {
@@ -353,10 +395,14 @@ export function createDashboardApp(): express.Express {
       timezone = await getGuildTimezone(guildId);
     }
 
-    const showLocation = Boolean(req.body?.show_location);
-
     await ensureGuild(guildId);
     await upsertMember(guildId, userId, session.user!.avatar);
+
+    let shareLocation = await getShareLocation(guildId, userId);
+    if (typeof req.body?.show_location === "boolean") {
+      const result = await setShareLocation(guildId, userId, req.body.show_location);
+      if ("share_location" in result) shareLocation = result.share_location;
+    }
 
     const payload = {
       guild_id: guildId,
@@ -365,7 +411,7 @@ export function createDashboardApp(): express.Express {
       timezone,
       source_type: "url" as const,
       ics_url: icsUrl,
-      show_location: showLocation,
+      show_location: shareLocation,
       updated_at: new Date().toISOString(),
     };
 
@@ -447,12 +493,15 @@ export function createDashboardApp(): express.Express {
 
     try {
       const timetable = await getGuildTimetableForDates(guildId, from, to);
-      const calendarMembers = await getGuildCalendarMembers(guildId);
-      const showLocationByUser = new Map(
-        calendarMembers.map((member) => [member.user_id, member.show_location] as const)
-      );
+      const { shareLocationByUser, memberGeoByUser } = await getMemberLocationPrivacy(guildId);
+      const viewerIsAdmin = await userIsGuildAdmin(discordClient, guildId, viewerUserId);
       const serialize = (event: Parameters<typeof serializeEventForApi>[0]) =>
-        serializeEventForApi(event, { viewerUserId, showLocationByUser });
+        serializeEventForApi(event, {
+          viewerUserId,
+          viewerIsAdmin,
+          shareLocationByUser,
+          memberGeoByUser,
+        });
 
       const eventsByUser: Record<string, ReturnType<typeof serializeEventForApi>[]> = {};
       for (const [userId, events] of timetable.eventsByUser) {
@@ -513,8 +562,13 @@ export function createDashboardApp(): express.Express {
         avatarHash: session.user!.avatar,
         input: parseActivityBody(req.body),
       });
+      const { shareLocationByUser, memberGeoByUser } = await getMemberLocationPrivacy(guildId);
       res.status(201).json({
-        activity: serializeEventForApi(event, { viewerUserId: userId }),
+        activity: serializeEventForApi(event, {
+          viewerUserId: userId,
+          shareLocationByUser,
+          memberGeoByUser,
+        }),
       });
     } catch (err) {
       if (err instanceof ActivityValidationError) {
@@ -547,8 +601,13 @@ export function createDashboardApp(): express.Express {
         res.status(404).json({ error: "Activity not found" });
         return;
       }
+      const { shareLocationByUser, memberGeoByUser } = await getMemberLocationPrivacy(guildId);
       res.json({
-        activity: serializeEventForApi(event, { viewerUserId: userId }),
+        activity: serializeEventForApi(event, {
+          viewerUserId: userId,
+          shareLocationByUser,
+          memberGeoByUser,
+        }),
       });
     } catch (err) {
       if (err instanceof ActivityValidationError) {
@@ -654,6 +713,53 @@ export function createDashboardApp(): express.Express {
       return;
     }
     res.json({ ok: true });
+  });
+
+  app.post("/api/analytics/pageview", analyticsLimiter, async (req: Request, res: Response) => {
+    const session = req.session as SessionData | undefined;
+    const user = session?.user && session.guildVerified ? session.user : undefined;
+    const result = await recordDashboardPageView(req, res, {
+      user,
+      secure: isProduction,
+    });
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error });
+      return;
+    }
+    res.json({ ok: true, recorded: result.recorded });
+  });
+
+  app.get("/api/admin/stats", requireSession, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const payload = await loadAdminStatsPayload(
+        getGuildId(),
+        parseAdminRangePreset(req.query.range),
+        discordClient
+      );
+      res.json({
+        range: payload.range,
+        timezone: payload.timezone,
+        from: payload.from,
+        to: payload.to,
+        users: payload.users,
+        activities: payload.activities,
+        web: payload.web,
+        members: payload.memberRows,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load admin stats";
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.get("/api/admin/users", requireSession, requireAdmin, async (_req: Request, res: Response) => {
+    try {
+      const payload = await loadAdminUsersPayload(getGuildId(), discordClient);
+      res.json({ users: payload.users, timezone: payload.timezone });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load admin users";
+      res.status(500).json({ error: message });
+    }
   });
 
   const dashboardDist = path.resolve(process.cwd(), "dashboard/dist");

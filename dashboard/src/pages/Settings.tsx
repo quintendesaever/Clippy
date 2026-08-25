@@ -17,14 +17,15 @@ const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
 
 export default function Settings({ user }: { user: DiscordUser }) {
   const { preference, setPreference } = useTheme();
-  const { showTypePrefix, setShowTypePrefix } = usePreferences();
+  const { showTypePrefix, setShowTypePrefix, shareLocation, setShareLocation } = usePreferences();
   const [initials, setInitials] = useState("");
   const [icsUrl, setIcsUrl] = useState("");
-  const [showLocation, setShowLocation] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingPrefix, setSavingPrefix] = useState(false);
+  const [savingShare, setSavingShare] = useState(false);
   const [prefixError, setPrefixError] = useState<string | null>(null);
+  const [shareError, setShareError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [existing, setExisting] = useState<CalendarEntry | null>(null);
@@ -38,7 +39,6 @@ export default function Settings({ user }: { user: DiscordUser }) {
           setExisting(cal.calendar);
           setInitials(cal.calendar.initials);
           setIcsUrl(cal.calendar.ics_url ?? "");
-          setShowLocation(Boolean(cal.calendar.show_location));
         }
       })
       .catch((err) => {
@@ -53,6 +53,18 @@ export default function Settings({ user }: { user: DiscordUser }) {
       cancelled = true;
     };
   }, []);
+
+  async function handleShareLocation(next: boolean) {
+    setSavingShare(true);
+    setShareError(null);
+    try {
+      await setShareLocation(next);
+    } catch (err) {
+      setShareError(err instanceof Error ? err.message : "Opslaan mislukt");
+    } finally {
+      setSavingShare(false);
+    }
+  }
 
   async function handleTypePrefixToggle(checked: boolean) {
     setSavingPrefix(true);
@@ -75,11 +87,9 @@ export default function Settings({ user }: { user: DiscordUser }) {
       const result = await saveCalendar({
         initials,
         ics_url: icsUrl || undefined,
-        show_location: showLocation,
       });
       if (result.calendar) {
         setExisting(result.calendar);
-        setShowLocation(Boolean(result.calendar.show_location));
       }
       setMessage("Kalender opgeslagen.");
     } catch (err) {
@@ -99,7 +109,6 @@ export default function Settings({ user }: { user: DiscordUser }) {
       setExisting(null);
       setInitials("");
       setIcsUrl("");
-      setShowLocation(false);
       setMessage("Kalender verwijderd.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verwijderen mislukt");
@@ -147,6 +156,37 @@ export default function Settings({ user }: { user: DiscordUser }) {
             account, dus het geldt op elk apparaat. Discord blijft type als pill tonen.
           </p>
           {prefixError && <p className="errorMsg">{prefixError}</p>}
+          <h2 className="cardTitle" style={{ marginTop: "1.5rem" }}>
+            Locatie delen
+          </h2>
+          <p className="cardHint">
+            Als dit aan staat, kunnen andere leden je ICS-lokaal en je laatst gedetecteerde
+            dashboardlocatie (stad/regio, geen GPS) zien. Uitgeschakeld blijft persoonlijke locatie
+            verborgen. Activiteitslocaties die je zelf invult blijven zichtbaar.
+          </p>
+          <div className="topBarTabs themePicker" role="radiogroup" aria-label="Locatie delen">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={shareLocation}
+              className={`topBarTab ${shareLocation ? "topBarTabActive" : ""}`}
+              disabled={savingShare}
+              onClick={() => handleShareLocation(true)}
+            >
+              Ingeschakeld
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={!shareLocation}
+              className={`topBarTab ${!shareLocation ? "topBarTabActive" : ""}`}
+              disabled={savingShare}
+              onClick={() => handleShareLocation(false)}
+            >
+              Uitgeschakeld
+            </button>
+          </div>
+          {shareError && <p className="errorMsg">{shareError}</p>}
         </PagePanel>
         {loading ? (
           <p className="timetableLoading">Laden…</p>
@@ -178,19 +218,6 @@ export default function Settings({ user }: { user: DiscordUser }) {
                   onChange={(e) => setIcsUrl(e.target.value)}
                   placeholder="https://…/calendar.ics"
                 />
-              </label>
-              <label className="formToggleRow">
-                <span>Toon locatie aan andere leden</span>
-                <span className="toggleSwitch">
-                  <input
-                    type="checkbox"
-                    checked={showLocation}
-                    onChange={(e) => setShowLocation(e.target.checked)}
-                  />
-                  <span className="toggleTrack" aria-hidden="true">
-                    <span className="toggleThumb" />
-                  </span>
-                </span>
               </label>
               <div className="formActions">
                 <Button type="submit" disabled={saving}>

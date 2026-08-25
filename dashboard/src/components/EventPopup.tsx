@@ -144,6 +144,13 @@ export default function EventPopup({
               </dd>
             </>
           )}
+
+          {event.memberLocation && (
+            <>
+              <dt>Laatst gedetecteerde locatie</dt>
+              <dd>{event.memberLocation}</dd>
+            </>
+          )}
         </dl>
 
         {(showFullTitle || event.description) && (
