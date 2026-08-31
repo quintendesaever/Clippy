@@ -267,4 +267,105 @@ describe("aggregateDiscordStats", () => {
     assert.equal(u1?.voiceSeconds, 1800);
     assert.equal(u1?.lastActivityAt, "2026-08-25T11:30:00.000Z");
   });
+
+  it("counts replies, average words, deletions, and reactions", () => {
+    const stats = aggregate("7d", {
+      messages: [
+        message({
+          user_id: "u1",
+          word_count: 10,
+          reply_to_message_id: "m-parent",
+          reactions: [
+            { emoji_name: "👍", count: 2 },
+            { emoji_name: "🔥", count: 1 },
+          ],
+        }),
+        message({
+          user_id: "u2",
+          word_count: 6,
+          created_at: "2026-08-25T10:01:00.000Z",
+          reactions: [{ emoji_name: "👍", count: 1 }],
+        }),
+      ],
+    });
+    const withDeleted = aggregateDiscordStats({
+      ...{
+        messages: [
+          message({ word_count: 4, reply_to_message_id: "m-parent" }),
+          message({ word_count: 2, created_at: "2026-08-25T10:01:00.000Z" }),
+        ],
+        voiceSessions: [],
+        messagesTotal: 2,
+        voiceSessionsTotal: 0,
+        timezone: TZ,
+        preset: "7d",
+        from: resolveRangeBounds("7d", TZ, NOW).from,
+        to: resolveRangeBounds("7d", TZ, NOW).to,
+        fromDayKey: resolveRangeBounds("7d", TZ, NOW).fromDayKey,
+        toDayKey: resolveRangeBounds("7d", TZ, NOW).toDayKey,
+        memberCount: 32,
+        memberCountRecordedAt: "2026-08-25T08:00:00.000Z",
+        deletedInRange: 5,
+      },
+    });
+    assert.equal(stats.summary.avgWordCount, 8);
+    assert.equal(stats.summary.replyCount, 1);
+    assert.equal(stats.summary.replyRate, 0.5);
+    assert.equal(stats.summary.reactionsInRange, 4);
+    assert.equal(stats.topEmojis[0]?.key, "👍");
+    assert.equal(stats.topEmojis[0]?.count, 3);
+    assert.equal(withDeleted.summary.deletedInRange, 5);
+    assert.equal(withDeleted.summary.messagesInRange, 2);
+  });
+
+  it("aggregates bot events and member-count snapshots", () => {
+    const bounds = resolveRangeBounds("7d", TZ, NOW);
+    const stats = aggregateDiscordStats({
+      messages: [],
+      voiceSessions: [],
+      messagesTotal: 0,
+      voiceSessionsTotal: 0,
+      timezone: TZ,
+      preset: "7d",
+      from: bounds.from,
+      to: bounds.to,
+      fromDayKey: bounds.fromDayKey,
+      toDayKey: bounds.toDayKey,
+      memberCount: 32,
+      memberCountRecordedAt: "2026-08-25T08:00:00.000Z",
+      snapshots: [
+        { recorded_at: "2026-08-20T08:00:00.000Z", member_count: 30 },
+        { recorded_at: "2026-08-25T08:00:00.000Z", member_count: 32 },
+        { recorded_at: "2026-08-01T08:00:00.000Z", member_count: 20 },
+      ],
+      events: [
+        {
+          user_id: "u1",
+          occurred_at: "2026-08-25T10:00:00.000Z",
+          event_type: "command.timetable",
+        },
+        {
+          user_id: "u1",
+          occurred_at: "2026-08-25T10:01:00.000Z",
+          event_type: "command.ping",
+        },
+        {
+          user_id: "u2",
+          occurred_at: "2026-08-25T10:02:00.000Z",
+          event_type: "timetable.day",
+        },
+        {
+          user_id: "u2",
+          occurred_at: "2026-08-25T10:03:00.000Z",
+          event_type: "f1.stats",
+        },
+      ],
+    });
+    assert.equal(stats.botUsage.total, 4);
+    assert.equal(stats.botUsage.timetableDayClicks, 1);
+    assert.equal(stats.botUsage.f1StatsClicks, 1);
+    assert.equal(stats.botUsage.commands.find((row) => row.key === "timetable")?.count, 1);
+    assert.equal(stats.memberCountOverTime.find((row) => row.key === "2026-08-25")?.count, 32);
+    assert.equal(stats.memberCountOverTime.find((row) => row.key === "2026-08-01"), undefined);
+  });
 });

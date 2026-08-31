@@ -6,6 +6,7 @@ import { loadMemberLabels } from "./memberLabels.js";
 import {
   aggregateUserAndActivityStats,
   aggregateWebStats,
+  aggregateCalendarCoverage,
   resolveRangeBounds,
   type ActivityStatRow,
   type AdminRangePreset,
@@ -14,11 +15,16 @@ import {
   type PageViewRow,
   type ParticipantStatRow,
 } from "./adminStatsAggregate.js";
+import {
+  aggregateAnalyticsEvents,
+  type AnalyticsEventRow,
+} from "./analytics/events.js";
 
 export {
   ADMIN_RANGE_PRESETS,
   aggregateUserAndActivityStats,
   aggregateWebStats,
+  aggregateCalendarCoverage,
   parseAdminRangePreset,
   resolveRangeBounds,
 } from "./adminStatsAggregate.js";
@@ -44,7 +50,7 @@ export async function loadAdminStatsPayload(
   let viewsQuery = supabase
     .from("dashboard_page_views")
     .select(
-      "user_id, session_id, occurred_at, path, country, region, city, device_type, browser_family"
+      "user_id, session_id, occurred_at, path, country, region, city, device_type, browser_family, referrer"
     )
     .eq("guild_id", guildId)
     .lte("occurred_at", bounds.to.toISOString())
@@ -53,7 +59,19 @@ export async function loadAdminStatsPayload(
     viewsQuery = viewsQuery.gte("occurred_at", bounds.from.toISOString());
   }
 
-  const [viewsRes, membersRes, activitiesRes, participantsRes, calendarsRes] = await Promise.all([
+  let eventsQuery = supabase
+    .from("analytics_events")
+    .select("user_id, occurred_at, event_type, metadata")
+    .eq("guild_id", guildId)
+    .eq("source", "dashboard")
+    .lte("occurred_at", bounds.to.toISOString())
+    .order("occurred_at", { ascending: false });
+  if (bounds.from) {
+    eventsQuery = eventsQuery.gte("occurred_at", bounds.from.toISOString());
+  }
+
+  const [viewsRes, membersRes, activitiesRes, participantsRes, calendarsRes, eventsRes] =
+    await Promise.all([
     viewsQuery,
     supabase
       .from("members")
@@ -66,7 +84,8 @@ export async function loadAdminStatsPayload(
       .from("timetable_activity_participants")
       .select("activity_id, user_id")
       .eq("guild_id", guildId),
-    supabase.from("member_calendars").select("user_id, initials").eq("guild_id", guildId),
+    supabase.from("member_calendars").select("user_id, initials, ics_url").eq("guild_id", guildId),
+    eventsQuery,
   ]);
 
   if (viewsRes.error) throw new Error(viewsRes.error.message);
@@ -74,11 +93,20 @@ export async function loadAdminStatsPayload(
   if (activitiesRes.error) throw new Error(activitiesRes.error.message);
   if (participantsRes.error) throw new Error(participantsRes.error.message);
   if (calendarsRes.error) throw new Error(calendarsRes.error.message);
+  if (eventsRes.error) throw new Error(eventsRes.error.message);
 
   const views = (viewsRes.data ?? []) as PageViewRow[];
   const members = (membersRes.data ?? []) as MemberStatRow[];
   const activities = (activitiesRes.data ?? []) as ActivityStatRow[];
   const participants = (participantsRes.data ?? []) as ParticipantStatRow[];
+  const calendarRows = (calendarsRes.data ?? []) as {
+    user_id: string;
+    initials: string;
+    ics_url: string | null;
+  }[];
+  const dashboardEvents = (eventsRes.data ?? []) as AnalyticsEventRow[];
+  const calendarCoverage = aggregateCalendarCoverage(members.length, calendarRows);
+  const dashboardActions = aggregateAnalyticsEvents(dashboardEvents, timezone);
 
   const web = aggregateWebStats(views, timezone, now, bounds.from, bounds.to);
   if (bounds.from) {
@@ -112,7 +140,7 @@ export async function loadAdminStatsPayload(
     members.map((m) => m.user_id)
   );
   const initialsByUser = new Map(
-    (calendarsRes.data ?? []).map((row) => [row.user_id as string, row.initials as string])
+    calendarRows.map((row) => [row.user_id, row.initials])
   );
 
   const users: AdminUserRow[] = members.map((member) => {
@@ -160,6 +188,7 @@ export async function loadAdminStatsPayload(
       byCity: web.byCity,
       byDevice: web.byDevice,
       byBrowser: web.byBrowser,
+      referrers: web.referrers,
       recentVisits: web.recentVisits.map((visit) => ({
         ...visit,
         displayName: visit.userId
@@ -167,6 +196,17 @@ export async function loadAdminStatsPayload(
             initialsByUser.get(visit.userId) ??
             visit.userId)
           : null,
+      })),
+    },
+    calendars: calendarCoverage,
+    dashboardActions: {
+      total: dashboardActions.total,
+      byType: dashboardActions.byType,
+      overTime: dashboardActions.overTime,
+      topUsers: dashboardActions.topUsers.map((row) => ({
+        userId: row.userId,
+        displayName: labels.get(row.userId)?.displayName ?? initialsByUser.get(row.userId) ?? row.userId,
+        count: row.count,
       })),
     },
     memberRows: users,

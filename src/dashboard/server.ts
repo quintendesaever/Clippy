@@ -18,6 +18,7 @@ import {
   upsertMember,
 } from "../stats/members.js";
 import { recordDashboardPageView } from "./analytics/collect.js";
+import { recordAnalyticsEvent } from "./analytics/events.js";
 import { createRequireAdmin, userIsGuildAdmin } from "./adminAuth.js";
 import { loadAdminStatsPayload, loadAdminUsersPayload, parseAdminRangePreset } from "./adminStats.js";
 import { loadDiscordStatsPayload } from "./discordStats.js";
@@ -426,6 +427,13 @@ export function createDashboardApp(): express.Express {
       res.status(500).json({ error: error.message });
       return;
     }
+    recordAnalyticsEvent({
+      guildId,
+      userId,
+      source: "dashboard",
+      eventType: "calendar.save",
+      metadata: { hasIcs: Boolean(icsUrl) },
+    });
     res.json({ calendar: data });
   });
 
@@ -563,6 +571,15 @@ export function createDashboardApp(): express.Express {
         avatarHash: session.user!.avatar,
         input: parseActivityBody(req.body),
       });
+      if (event.id) {
+        recordAnalyticsEvent({
+          guildId,
+          userId,
+          source: "dashboard",
+          eventType: "activity.create",
+          metadata: { activityId: event.id },
+        });
+      }
       const { shareLocationByUser, memberGeoByUser } = await getMemberLocationPrivacy(guildId);
       res.status(201).json({
         activity: serializeEventForApi(event, {
@@ -602,6 +619,13 @@ export function createDashboardApp(): express.Express {
         res.status(404).json({ error: "Activity not found" });
         return;
       }
+      recordAnalyticsEvent({
+        guildId,
+        userId,
+        source: "dashboard",
+        eventType: "activity.update",
+        metadata: { activityId },
+      });
       const { shareLocationByUser, memberGeoByUser } = await getMemberLocationPrivacy(guildId);
       res.json({
         activity: serializeEventForApi(event, {
@@ -636,6 +660,13 @@ export function createDashboardApp(): express.Express {
         res.status(404).json({ error: "Activity not found" });
         return;
       }
+      recordAnalyticsEvent({
+        guildId,
+        userId,
+        source: "dashboard",
+        eventType: "activity.delete",
+        metadata: { activityId },
+      });
       res.json({ ok: true });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to delete activity";
@@ -664,6 +695,13 @@ export function createDashboardApp(): express.Express {
         res.status(404).json({ error: "Activity not found" });
         return;
       }
+      recordAnalyticsEvent({
+        guildId,
+        userId,
+        source: "dashboard",
+        eventType: "activity.join",
+        metadata: { activityId },
+      });
       res.json({ ok: true });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to join activity";
@@ -687,6 +725,13 @@ export function createDashboardApp(): express.Express {
         res.status(404).json({ error: "Activity not found" });
         return;
       }
+      recordAnalyticsEvent({
+        guildId,
+        userId,
+        source: "dashboard",
+        eventType: "activity.leave",
+        metadata: { activityId },
+      });
       res.json({ ok: true });
     } catch (err) {
       if (err instanceof ActivityValidationError) {
@@ -713,6 +758,13 @@ export function createDashboardApp(): express.Express {
       res.status(500).json({ error: error.message });
       return;
     }
+    recordAnalyticsEvent({
+      guildId,
+      userId,
+      source: "dashboard",
+      eventType: "calendar.delete",
+      metadata: {},
+    });
     res.json({ ok: true });
   });
 
@@ -745,6 +797,8 @@ export function createDashboardApp(): express.Express {
         users: payload.users,
         activities: payload.activities,
         web: payload.web,
+        calendars: payload.calendars,
+        dashboardActions: payload.dashboardActions,
         members: payload.memberRows,
       });
     } catch (err) {

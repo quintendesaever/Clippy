@@ -35,8 +35,31 @@ const DEVICE_LABELS: Record<string, string> = {
   unknown: "Onbekend",
 };
 
+const ACTION_TYPE_LABELS: Record<string, string> = {
+  "activity.create": "Activiteit aangemaakt",
+  "activity.update": "Activiteit gewijzigd",
+  "activity.delete": "Activiteit verwijderd",
+  "activity.join": "Deelgenomen",
+  "activity.leave": "Verlaten",
+  "calendar.save": "Kalender opgeslagen",
+  "calendar.delete": "Kalender verwijderd",
+};
+
 function pathLabel(path: string): string {
   return PATH_LABELS[path] ?? path;
+}
+
+function actionTypeLabel(type: string): string {
+  return ACTION_TYPE_LABELS[type] ?? type;
+}
+
+function referrerLabel(referrer: string): string {
+  try {
+    const url = new URL(referrer);
+    return url.host + (url.pathname !== "/" ? url.pathname : "");
+  } catch {
+    return referrer;
+  }
 }
 
 function formatDateTime(iso: string | null, timezone: string): string {
@@ -155,6 +178,16 @@ export default function Admin({ user }: { user: DiscordUser }) {
                 label="Locatie delen aan"
                 value={`${stats.users.shareLocationEnabled}/${stats.users.total}`}
               />
+              <StatCard
+                label="Kalender gekoppeld"
+                value={`${stats.calendars?.withIcs ?? 0}/${stats.users.total}`}
+                hint="Leden met een niet-lege kalender-URL. De URL zelf wordt niet getoond."
+              />
+              <StatCard
+                label="Zonder kalender-URL"
+                value={stats.calendars?.withoutIcs ?? 0}
+                hint="Leden zonder gekoppelde ICS."
+              />
             </div>
 
             <div className="adminSplit">
@@ -173,6 +206,33 @@ export default function Admin({ user }: { user: DiscordUser }) {
                 <h2 className="cardTitle">Piekuren</h2>
                 <p className="cardHint">Wanneer het dashboard bezocht wordt.</p>
                 <HourChart hours={stats.web.peakHours} />
+              </PagePanel>
+            </div>
+
+            <div className="adminSplit">
+              <PagePanel>
+                <h2 className="cardTitle">Piekdagen</h2>
+                <p className="cardHint">Weekdagen in de guild-tijdzone ({stats.timezone}).</p>
+                <BarList
+                  items={stats.web.peakDays.map((row) => ({
+                    label: row.day,
+                    value: row.count,
+                  }))}
+                  empty="Nog geen paginaweergaven in deze periode."
+                />
+              </PagePanel>
+              <PagePanel>
+                <h2 className="cardTitle">Verwijzers</h2>
+                <p className="cardHint">
+                  Externe sites die naar het dashboard linken. Interne navigatie telt niet mee.
+                </p>
+                <BarList
+                  items={(stats.web.referrers ?? []).map((row) => ({
+                    label: referrerLabel(row.referrer),
+                    value: row.count,
+                  }))}
+                  empty="Nog geen externe verwijzers in deze periode."
+                />
               </PagePanel>
             </div>
 
@@ -241,18 +301,67 @@ export default function Admin({ user }: { user: DiscordUser }) {
                 items={stats.activities.perDay.map((row) => ({ label: row.day, value: row.count }))}
                 empty="Geen activiteiten in deze periode."
               />
-              {stats.users.mostActive.length > 0 && (
-                <>
+              <div className="adminSplit">
+                <div>
                   <h3 className="adminSubhead">Meest actieve leden</h3>
                   <BarList
                     items={stats.users.mostActive.map((row) => ({
                       label: nameByUser.get(row.userId) ?? row.userId,
                       value: row.activityCount,
                     }))}
-                    empty=""
+                    empty="Nog geen deelnames in deze periode."
                   />
-                </>
-              )}
+                </div>
+                <div>
+                  <h3 className="adminSubhead">Aanmakers</h3>
+                  <BarList
+                    items={stats.activities.byCreator.map((row) => ({
+                      label: nameByUser.get(row.userId) ?? row.userId,
+                      value: row.count,
+                    }))}
+                    empty="Nog geen activiteiten aangemaakt in deze periode."
+                  />
+                </div>
+              </div>
+            </PagePanel>
+
+            <PagePanel>
+              <h2 className="cardTitle">Dashboardacties</h2>
+              <p className="cardHint">
+                Mutaties in het dashboard in deze periode. Geen berichtinhoud, kalender-URL’s of
+                tokens.
+              </p>
+              <div className="adminStatGrid">
+                {stats.dashboardActions.byType.length === 0 ? (
+                  <StatCard label="Acties" value={0} hint="Nog geen dashboardacties in deze periode." />
+                ) : (
+                  stats.dashboardActions.byType.map((row) => (
+                    <StatCard key={row.key} label={actionTypeLabel(row.key)} value={row.count} />
+                  ))
+                )}
+              </div>
+              <div className="adminSplit">
+                <div>
+                  <h3 className="adminSubhead">Acties in de tijd</h3>
+                  <BarList
+                    items={stats.dashboardActions.overTime.map((row) => ({
+                      label: row.day,
+                      value: row.count,
+                    }))}
+                    empty="Nog geen dashboardacties in deze periode."
+                  />
+                </div>
+                <div>
+                  <h3 className="adminSubhead">Meest actieve gebruikers</h3>
+                  <BarList
+                    items={stats.dashboardActions.topUsers.map((row) => ({
+                      label: row.displayName,
+                      value: row.count,
+                    }))}
+                    empty="Nog geen dashboardacties in deze periode."
+                  />
+                </div>
+              </div>
             </PagePanel>
 
             <PagePanel>

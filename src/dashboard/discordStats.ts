@@ -7,6 +7,7 @@ import {
   type DiscordMessageRow,
   type DiscordVoiceRow,
 } from "./discordStatsAggregate.js";
+import { type AnalyticsEventRow } from "./analytics/events.js";
 import { loadMemberLabels } from "./memberLabels.js";
 
 const MESSAGE_PAGE_SIZE = 1000;
@@ -28,7 +29,9 @@ async function fetchPaginatedMessages(
     const end = start + MESSAGE_PAGE_SIZE - 1;
     let query = supabase
       .from("messages")
-      .select("user_id, channel_id, created_at, attachment_count, word_count")
+      .select(
+        "user_id, channel_id, created_at, attachment_count, word_count, char_count, reply_to_message_id, message_reactions(emoji_name, count)"
+      )
       .eq("guild_id", guildId)
       .is("deleted_at", null)
       .lte("created_at", to.toISOString())
@@ -39,7 +42,18 @@ async function fetchPaginatedMessages(
     }
     const { data, error } = await query;
     if (error) throw new Error(error.message);
-    const pageRows = (data ?? []) as DiscordMessageRow[];
+    const pageRows = ((data ?? []) as Array<
+      DiscordMessageRow & { message_reactions?: { emoji_name: string; count: number }[] }
+    >).map((row) => ({
+      user_id: row.user_id,
+      channel_id: row.channel_id,
+      created_at: row.created_at,
+      attachment_count: row.attachment_count,
+      word_count: row.word_count,
+      char_count: row.char_count,
+      reply_to_message_id: row.reply_to_message_id,
+      reactions: row.reactions ?? row.message_reactions ?? [],
+    }));
     rows.push(...pageRows);
     if (pageRows.length < MESSAGE_PAGE_SIZE) break;
   }
@@ -77,18 +91,53 @@ export async function loadDiscordStatsPayload(
     .select("id", { count: "exact", head: true })
     .eq("guild_id", guildId);
 
+  let deletedQuery = supabase
+    .from("messages")
+    .select("id", { count: "exact", head: true })
+    .eq("guild_id", guildId)
+    .not("deleted_at", "is", null)
+    .lte("deleted_at", bounds.to.toISOString());
+  if (bounds.from) {
+    deletedQuery = deletedQuery.gte("deleted_at", bounds.from.toISOString());
+  }
+
+  let eventsQuery = supabase
+    .from("analytics_events")
+    .select("user_id, occurred_at, event_type, metadata")
+    .eq("guild_id", guildId)
+    .eq("source", "discord")
+    .lte("occurred_at", bounds.to.toISOString())
+    .order("occurred_at", { ascending: false });
+  if (bounds.from) {
+    eventsQuery = eventsQuery.gte("occurred_at", bounds.from.toISOString());
+  }
+
+  let snapshotsQuery = supabase
+    .from("member_count_snapshots")
+    .select("recorded_at, member_count")
+    .eq("guild_id", guildId)
+    .lte("recorded_at", bounds.to.toISOString())
+    .order("recorded_at", { ascending: true });
+  if (bounds.from) {
+    snapshotsQuery = snapshotsQuery.gte("recorded_at", bounds.from.toISOString());
+  }
+
   const [
     messages,
     messagesTotalRes,
+    deletedRes,
     voiceRes,
     voiceTotalRes,
     channelsRes,
     membersRes,
     calendarsRes,
     snapshotRes,
+    snapshotsRes,
+    eventsRes,
   ] = await Promise.all([
     fetchPaginatedMessages(guildId, bounds.from, bounds.to),
     messagesTotalQuery,
+    deletedQuery,
     supabase
       .from("voice_sessions")
       .select("user_id, channel_id, joined_at, left_at")
@@ -104,15 +153,20 @@ export async function loadDiscordStatsPayload(
       .order("recorded_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    snapshotsQuery,
+    eventsQuery,
   ]);
 
   if (messagesTotalRes.error) throw new Error(messagesTotalRes.error.message);
+  if (deletedRes.error) throw new Error(deletedRes.error.message);
   if (voiceRes.error) throw new Error(voiceRes.error.message);
   if (voiceTotalRes.error) throw new Error(voiceTotalRes.error.message);
   if (channelsRes.error) throw new Error(channelsRes.error.message);
   if (membersRes.error) throw new Error(membersRes.error.message);
   if (calendarsRes.error) throw new Error(calendarsRes.error.message);
   if (snapshotRes.error) throw new Error(snapshotRes.error.message);
+  if (snapshotsRes.error) throw new Error(snapshotsRes.error.message);
+  if (eventsRes.error) throw new Error(eventsRes.error.message);
 
   const voiceSessions = (voiceRes.data ?? []) as DiscordVoiceRow[];
   const channels = (channelsRes.data ?? []) as ChannelNameRow[];
@@ -141,6 +195,9 @@ export async function loadDiscordStatsPayload(
     toDayKey: bounds.toDayKey,
     memberCount: snapshot?.member_count ?? members.length,
     memberCountRecordedAt: snapshot?.recorded_at ?? null,
+    deletedInRange: deletedRes.count ?? 0,
+    snapshots: (snapshotsRes.data ?? []) as { recorded_at: string; member_count: number }[],
+    events: (eventsRes.data ?? []) as AnalyticsEventRow[],
   });
 
   const userIds = [
@@ -176,6 +233,9 @@ export async function loadDiscordStatsPayload(
     messagesOverTime: aggregated.messagesOverTime,
     voiceMinutesOverTime: aggregated.voiceMinutesOverTime,
     peakHours: aggregated.peakHours,
+    voicePeakHours: aggregated.voicePeakHours,
+    memberCountOverTime: aggregated.memberCountOverTime,
+    topEmojis: aggregated.topEmojis,
     topUsersByMessages: aggregated.topUsersByMessages.map((row) => ({
       userId: row.key,
       displayName: labelUser(row.key),
@@ -196,6 +256,7 @@ export async function loadDiscordStatsPayload(
       name: labelChannel(row.key),
       seconds: row.count,
     })),
+    botUsage: aggregated.botUsage,
     users: labeledUsers,
     recent: aggregated.recent.map((row) => ({
       ...row,

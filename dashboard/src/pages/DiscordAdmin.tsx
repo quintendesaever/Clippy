@@ -41,6 +41,18 @@ function formatDuration(seconds: number | null, open = false): string {
   return `${hours}u ${mins}m`;
 }
 
+function formatPercent(rate: number): string {
+  return `${Math.round(rate * 1000) / 10}%`;
+}
+
+const COMMAND_LABELS: Record<string, string> = {
+  timetable: "/timetable",
+  ping: "/ping",
+  "f1-reminder": "/f1-reminder",
+  stats: "/stats",
+  "backfill-stats": "/backfill-stats",
+};
+
 export default function DiscordAdmin({ user }: { user: DiscordUser }) {
   const [range, setRange] = useState<AdminRangePreset>("7d");
   const [stats, setStats] = useState<DiscordAdminStatsResponse | null>(null);
@@ -126,6 +138,26 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
               <StatCard label="Berichten totaal" value={stats.summary.messagesTotal} />
               <StatCard label="Unieke auteurs" value={stats.summary.uniqueAuthors} />
               <StatCard label="Bijlagen" value={stats.summary.attachmentsInRange} />
+              <StatCard
+                label="Gem. woorden"
+                value={stats.summary.avgWordCount}
+                hint="Gemiddeld aantal woorden per bericht"
+              />
+              <StatCard
+                label="Antwoorden"
+                value={stats.summary.replyCount}
+                hint={`Antwoordpercentage ${formatPercent(stats.summary.replyRate)}`}
+              />
+              <StatCard
+                label="Verwijderd"
+                value={stats.summary.deletedInRange}
+                hint="Berichten die in deze periode zijn verwijderd. Tellen niet mee in het berichttotaal."
+              />
+              <StatCard
+                label="Reacties"
+                value={stats.summary.reactionsInRange}
+                hint="Totaal aantal emoji-reacties op berichten in deze periode"
+              />
               <StatCard label="Spraaksessies" value={stats.summary.voiceSessionsInRange} />
               <StatCard label="Spraaksessies totaal" value={stats.summary.voiceSessionsTotal} />
               <StatCard
@@ -151,6 +183,11 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
                     ? `Laatste snapshot ${formatDateTime(stats.summary.memberCountRecordedAt, timezone)}`
                     : "Op basis van bekende leden"
                 }
+              />
+              <StatCard
+                label="Vastgelopen spraak"
+                value={stats.summary.voiceUnreliableClosed}
+                hint="Afgesloten sessies langer dan 24 uur, vermoedelijk crash-restanten. Niet meegeteld in de spraaktijd."
               />
             </div>
 
@@ -190,6 +227,14 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
                 <HourChart hours={stats.peakHours} />
               </PagePanel>
               <PagePanel>
+                <h2 className="cardTitle">Spraakpiekuren</h2>
+                <p className="cardHint">Wanneer spraaksessies starten.</p>
+                <HourChart hours={stats.voicePeakHours} />
+              </PagePanel>
+            </div>
+
+            <div className="adminSplit">
+              <PagePanel>
                 <h2 className="cardTitle">Meest actieve gebruikers</h2>
                 <BarList
                   items={stats.topUsersByMessages.map((row) => ({
@@ -197,6 +242,17 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
                     value: row.count,
                   }))}
                   empty="Nog geen berichten in deze periode."
+                />
+              </PagePanel>
+              <PagePanel>
+                <h2 className="cardTitle">Meest gebruikte emoji</h2>
+                <p className="cardHint">Reacties op berichten in deze periode.</p>
+                <BarList
+                  items={stats.topEmojis.map((row) => ({
+                    label: row.key,
+                    value: row.count,
+                  }))}
+                  empty="Nog geen reacties in deze periode."
                 />
               </PagePanel>
             </div>
@@ -235,6 +291,54 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
                 }))}
                 empty="Nog geen afgesloten spraaksessies in deze periode."
               />
+            </PagePanel>
+
+            <PagePanel>
+              <h2 className="cardTitle">Ledental in de tijd</h2>
+              <p className="cardHint">
+                Snapshots worden nu bij het opstarten van de bot genomen, dus de reeks is spaarzaam.
+              </p>
+              <BarList
+                items={stats.memberCountOverTime.map((row) => ({
+                  label: row.key,
+                  value: row.count,
+                }))}
+                empty="Nog geen ledental-snapshots in deze periode."
+              />
+            </PagePanel>
+
+            <PagePanel>
+              <h2 className="cardTitle">Botgebruik</h2>
+              <p className="cardHint">
+                Slash commands en knoppen in Discord. Berichtinhoud wordt niet bewaard.
+              </p>
+              <div className="adminStatGrid">
+                <StatCard label="Botacties" value={stats.botUsage.total} />
+                <StatCard label="Roosterdagen" value={stats.botUsage.timetableDayClicks} />
+                <StatCard label="F1-statistieken" value={stats.botUsage.f1StatsClicks} />
+              </div>
+              <div className="adminSplit">
+                <div>
+                  <h3 className="adminSubhead">Commands</h3>
+                  <BarList
+                    items={stats.botUsage.commands.map((row) => ({
+                      label: COMMAND_LABELS[row.key] ?? `/${row.key}`,
+                      value: row.count,
+                    }))}
+                    empty="Nog geen slash commands in deze periode."
+                  />
+                </div>
+                <div>
+                  <h3 className="adminSubhead">Botacties in de tijd</h3>
+                  <BarList
+                    items={stats.botUsage.overTime.map((row) => ({
+                      label: row.key,
+                      value: row.count,
+                    }))}
+                    empty="Nog geen botacties in deze periode."
+                  />
+                </div>
+              </div>
             </PagePanel>
 
             <PagePanel>

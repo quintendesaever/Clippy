@@ -123,7 +123,18 @@ export interface AdminStatsResponse {
     byCity: { city: string; region: string | null; country: string | null; count: number }[];
     byDevice: { deviceType: string; count: number }[];
     byBrowser: { browserFamily: string; count: number }[];
+    referrers: { referrer: string; count: number }[];
     recentVisits: AdminRecentVisit[];
+  };
+  calendars: {
+    withIcs: number;
+    withoutIcs: number;
+  };
+  dashboardActions: {
+    total: number;
+    byType: { key: string; count: number }[];
+    overTime: { day: string; count: number }[];
+    topUsers: { userId: string; displayName: string; count: number }[];
   };
   members: AdminUserRow[];
 }
@@ -181,14 +192,29 @@ export interface DiscordAdminStatsResponse {
     activeUsers: number;
     memberCount: number | null;
     memberCountRecordedAt: string | null;
+    avgWordCount: number;
+    replyCount: number;
+    replyRate: number;
+    deletedInRange: number;
+    reactionsInRange: number;
   };
   messagesOverTime: { key: string; count: number }[];
   voiceMinutesOverTime: { key: string; count: number }[];
   peakHours: { hour: number; count: number }[];
+  voicePeakHours: { hour: number; count: number }[];
+  memberCountOverTime: { key: string; count: number }[];
+  topEmojis: { key: string; count: number }[];
   topUsersByMessages: { userId: string; displayName: string; count: number }[];
   topUsersByVoiceSeconds: { userId: string; displayName: string; seconds: number }[];
   topChannelsByMessages: { channelId: string; name: string; count: number }[];
   topChannelsByVoiceSeconds: { channelId: string; name: string; seconds: number }[];
+  botUsage: {
+    total: number;
+    commands: { key: string; count: number }[];
+    timetableDayClicks: number;
+    f1StatsClicks: number;
+    overTime: { key: string; count: number }[];
+  };
   users: DiscordAdminUserRow[];
   recent: DiscordAdminRecentActivity[];
 }

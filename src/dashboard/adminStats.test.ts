@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   aggregateUserAndActivityStats,
   aggregateWebStats,
+  aggregateCalendarCoverage,
   resolveRangeBounds,
   type MemberStatRow,
   type PageViewRow,
@@ -65,6 +66,23 @@ describe("aggregateWebStats", () => {
     assert.equal(web.mostVisitedPages[0]?.count, 2);
     assert.equal(web.recentVisits.length, 4);
     assert.equal(web.recentVisits[0]?.path, "/");
+    assert.equal(web.peakDays.find((row) => row.day === "Di")?.count, 4);
+    assert.deepEqual(web.referrers, []);
+  });
+
+  it("aggregates top referrers and ignores empty values", () => {
+    const views = [
+      view({ referrer: "https://discord.com/" }),
+      view({ referrer: "https://discord.com/", occurred_at: "2026-08-25T10:01:00.000Z" }),
+      view({ referrer: "https://google.com/", occurred_at: "2026-08-25T10:02:00.000Z" }),
+      view({ referrer: "  ", occurred_at: "2026-08-25T10:03:00.000Z" }),
+      view({ referrer: null, occurred_at: "2026-08-25T10:04:00.000Z" }),
+    ];
+    const web = aggregateWebStats(views, TZ, now, from, now);
+    assert.equal(web.referrers[0]?.referrer, "https://discord.com/");
+    assert.equal(web.referrers[0]?.count, 2);
+    assert.equal(web.referrers[1]?.referrer, "https://google.com/");
+    assert.equal(web.referrers.length, 2);
   });
 
   it("counts first dashboard visit in range as new dashboard users", () => {
@@ -123,5 +141,20 @@ describe("aggregateUserAndActivityStats", () => {
     assert.equal(result.users.mostActive[0]?.userId, "u1");
     assert.equal(result.activityCountByUser.get("u2"), 1);
     assert.equal(result.users.active, 2);
+    assert.equal(result.activities.byCreator[0]?.userId, "u1");
+    assert.equal(result.activities.byCreator[0]?.count, 1);
+  });
+});
+
+describe("aggregateCalendarCoverage", () => {
+  it("counts members with a non-empty ICS URL without exposing the URL", () => {
+    const coverage = aggregateCalendarCoverage(3, [
+      { ics_url: "https://example.invalid/secret.ics" },
+      { ics_url: "  " },
+      { ics_url: null },
+    ]);
+    assert.equal(coverage.withIcs, 1);
+    assert.equal(coverage.withoutIcs, 2);
+    assert.equal("ics_url" in coverage, false);
   });
 });

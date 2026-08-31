@@ -17,6 +17,8 @@ import { startF1ReminderJob } from "./f1/reminderJob.js";
 import { startTimetablePanelJob } from "./calendar/timetablePanelJob.js";
 import { handleTimetableButton } from "./calendar/timetableInteractions.js";
 import { handleF1Button } from "./f1/interactions.js";
+import { F1_STATS_CUSTOM_ID_PREFIX, F1_STATS_PREVIEW_CUSTOM_ID } from "./f1/config.js";
+import { recordDiscordAnalyticsEvent } from "./dashboard/analytics/events.js";
 import { deleteMemberCalendar } from "./calendar/memberCalendars.js";
 
 const token = process.env.DISCORD_TOKEN?.trim();
@@ -83,9 +85,40 @@ client.on("interactionCreate", async (interaction) => {
   if (interaction.isButton()) {
     try {
       const handledTimetable = await handleTimetableButton(interaction);
-      if (handledTimetable) return;
+      if (handledTimetable) {
+        const dayKey = interaction.customId.slice("timetable:day:".length);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dayKey)) {
+          recordDiscordAnalyticsEvent({
+            guildId: interaction.guildId,
+            user: interaction.user,
+            eventType: "timetable.day",
+            metadata: { dayKey },
+          });
+        }
+        return;
+      }
       const handledF1 = await handleF1Button(interaction);
-      if (handledF1) return;
+      if (handledF1) {
+        if (interaction.customId === F1_STATS_PREVIEW_CUSTOM_ID) {
+          recordDiscordAnalyticsEvent({
+            guildId: interaction.guildId,
+            user: interaction.user,
+            eventType: "f1.stats",
+            metadata: { preview: true },
+          });
+        } else if (interaction.customId.startsWith(F1_STATS_CUSTOM_ID_PREFIX)) {
+          const meetingKey = Number(interaction.customId.slice(F1_STATS_CUSTOM_ID_PREFIX.length));
+          if (Number.isFinite(meetingKey)) {
+            recordDiscordAnalyticsEvent({
+              guildId: interaction.guildId,
+              user: interaction.user,
+              eventType: "f1.stats",
+              metadata: { meetingKey },
+            });
+          }
+        }
+        return;
+      }
     } catch (err) {
       console.error("Error handling button:", err);
     }
@@ -111,6 +144,21 @@ client.on("interactionCreate", async (interaction) => {
 
   try {
     await command.execute(interaction);
+    let subcommand: string | null = null;
+    try {
+      subcommand = interaction.options.getSubcommand(false);
+    } catch {
+      subcommand = null;
+    }
+    recordDiscordAnalyticsEvent({
+      guildId: interaction.guildId,
+      user: interaction.user,
+      eventType: `command.${interaction.commandName}`,
+      metadata: {
+        command: interaction.commandName,
+        ...(subcommand ? { subcommand } : {}),
+      },
+    });
   } catch (err) {
     console.error(`Error executing ${interaction.commandName}:`, err);
     const payload = { content: "Something went wrong.", ephemeral: true };

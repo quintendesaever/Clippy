@@ -10,3 +10,5 @@ dashboard/dist/
 ClippyV2.zip
 .cursor/
 tmp/
+# OneDrive sync conflict copies (PC name appended to the filename)
+*LaptopQuinten*

@@ -22,6 +22,7 @@ export type PageViewRow = {
   city: string | null;
   device_type: string | null;
   browser_family: string | null;
+  referrer?: string | null;
 };
 
 export type ActivityStatRow = {
@@ -112,6 +113,7 @@ export function aggregateWebStats(
   const byCity = new Map<string, number>();
   const byDevice = new Map<string, number>();
   const byBrowser = new Map<string, number>();
+  const byReferrer = new Map<string, number>();
   const firstViewByUser = new Map<string, string>();
   let visitsToday = 0;
 
@@ -138,6 +140,7 @@ export function aggregateWebStats(
     if (view.city) increment(byCity, `${view.city}||${view.region ?? ""}||${view.country ?? ""}`);
     if (view.device_type) increment(byDevice, view.device_type);
     if (view.browser_family) increment(byBrowser, view.browser_family);
+    if (view.referrer?.trim()) increment(byReferrer, view.referrer.trim());
 
     if (view.user_id) {
       const prev = firstViewByUser.get(view.user_id);
@@ -199,6 +202,7 @@ export function aggregateWebStats(
     }),
     byDevice: topEntries(byDevice).map(({ key, count }) => ({ deviceType: key, count })),
     byBrowser: topEntries(byBrowser).map(({ key, count }) => ({ browserFamily: key, count })),
+    referrers: topEntries(byReferrer, 10).map(({ key, count }) => ({ referrer: key, count })),
     recentVisits,
   };
 }
@@ -283,6 +287,19 @@ export function aggregateUserAndActivityStats(
     },
     activityCountByUser: joinedCount,
     lastActivityAt,
+  };
+}
+
+export function aggregateCalendarCoverage(
+  memberCount: number,
+  calendars: { ics_url?: string | null }[]
+): { withIcs: number; withoutIcs: number } {
+  const withIcs = calendars.filter(
+    (row) => typeof row.ics_url === "string" && row.ics_url.trim().length > 0
+  ).length;
+  return {
+    withIcs,
+    withoutIcs: Math.max(0, memberCount - withIcs),
   };
 }
 

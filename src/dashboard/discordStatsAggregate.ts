@@ -13,6 +13,9 @@ export type DiscordMessageRow = {
   created_at: string;
   attachment_count: number;
   word_count: number;
+  char_count?: number;
+  reply_to_message_id?: string | null;
+  reactions?: { emoji_name: string; count: number }[];
 };
 
 export type DiscordVoiceRow = {
@@ -23,6 +26,18 @@ export type DiscordVoiceRow = {
 };
 
 export type DiscordCountBucket = { key: string; count: number };
+
+export type DiscordSnapshotRow = {
+  recorded_at: string;
+  member_count: number;
+};
+
+export type DiscordAnalyticsEventRow = {
+  user_id: string | null;
+  occurred_at: string;
+  event_type: string;
+  metadata?: Record<string, unknown> | null;
+};
 
 export type DiscordUserStat = {
   userId: string;
@@ -146,6 +161,9 @@ export function aggregateDiscordStats(options: {
   toDayKey: string;
   memberCount: number | null;
   memberCountRecordedAt: string | null;
+  deletedInRange?: number;
+  snapshots?: DiscordSnapshotRow[];
+  events?: DiscordAnalyticsEventRow[];
 }) {
   const {
     timezone,
@@ -159,6 +177,9 @@ export function aggregateDiscordStats(options: {
     memberCount,
     memberCountRecordedAt,
   } = options;
+  const deletedInRange = options.deletedInRange ?? 0;
+  const snapshots = options.snapshots ?? [];
+  const events = options.events ?? [];
 
   const messages = options.messages.filter((row) => inRange(row.created_at, from, to));
   const voiceSessions = options.voiceSessions.filter((row) => inRange(row.joined_at, from, to));
@@ -168,7 +189,11 @@ export function aggregateDiscordStats(options: {
   const messagesByHour = new Map<string, number>();
   const messagesByUser = new Map<string, number>();
   const messagesByChannel = new Map<string, number>();
+  const emojiCounts = new Map<string, number>();
   let attachmentsInRange = 0;
+  let wordCountTotal = 0;
+  let replyCount = 0;
+  let reactionsInRange = 0;
 
   for (const row of messages) {
     uniqueAuthors.add(row.user_id);
@@ -177,9 +202,18 @@ export function aggregateDiscordStats(options: {
     increment(messagesByUser, row.user_id);
     increment(messagesByChannel, row.channel_id);
     attachmentsInRange += Number(row.attachment_count) || 0;
+    wordCountTotal += Number(row.word_count) || 0;
+    if (row.reply_to_message_id) replyCount += 1;
+    for (const reaction of row.reactions ?? []) {
+      const amount = Number(reaction.count) || 0;
+      if (amount <= 0) continue;
+      reactionsInRange += amount;
+      increment(emojiCounts, reaction.emoji_name || "unknown", amount);
+    }
   }
 
   const voiceByDay = new Map<string, number>();
+  const voiceByHour = new Map<string, number>();
   const voiceSecondsByUser = new Map<string, number>();
   const voiceSessionsByUser = new Map<string, number>();
   const voiceSecondsByChannel = new Map<string, number>();
@@ -190,6 +224,7 @@ export function aggregateDiscordStats(options: {
 
   for (const row of voiceSessions) {
     increment(voiceSessionsByUser, row.user_id);
+    increment(voiceByHour, String(toZonedTime(new Date(row.joined_at), timezone).getHours()));
     if (!row.left_at) {
       voiceOpenInRange += 1;
       continue;
@@ -274,6 +309,36 @@ export function aggregateDiscordStats(options: {
     hour,
     count: messagesByHour.get(String(hour)) ?? 0,
   }));
+  const voicePeakHours = Array.from({ length: 24 }, (_, hour) => ({
+    hour,
+    count: voiceByHour.get(String(hour)) ?? 0,
+  }));
+
+  const snapshotByBucket = new Map<string, number>();
+  for (const row of snapshots) {
+    if (!inRange(row.recorded_at, from, to)) continue;
+    const key = bucketKey(row.recorded_at, timezone, preset);
+    snapshotByBucket.set(key, row.member_count);
+  }
+  const memberCountOverTime = [...snapshotByBucket.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, count]) => ({ key, count }));
+
+  const eventsInRange = events.filter((row) => inRange(row.occurred_at, from, to));
+  const eventsByDay = new Map<string, number>();
+  const commandCounts = new Map<string, number>();
+  let timetableDayClicks = 0;
+  let f1StatsClicks = 0;
+  for (const row of eventsInRange) {
+    increment(eventsByDay, bucketKey(row.occurred_at, timezone, preset));
+    if (row.event_type.startsWith("command.")) {
+      increment(commandCounts, row.event_type.slice("command.".length) || row.event_type);
+    } else if (row.event_type === "timetable.day") {
+      timetableDayClicks += 1;
+    } else if (row.event_type === "f1.stats") {
+      f1StatsClicks += 1;
+    }
+  }
 
   return {
     range: preset,
@@ -295,6 +360,12 @@ export function aggregateDiscordStats(options: {
       activeUsers: users.length,
       memberCount,
       memberCountRecordedAt,
+      avgWordCount:
+        messages.length > 0 ? Math.round((wordCountTotal / messages.length) * 10) / 10 : 0,
+      replyCount,
+      replyRate: messages.length > 0 ? Math.round((replyCount / messages.length) * 1000) / 1000 : 0,
+      deletedInRange,
+      reactionsInRange,
     },
     messagesOverTime: fillSeries(
       messagesByDay,
@@ -307,10 +378,20 @@ export function aggregateDiscordStats(options: {
       (row) => ({ key: row.key, count: Math.round(row.count / 60) })
     ),
     peakHours,
+    voicePeakHours,
+    memberCountOverTime,
+    topEmojis: topEntries(emojiCounts),
     topUsersByMessages: topEntries(messagesByUser),
     topUsersByVoiceSeconds: topEntries(voiceSecondsByUser),
     topChannelsByMessages: topEntries(messagesByChannel),
     topChannelsByVoiceSeconds: topEntries(voiceSecondsByChannel),
+    botUsage: {
+      total: eventsInRange.length,
+      commands: topEntries(commandCounts),
+      timetableDayClicks,
+      f1StatsClicks,
+      overTime: fillSeries(eventsByDay, preset, fromDayKey, toDayKey, [...eventsByDay.keys()]),
+    },
     users,
     recent,
   };
