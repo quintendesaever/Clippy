@@ -53,6 +53,31 @@ const COMMAND_LABELS: Record<string, string> = {
   "backfill-stats": "/backfill-stats",
 };
 
+const ACTION_TYPE_LABELS: Record<string, string> = {
+  "timetable.day": "Roosterdag",
+  "f1.stats": "F1-statistieken",
+};
+
+function botEventTypeLabel(type: string): string {
+  if (type.startsWith("command.")) {
+    const name = type.slice("command.".length);
+    return COMMAND_LABELS[name] ?? `/${name}`;
+  }
+  return ACTION_TYPE_LABELS[type] ?? type;
+}
+
+function formatDayKey(dayKey: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dayKey);
+  if (!match) return dayKey;
+  return `${match[3]}/${match[2]}`;
+}
+
+function botEventDetail(type: string, detail: string | null): string {
+  if (!detail) return "—";
+  if (type === "timetable.day") return formatDayKey(detail);
+  return detail;
+}
+
 export default function DiscordAdmin({ user }: { user: DiscordUser }) {
   const [range, setRange] = useState<AdminRangePreset>("7d");
   const [stats, setStats] = useState<DiscordAdminStatsResponse | null>(null);
@@ -327,6 +352,14 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
                     }))}
                     empty="Nog geen slash commands in deze periode."
                   />
+                  <h3 className="adminSubhead">Knoppen</h3>
+                  <BarList
+                    items={stats.botUsage.actions.map((row) => ({
+                      label: ACTION_TYPE_LABELS[row.key] ?? row.key,
+                      value: row.count,
+                    }))}
+                    empty="Nog geen knopacties in deze periode."
+                  />
                 </div>
                 <div>
                   <h3 className="adminSubhead">Botacties in de tijd</h3>
@@ -339,6 +372,33 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
                   />
                 </div>
               </div>
+              <h3 className="adminSubhead">Recente botacties</h3>
+              {stats.botUsage.recent.length === 0 ? (
+                <p className="cardHint">Nog geen botacties in deze periode.</p>
+              ) : (
+                <div className="adminTableWrap">
+                  <table className="adminTable">
+                    <thead>
+                      <tr>
+                        <th>Gebruiker</th>
+                        <th>Tijdstip</th>
+                        <th>Type</th>
+                        <th>Detail</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stats.botUsage.recent.map((row, index) => (
+                        <tr key={`${row.occurredAt}-${row.userId ?? "anon"}-${row.eventType}-${index}`}>
+                          <td>{row.displayName}</td>
+                          <td>{formatDateTime(row.occurredAt, timezone)}</td>
+                          <td>{botEventTypeLabel(row.eventType)}</td>
+                          <td>{botEventDetail(row.eventType, row.detail)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </PagePanel>
 
             <PagePanel>

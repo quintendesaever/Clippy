@@ -305,15 +305,6 @@ export async function applyTimetablePanelTick(
     return;
   }
 
-  if (
-    !options.startup &&
-    weekChanged &&
-    cache &&
-    now - cache.lastFetchAttemptAt < TIMETABLE_VALIDATE_INTERVAL_MS
-  ) {
-    return;
-  }
-
   await withGuildPanelLock(guildId, async () => {
     if (!weekChanged && dayChanged && cache && !needsValidation) {
       const message = await fetchStoredPanelMessage(client, stored);

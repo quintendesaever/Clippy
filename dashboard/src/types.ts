@@ -135,8 +135,17 @@ export interface AdminStatsResponse {
     byType: { key: string; count: number }[];
     overTime: { day: string; count: number }[];
     topUsers: { userId: string; displayName: string; count: number }[];
+    recent: AdminRecentAction[];
   };
   members: AdminUserRow[];
+}
+
+export interface AdminRecentAction {
+  userId: string | null;
+  displayName: string;
+  occurredAt: string;
+  eventType: string;
+  detail: string | null;
 }
 
 export interface AdminRecentVisit {
@@ -211,9 +220,11 @@ export interface DiscordAdminStatsResponse {
   botUsage: {
     total: number;
     commands: { key: string; count: number }[];
+    actions: { key: string; count: number }[];
     timetableDayClicks: number;
     f1StatsClicks: number;
     overTime: { key: string; count: number }[];
+    recent: AdminRecentAction[];
   };
   users: DiscordAdminUserRow[];
   recent: DiscordAdminRecentActivity[];

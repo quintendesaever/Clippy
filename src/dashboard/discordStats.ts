@@ -206,6 +206,9 @@ export async function loadDiscordStatsPayload(
       ...aggregated.recent.map((row) => row.userId),
       ...aggregated.topUsersByMessages.map((row) => row.key),
       ...aggregated.topUsersByVoiceSeconds.map((row) => row.key),
+      ...aggregated.botUsage.recent
+        .map((row) => row.userId)
+        .filter((id): id is string => Boolean(id)),
     ]),
   ];
   const labels = await loadMemberLabels(client, guildId, userIds);
@@ -256,7 +259,13 @@ export async function loadDiscordStatsPayload(
       name: labelChannel(row.key),
       seconds: row.count,
     })),
-    botUsage: aggregated.botUsage,
+    botUsage: {
+      ...aggregated.botUsage,
+      recent: aggregated.botUsage.recent.map((row) => ({
+        ...row,
+        displayName: row.userId ? labelUser(row.userId) : "Onbekend",
+      })),
+    },
     users: labeledUsers,
     recent: aggregated.recent.map((row) => ({
       ...row,

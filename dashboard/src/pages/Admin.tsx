@@ -362,6 +362,33 @@ export default function Admin({ user }: { user: DiscordUser }) {
                   />
                 </div>
               </div>
+              <h3 className="adminSubhead">Recente dashboardacties</h3>
+              {stats.dashboardActions.recent.length === 0 ? (
+                <p className="cardHint">Nog geen dashboardacties in deze periode.</p>
+              ) : (
+                <div className="adminTableWrap">
+                  <table className="adminTable">
+                    <thead>
+                      <tr>
+                        <th>Gebruiker</th>
+                        <th>Tijdstip</th>
+                        <th>Type</th>
+                        <th>Detail</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stats.dashboardActions.recent.map((row, index) => (
+                        <tr key={`${row.occurredAt}-${row.userId ?? "anon"}-${row.eventType}-${index}`}>
+                          <td>{row.displayName}</td>
+                          <td>{formatDateTime(row.occurredAt, timezone)}</td>
+                          <td>{actionTypeLabel(row.eventType)}</td>
+                          <td>{row.detail ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </PagePanel>
 
             <PagePanel>

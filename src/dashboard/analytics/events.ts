@@ -41,11 +41,20 @@ const METADATA_KEYS_BY_TYPE: Record<AnalyticsEventType, readonly string[]> = {
   "f1.stats": ["preview", "meetingKey"],
 };
 
+export const ANALYTICS_RECENT_LIMIT = 30;
+
 export type AnalyticsEventRow = {
   user_id: string | null;
   occurred_at: string;
   event_type: string;
-  metadata: Record<string, unknown> | null;
+  metadata?: Record<string, unknown> | null;
+};
+
+export type AnalyticsRecentEvent = {
+  userId: string | null;
+  occurredAt: string;
+  eventType: string;
+  detail: string | null;
 };
 
 export type AnalyticsEventInput = {
@@ -94,6 +103,52 @@ function increment(map: Map<string, number>, key: string, amount = 1): void {
   map.set(key, (map.get(key) ?? 0) + amount);
 }
 
+export function formatAnalyticsEventDetail(
+  eventType: string,
+  metadata: Record<string, unknown> | null | undefined
+): string | null {
+  const data = metadata ?? {};
+  if (eventType.startsWith("command.")) {
+    const command =
+      typeof data.command === "string" && data.command.trim()
+        ? data.command.trim()
+        : eventType.slice("command.".length);
+    const subcommand =
+      typeof data.subcommand === "string" && data.subcommand.trim() ? data.subcommand.trim() : null;
+    if (!command) return null;
+    return subcommand ? `/${command} ${subcommand}` : `/${command}`;
+  }
+  if (eventType === "timetable.day") {
+    return typeof data.dayKey === "string" && data.dayKey ? data.dayKey : null;
+  }
+  if (eventType === "f1.stats") {
+    if (data.preview === true) return "Preview";
+    if (typeof data.meetingKey === "number" && Number.isFinite(data.meetingKey)) {
+      return `Meeting ${data.meetingKey}`;
+    }
+    return null;
+  }
+  if (eventType === "calendar.save") {
+    return data.hasIcs === true ? "Met kalender-URL" : "Zonder kalender-URL";
+  }
+  return null;
+}
+
+export function recentAnalyticsEvents(
+  rows: AnalyticsEventRow[],
+  limit = ANALYTICS_RECENT_LIMIT
+): AnalyticsRecentEvent[] {
+  return [...rows]
+    .sort((a, b) => b.occurred_at.localeCompare(a.occurred_at))
+    .slice(0, limit)
+    .map((row) => ({
+      userId: row.user_id,
+      occurredAt: row.occurred_at,
+      eventType: row.event_type,
+      detail: formatAnalyticsEventDetail(row.event_type, row.metadata),
+    }));
+}
+
 export function aggregateAnalyticsEvents(rows: AnalyticsEventRow[], timezone: string) {
   const byType = new Map<string, number>();
   const byUser = new Map<string, number>();
@@ -119,6 +174,7 @@ export function aggregateAnalyticsEvents(rows: AnalyticsEventRow[], timezone: st
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([day, count]) => ({ day, count })),
     topUsers: toBuckets(byUser, 10).map(({ key, count }) => ({ userId: key, count })),
+    recent: recentAnalyticsEvents(rows),
     byDay,
   };
 }

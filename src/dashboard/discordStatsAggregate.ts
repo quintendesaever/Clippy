@@ -1,5 +1,6 @@
 import { toZonedTime } from "date-fns-tz";
 import { addCalendarDays, dayKeyInTimezone } from "../../shared/timetable/dates.js";
+import { recentAnalyticsEvents } from "./analytics/events.js";
 import type { AdminRangePreset } from "./adminStatsAggregate.js";
 
 export const DISCORD_RECENT_LIMIT = 30;
@@ -327,16 +328,17 @@ export function aggregateDiscordStats(options: {
   const eventsInRange = events.filter((row) => inRange(row.occurred_at, from, to));
   const eventsByDay = new Map<string, number>();
   const commandCounts = new Map<string, number>();
+  const actionCounts = new Map<string, number>();
   let timetableDayClicks = 0;
   let f1StatsClicks = 0;
   for (const row of eventsInRange) {
     increment(eventsByDay, bucketKey(row.occurred_at, timezone, preset));
     if (row.event_type.startsWith("command.")) {
       increment(commandCounts, row.event_type.slice("command.".length) || row.event_type);
-    } else if (row.event_type === "timetable.day") {
-      timetableDayClicks += 1;
-    } else if (row.event_type === "f1.stats") {
-      f1StatsClicks += 1;
+    } else {
+      increment(actionCounts, row.event_type);
+      if (row.event_type === "timetable.day") timetableDayClicks += 1;
+      else if (row.event_type === "f1.stats") f1StatsClicks += 1;
     }
   }
 
@@ -388,9 +390,11 @@ export function aggregateDiscordStats(options: {
     botUsage: {
       total: eventsInRange.length,
       commands: topEntries(commandCounts),
+      actions: topEntries(actionCounts),
       timetableDayClicks,
       f1StatsClicks,
       overTime: fillSeries(eventsByDay, preset, fromDayKey, toDayKey, [...eventsByDay.keys()]),
+      recent: recentAnalyticsEvents(eventsInRange),
     },
     users,
     recent,

@@ -213,6 +213,8 @@ describe("aggregateDiscordStats", () => {
     assert.deepEqual(stats.voiceMinutesOverTime, []);
     assert.deepEqual(stats.users, []);
     assert.deepEqual(stats.recent, []);
+    assert.deepEqual(stats.botUsage.recent, []);
+    assert.deepEqual(stats.botUsage.actions, []);
   });
 
   it("limits recent activity to the selected range and keeps the latest 30 for all", () => {
@@ -353,11 +355,13 @@ describe("aggregateDiscordStats", () => {
           user_id: "u2",
           occurred_at: "2026-08-25T10:02:00.000Z",
           event_type: "timetable.day",
+          metadata: { dayKey: "2026-08-25" },
         },
         {
           user_id: "u2",
           occurred_at: "2026-08-25T10:03:00.000Z",
           event_type: "f1.stats",
+          metadata: { meetingKey: 12 },
         },
       ],
     });
@@ -365,6 +369,10 @@ describe("aggregateDiscordStats", () => {
     assert.equal(stats.botUsage.timetableDayClicks, 1);
     assert.equal(stats.botUsage.f1StatsClicks, 1);
     assert.equal(stats.botUsage.commands.find((row) => row.key === "timetable")?.count, 1);
+    assert.equal(stats.botUsage.actions.find((row) => row.key === "timetable.day")?.count, 1);
+    assert.equal(stats.botUsage.recent[0]?.eventType, "f1.stats");
+    assert.equal(stats.botUsage.recent[0]?.detail, "Meeting 12");
+    assert.equal(stats.botUsage.recent[1]?.detail, "2026-08-25");
     assert.equal(stats.memberCountOverTime.find((row) => row.key === "2026-08-25")?.count, 32);
     assert.equal(stats.memberCountOverTime.find((row) => row.key === "2026-08-01"), undefined);
   });

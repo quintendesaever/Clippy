@@ -208,6 +208,12 @@ export async function loadAdminStatsPayload(
         displayName: labels.get(row.userId)?.displayName ?? initialsByUser.get(row.userId) ?? row.userId,
         count: row.count,
       })),
+      recent: dashboardActions.recent.map((row) => ({
+        ...row,
+        displayName: row.userId
+          ? (labels.get(row.userId)?.displayName ?? initialsByUser.get(row.userId) ?? row.userId)
+          : "Onbekend",
+      })),
     },
     memberRows: users,
   };
