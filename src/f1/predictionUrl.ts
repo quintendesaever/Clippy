@@ -65,19 +65,22 @@ function expandIpv6(addr: string): number[] | null {
 }
 
 function isNonPublicIpv4(parts: readonly number[]): boolean {
-  const n = ipv4ToInt(parts);
+  // Force unsigned 32-bit arithmetic. JS bitwise ops use signed int32; comparing
+  // masks with the high bit set (e.g. 0xac100000) fails without >>> 0.
+  const n = ipv4ToInt(parts) >>> 0;
+  const inNet = (mask: number, net: number) => ((n & (mask >>> 0)) >>> 0) === (net >>> 0);
   // 0.0.0.0/8 unspecified
-  if ((n & 0xff000000) === 0x00000000) return true;
+  if (inNet(0xff000000, 0x00000000)) return true;
   // 127.0.0.0/8 loopback
-  if ((n & 0xff000000) === 0x7f000000) return true;
+  if (inNet(0xff000000, 0x7f000000)) return true;
   // 10.0.0.0/8
-  if ((n & 0xff000000) === 0x0a000000) return true;
+  if (inNet(0xff000000, 0x0a000000)) return true;
   // 172.16.0.0/12
-  if ((n & 0xfff00000) === 0xac100000) return true;
+  if (inNet(0xfff00000, 0xac100000)) return true;
   // 192.168.0.0/16
-  if ((n & 0xffff0000) === 0xc0a80000) return true;
+  if (inNet(0xffff0000, 0xc0a80000)) return true;
   // 169.254.0.0/16 link-local (covers 169.254.169.254)
-  if ((n & 0xffff0000) === 0xa9fe0000) return true;
+  if (inNet(0xffff0000, 0xa9fe0000)) return true;
   return false;
 }
 
@@ -128,13 +131,13 @@ function isForbiddenHostname(host: string): boolean {
 }
 
 function isForbiddenHost(hostname: string): boolean {
-  const host = hostname.toLowerCase();
+  // Node may leave brackets on IPv6 hostnames (e.g. "[::ffff:c0a8:1]").
+  const host = stripIpv6ZoneAndBrackets(hostname.toLowerCase());
   if (isForbiddenHostname(host)) return true;
 
   const v4 = parseIpv4(host);
   if (v4) return isNonPublicIpv4(v4);
 
-  // URL.hostname for IPv6 is without brackets
   if (host.includes(":")) {
     const groups = expandIpv6(host);
     if (!groups) return true;

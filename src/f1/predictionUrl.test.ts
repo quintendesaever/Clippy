@@ -38,11 +38,16 @@ describe("resolvePredictionUrl", () => {
     assert.equal(resolvePredictionUrl("https://127.1.2.3/predict", null), null);
   });
 
-  it("rejects private IPv4 addresses", () => {
+  it("rejects private IPv4 addresses including signed-mask edge ranges", () => {
+    // 10/8 (high bit clear — already worked before the signed-int32 fix)
+    assert.equal(resolvePredictionUrl("https://10.0.0.1/predict", null), null);
     assert.equal(resolvePredictionUrl("https://10.0.0.5/predict", null), null);
+    // 172.16/12 — previously broken by signed int32 mask comparison
     assert.equal(resolvePredictionUrl("https://172.16.4.2/predict", null), null);
-    assert.equal(resolvePredictionUrl("https://172.31.255.1/predict", null), null);
+    assert.equal(resolvePredictionUrl("https://172.31.255.255/predict", null), null);
+    // 192.168/16 — previously broken
     assert.equal(resolvePredictionUrl("https://192.168.1.10/predict", null), null);
+    assert.equal(resolvePredictionUrl("https://192.168.255.255/predict", null), null);
   });
 
   it("rejects link-local and metadata IPv4 addresses", () => {
@@ -64,8 +69,11 @@ describe("resolvePredictionUrl", () => {
 
   it("rejects IPv4-mapped private/loopback IPv6 forms", () => {
     assert.equal(resolvePredictionUrl("https://[::ffff:127.0.0.1]/predict", null), null);
-    assert.equal(resolvePredictionUrl("https://[::ffff:10.1.2.3]/predict", null), null);
+    assert.equal(resolvePredictionUrl("https://[::ffff:10.0.0.1]/predict", null), null);
+    assert.equal(resolvePredictionUrl("https://[::ffff:172.16.0.1]/predict", null), null);
     assert.equal(resolvePredictionUrl("https://[::ffff:192.168.0.1]/predict", null), null);
     assert.equal(resolvePredictionUrl("https://[::ffff:169.254.169.254]/predict", null), null);
+    // Parser may normalize dotted-quad mapped form to hex groups
+    assert.equal(resolvePredictionUrl("https://[::ffff:c0a8:1]/predict", null), null);
   });
 });
