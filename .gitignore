@@ -8,7 +8,10 @@ dashboard/dist/
 .DS_Store
 .f1-reminder-test
 ClippyV2.zip
-.cursor/
+# Ignore local Cursor state, but allow the Worker safety rule to be tracked
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/worker-safety.mdc
 tmp/
 # OneDrive sync conflict copies (PC name appended to the filename)
 *LaptopQuinten*
