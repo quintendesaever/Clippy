@@ -18,6 +18,9 @@ describe("resolvePredictionUrl", () => {
     assert.equal(resolvePredictionUrl(null, undefined), null);
     assert.equal(resolvePredictionUrl("https://localhost/predict", null), null);
     assert.equal(resolvePredictionUrl("https://foo.localhost/predict", null), null);
+    // FQDN trailing-dot form must not bypass localhost checks
+    assert.equal(resolvePredictionUrl("http://localhost./", null), null);
+    assert.equal(resolvePredictionUrl("https://localhost./", null), null);
     assert.equal(resolvePredictionUrl("not-a-url", null), null);
     assert.equal(resolvePredictionUrl("ftp://example.com/predict", null), null);
   });
@@ -75,5 +78,20 @@ describe("resolvePredictionUrl", () => {
     assert.equal(resolvePredictionUrl("https://[::ffff:169.254.169.254]/predict", null), null);
     // Parser may normalize dotted-quad mapped form to hex groups
     assert.equal(resolvePredictionUrl("https://[::ffff:c0a8:1]/predict", null), null);
+  });
+
+  it("rejects IPv4-translated private/loopback IPv6 forms", () => {
+    // ::ffff:0:a.b.c.d — Node may normalize to ::ffff:0:XXXX:YYYY
+    assert.equal(resolvePredictionUrl("https://[::ffff:0:192.168.0.1]/predict", null), null);
+    assert.equal(resolvePredictionUrl("https://[::ffff:0:127.0.0.1]/predict", null), null);
+    assert.equal(resolvePredictionUrl("https://[::ffff:0:c0a8:1]/predict", null), null);
+    assert.equal(resolvePredictionUrl("https://[::ffff:0:7f00:1]/predict", null), null);
+  });
+
+  it("allows ordinary public IPv6 destinations", () => {
+    assert.equal(
+      resolvePredictionUrl("https://[2001:4860:4860::8888]/predict", null),
+      "https://[2001:4860:4860::8888]/predict"
+    );
   });
 });

@@ -85,7 +85,7 @@ function isNonPublicIpv4(parts: readonly number[]): boolean {
 }
 
 function mappedIpv4FromGroups(groups: readonly number[]): number[] | null {
-  // ::ffff:a.b.c.d
+  // Classic IPv4-mapped: ::ffff:a.b.c.d  →  [::ffff:XXXX:YYYY]
   if (
     groups[0] === 0 &&
     groups[1] === 0 &&
@@ -93,6 +93,23 @@ function mappedIpv4FromGroups(groups: readonly number[]): number[] | null {
     groups[3] === 0 &&
     groups[4] === 0 &&
     groups[5] === 0xffff
+  ) {
+    return [
+      (groups[6]! >> 8) & 0xff,
+      groups[6]! & 0xff,
+      (groups[7]! >> 8) & 0xff,
+      groups[7]! & 0xff,
+    ];
+  }
+  // IPv4-translated: ::ffff:0:a.b.c.d  →  [::ffff:0:XXXX:YYYY]
+  // (Node may normalize dotted form to hex groups like ::ffff:0:c0a8:1)
+  if (
+    groups[0] === 0 &&
+    groups[1] === 0 &&
+    groups[2] === 0 &&
+    groups[3] === 0 &&
+    groups[4] === 0xffff &&
+    groups[5] === 0
   ) {
     return [
       (groups[6]! >> 8) & 0xff,
@@ -126,7 +143,9 @@ function isNonPublicIpv6(groups: readonly number[]): boolean {
 }
 
 function isForbiddenHostname(host: string): boolean {
-  const h = host.toLowerCase();
+  // Strip a single trailing DNS root label so "localhost." matches "localhost".
+  let h = host.toLowerCase();
+  if (h.endsWith(".")) h = h.slice(0, -1);
   return h === "localhost" || h.endsWith(".localhost");
 }
 
