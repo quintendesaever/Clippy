@@ -25,6 +25,12 @@ describe("resolvePredictionUrl", () => {
     assert.equal(resolvePredictionUrl("ftp://example.com/predict", null), null);
   });
 
+  it("rejects URLs with embedded credentials", () => {
+    assert.equal(resolvePredictionUrl("https://user:secret@example.com/predict", null), null);
+    assert.equal(resolvePredictionUrl("https://user@example.com/predict", null), null);
+    assert.equal(resolvePredictionUrl("http://:secret@example.com/predict", null), null);
+  });
+
   it("allows legitimate public HTTP(S) URLs", () => {
     assert.equal(
       resolvePredictionUrl("https://example.com/predict", null),

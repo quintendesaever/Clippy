@@ -314,7 +314,7 @@ const f1Reminder: Command = {
       const url = resolvePredictionUrl(raw, null);
       if (!url) {
         await interaction.editReply(
-          "Please provide a public http(s) URL (localhost URLs cannot be used for Discord buttons)."
+          "Please provide a public http(s) URL without credentials (localhost and private hosts cannot be used for Discord buttons)."
         );
         return;
       }

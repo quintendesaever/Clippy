@@ -175,6 +175,7 @@ export function resolvePredictionUrl(
   try {
     const url = new URL(raw);
     if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    if (url.username || url.password) return null;
     if (isForbiddenHost(url.hostname)) return null;
     return url.toString();
   } catch {
