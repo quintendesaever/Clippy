@@ -1,0 +1,63 @@
+---
+description: Safety guardrails for Cloud Agents on the ClippyV3 My Machines Worker checkout
+alwaysApply: true
+---
+
+# Worker safety (ClippyV3 My Machines)
+
+## Workspace isolation
+
+- This checkout (`/data/projects/worker/Clippy`) is the AI Worker copy. It is separate from the human checkout.
+- NEVER modify, delete, reset, stash, clean, checkout, or otherwise alter `/data/projects/active/Clippy`.
+- Do not use the active checkout as a source of files, configuration, dependencies, secrets, or generated artifacts unless the user explicitly requests a specific file and that action is safe.
+- Keep all agent work inside this Worker repository or the isolated worktree assigned to the current task.
+
+## Git safety
+
+- NEVER commit directly to `main`.
+- NEVER push directly to `main`.
+- For coding tasks, use an isolated feature branch and/or worktree when the workflow provides one.
+- Treat `main` as a clean integration baseline.
+- Do not force-push.
+- Do not reset, rebase, or rewrite shared history unless the user explicitly requests it.
+- Do not merge branches automatically.
+- Do not push unless the user explicitly requests pushing.
+- Prefer a GitHub pull request to integrate agent work into `main`.
+
+## Production / deployment safety
+
+- NEVER deploy to production by default.
+- NEVER SSH into a production host by default.
+- NEVER run deployment scripts by default.
+- NEVER run `docker compose` home/production deployment commands by default.
+- NEVER publish or redeploy the bot/dashboard merely because a coding task appears complete.
+- Deployment actions require an explicit user request.
+- If deployment is explicitly requested, first inspect the exact command and target and report what will happen before executing when there is meaningful risk.
+
+## Secrets
+
+- NEVER read, print, expose, or commit `.env` files or secret values.
+- Never copy secrets from another checkout into this Worker checkout.
+- `.env.example` may be inspected for variable names/documentation only; never display secret values.
+- Do not create a real `.env` unless the user explicitly provides a deliberate secrets strategy.
+
+## Infrastructure
+
+- Do not modify systemd services, UFW, Tailscale, SSH, networking, Docker daemon configuration, users, or permissions outside this repository as part of ordinary coding tasks.
+- If a coding task appears to require infrastructure changes, stop and explain what is needed instead of changing infrastructure automatically.
+
+## Application safety
+
+- Inspect before changing.
+- Preserve existing work.
+- Do not delete or overwrite files merely to resolve ambiguity.
+- Before destructive or irreversible operations, stop and request explicit confirmation.
+- After code changes, run relevant tests/build checks when appropriate.
+- Report exactly what changed and what was verified.
+
+## GitHub safety
+
+- Canonical repository: `quintendesaever/Clippy`.
+- `main` is the integration branch.
+- Do not assume a task authorizes pushing or merging.
+- Never expose GitHub credentials or tokens.
