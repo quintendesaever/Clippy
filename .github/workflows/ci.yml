@@ -1,0 +1,44 @@
+# Deterministic, zero-secret validation for ClippyV3.
+# Does not deploy, register Discord commands, or access production services.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    # Pin process TZ so the known host-TZ-sensitive F1 formatting assertion
+    # (date-fns "zzz" after toZonedTime) is deterministic on ubuntu-latest (UTC).
+    # This does not fix the underlying portability of formatF1DateTime.
+    env:
+      TZ: Europe/Brussels
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Build dashboard
+        run: npm run build:dashboard
