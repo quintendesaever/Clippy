@@ -12,6 +12,32 @@ export function parseAdminRangePreset(raw: unknown): AdminRangePreset {
   return "7d";
 }
 
+export function parseStatsUserIds(raw: unknown): string[] | null {
+  if (typeof raw !== "string" || !raw.trim()) return null;
+  const ids = [
+    ...new Set(
+      raw
+        .split(",")
+        .map((id) => id.trim())
+        .filter((id) => /^\d{17,20}$/.test(id))
+    ),
+  ];
+  return ids.length > 0 ? ids : null;
+}
+
+export function filterByUserIds<T>(
+  rows: T[],
+  userIds: string[] | null | undefined,
+  getUserId: (row: T) => string | null | undefined
+): T[] {
+  if (!userIds?.length) return rows;
+  const filter = new Set(userIds);
+  return rows.filter((row) => {
+    const id = getUserId(row);
+    return Boolean(id && filter.has(id));
+  });
+}
+
 export type PageViewRow = {
   user_id: string | null;
   session_id: string;

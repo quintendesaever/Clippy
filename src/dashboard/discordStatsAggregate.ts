@@ -1,6 +1,6 @@
 import { toZonedTime } from "date-fns-tz";
 import { addCalendarDays, dayKeyInTimezone } from "../../shared/timetable/dates.js";
-import { recentAnalyticsEvents } from "./analytics/events.js";
+import { formatAnalyticsEventDetail, recentAnalyticsEvents } from "./analytics/events.js";
 import type { AdminRangePreset } from "./adminStatsAggregate.js";
 
 export const DISCORD_RECENT_LIMIT = 30;
@@ -49,12 +49,14 @@ export type DiscordUserStat = {
 };
 
 export type DiscordRecentActivity = {
-  type: "message" | "voice";
+  type: "message" | "voice" | "bot";
   occurredAt: string;
   userId: string;
   channelId: string;
   durationSeconds: number | null;
   open: boolean;
+  eventType?: string | null;
+  detail?: string | null;
 };
 
 function inRange(iso: string, from: Date | null, to: Date): boolean {
@@ -165,6 +167,7 @@ export function aggregateDiscordStats(options: {
   deletedInRange?: number;
   snapshots?: DiscordSnapshotRow[];
   events?: DiscordAnalyticsEventRow[];
+  userIds?: string[] | null;
 }) {
   const {
     timezone,
@@ -180,10 +183,19 @@ export function aggregateDiscordStats(options: {
   } = options;
   const deletedInRange = options.deletedInRange ?? 0;
   const snapshots = options.snapshots ?? [];
-  const events = options.events ?? [];
+  const userFilter = options.userIds?.length ? new Set(options.userIds) : null;
+  const matchesUser = (userId: string | null | undefined) =>
+    !userFilter || Boolean(userId && userFilter.has(userId));
+  const events = (options.events ?? []).filter(
+    (row) => inRange(row.occurred_at, from, to) && matchesUser(row.user_id)
+  );
 
-  const messages = options.messages.filter((row) => inRange(row.created_at, from, to));
-  const voiceSessions = options.voiceSessions.filter((row) => inRange(row.joined_at, from, to));
+  const messages = options.messages.filter(
+    (row) => inRange(row.created_at, from, to) && matchesUser(row.user_id)
+  );
+  const voiceSessions = options.voiceSessions.filter(
+    (row) => inRange(row.joined_at, from, to) && matchesUser(row.user_id)
+  );
 
   const uniqueAuthors = new Set<string>();
   const messagesByDay = new Map<string, number>();
@@ -287,6 +299,7 @@ export function aggregateDiscordStats(options: {
     open: false,
   }));
   const recentVoice: DiscordRecentActivity[] = options.voiceSessions
+    .filter((row) => matchesUser(row.user_id))
     .map((row) => {
       const occurredAt = row.left_at ?? row.joined_at;
       const duration = sessionDurationSeconds(row);
@@ -301,8 +314,20 @@ export function aggregateDiscordStats(options: {
       };
     })
     .filter((row) => inRange(row.occurredAt, from, to));
+  const recentBot: DiscordRecentActivity[] = events
+    .filter((row): row is DiscordAnalyticsEventRow & { user_id: string } => Boolean(row.user_id))
+    .map((row) => ({
+      type: "bot" as const,
+      occurredAt: row.occurred_at,
+      userId: row.user_id,
+      channelId: "",
+      durationSeconds: null,
+      open: false,
+      eventType: row.event_type,
+      detail: formatAnalyticsEventDetail(row.event_type, row.metadata),
+    }));
 
-  const recent = [...recentMessages, ...recentVoice]
+  const recent = [...recentMessages, ...recentVoice, ...recentBot]
     .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt) || a.userId.localeCompare(b.userId))
     .slice(0, DISCORD_RECENT_LIMIT);
 
@@ -325,7 +350,7 @@ export function aggregateDiscordStats(options: {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, count]) => ({ key, count }));
 
-  const eventsInRange = events.filter((row) => inRange(row.occurred_at, from, to));
+  const eventsInRange = events;
   const eventsByDay = new Map<string, number>();
   const commandCounts = new Map<string, number>();
   const actionCounts = new Map<string, number>();

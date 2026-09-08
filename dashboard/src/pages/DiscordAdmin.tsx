@@ -1,12 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { toZonedTime } from "date-fns-tz";
+import { payloadHasUnresolvedNames } from "@shared/memberName";
 import { getDiscordAdminStats } from "../api";
 import { BarList, HourChart, StatCard } from "../components/AdminCharts";
 import AppShell from "../components/AppShell";
+import MemberFilter from "../components/MemberFilter";
 import PageLayout from "../components/PageLayout";
 import PagePanel from "../components/PagePanel";
+import {
+  statsUserFilterKey,
+  toggleMemberId,
+  useDebouncedValue,
+} from "../lib/adminMemberFilter";
 import type {
+  AdminFilterMember,
   AdminRangePreset,
+  DiscordAdminRecentActivity,
   DiscordAdminStatsResponse,
   DiscordAdminUserRow,
   DiscordUser,
@@ -78,23 +87,66 @@ function botEventDetail(type: string, detail: string | null): string {
   return detail;
 }
 
+function recentTypeLabel(row: DiscordAdminRecentActivity): string {
+  if (row.type === "message") return "Bericht";
+  if (row.type === "voice") return "Spraak";
+  return botEventTypeLabel(row.eventType ?? "bot");
+}
+
+function recentChannelOrDetail(row: DiscordAdminRecentActivity): string {
+  if (row.type === "bot") return botEventDetail(row.eventType ?? "", row.detail ?? null);
+  return row.channelName || "—";
+}
+
 export default function DiscordAdmin({ user }: { user: DiscordUser }) {
   const [range, setRange] = useState<AdminRangePreset>("7d");
   const [stats, setStats] = useState<DiscordAdminStatsResponse | null>(null);
+  const [chipMembers, setChipMembers] = useState<AdminFilterMember[]>([]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [timezone, setTimezone] = useState("Europe/Brussels");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<"name" | "messages" | "voice" | "last">("messages");
 
+  const memberIds = chipMembers.map((row) => row.userId);
+  const filterKey = statsUserFilterKey(selected, memberIds);
+  const debouncedFilterKey = useDebouncedValue(filterKey, 250);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    getDiscordAdminStats(range)
+    const userIds = debouncedFilterKey === "all" ? undefined : debouncedFilterKey.split(",");
+    const load = async (retried: boolean): Promise<DiscordAdminStatsResponse> => {
+      const payload = await getDiscordAdminStats(range, userIds);
+      const names = [
+        ...payload.members.map((row) => row.displayName),
+        ...payload.users.map((row) => row.displayName),
+        ...payload.recent.map((row) => row.displayName),
+        ...payload.topUsersByMessages.map((row) => row.displayName),
+        ...payload.topUsersByVoiceSeconds.map((row) => row.displayName),
+      ];
+      const ids = [
+        ...payload.members.map((row) => row.userId),
+        ...payload.users.map((row) => row.userId),
+        ...payload.recent.map((row) => row.userId),
+        ...payload.topUsersByMessages.map((row) => row.userId),
+        ...payload.topUsersByVoiceSeconds.map((row) => row.userId),
+      ];
+      if (!retried && payloadHasUnresolvedNames(names, ids)) {
+        return load(true);
+      }
+      return payload;
+    };
+    load(false)
       .then((payload) => {
         if (cancelled) return;
         setStats(payload);
+        setChipMembers(payload.members);
+        setSelected((prev) =>
+          prev.size === 0 ? new Set(payload.members.map((row) => row.userId)) : prev
+        );
         setTimezone(payload.timezone);
       })
       .catch((err) => {
@@ -106,7 +158,7 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
     return () => {
       cancelled = true;
     };
-  }, [range]);
+  }, [range, debouncedFilterKey]);
 
   const filteredUsers = useMemo(() => {
     const users: DiscordAdminUserRow[] = stats?.users ?? [];
@@ -372,39 +424,13 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
                   />
                 </div>
               </div>
-              <h3 className="adminSubhead">Recente botacties</h3>
-              {stats.botUsage.recent.length === 0 ? (
-                <p className="cardHint">Nog geen botacties in deze periode.</p>
-              ) : (
-                <div className="adminTableWrap">
-                  <table className="adminTable">
-                    <thead>
-                      <tr>
-                        <th>Gebruiker</th>
-                        <th>Tijdstip</th>
-                        <th>Type</th>
-                        <th>Detail</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {stats.botUsage.recent.map((row, index) => (
-                        <tr key={`${row.occurredAt}-${row.userId ?? "anon"}-${row.eventType}-${index}`}>
-                          <td>{row.displayName}</td>
-                          <td>{formatDateTime(row.occurredAt, timezone)}</td>
-                          <td>{botEventTypeLabel(row.eventType)}</td>
-                          <td>{botEventDetail(row.eventType, row.detail)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
             </PagePanel>
 
             <PagePanel>
               <h2 className="cardTitle">Recente Discordactiviteit</h2>
               <p className="cardHint">
-                Metadata van recente berichten en spraaksessies. Berichtinhoud wordt niet getoond.
+                Metadata van recente berichten, spraaksessies en botacties. Berichtinhoud wordt niet
+                getoond.
               </p>
               {stats.recent.length === 0 ? (
                 <p className="cardHint">Nog geen Discordactiviteit in deze periode.</p>
@@ -416,7 +442,7 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
                         <th>Gebruiker</th>
                         <th>Tijdstip</th>
                         <th>Type</th>
-                        <th>Kanaal</th>
+                        <th>Kanaal / detail</th>
                         <th>Duur</th>
                       </tr>
                     </thead>
@@ -425,8 +451,8 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
                         <tr key={`${row.type}-${row.occurredAt}-${row.userId}-${index}`}>
                           <td>{row.displayName}</td>
                           <td>{formatDateTime(row.occurredAt, timezone)}</td>
-                          <td>{row.type === "message" ? "Bericht" : "Spraak"}</td>
-                          <td>{row.channelName}</td>
+                          <td>{recentTypeLabel(row)}</td>
+                          <td>{recentChannelOrDetail(row)}</td>
                           <td>
                             {row.type === "voice"
                               ? formatDuration(row.durationSeconds, row.open)

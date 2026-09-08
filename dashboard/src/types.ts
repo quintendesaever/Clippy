@@ -140,6 +140,13 @@ export interface AdminStatsResponse {
   members: AdminUserRow[];
 }
 
+export interface AdminFilterMember {
+  userId: string;
+  displayName: string;
+  avatarHash: string | null;
+  initials: string | null;
+}
+
 export interface AdminRecentAction {
   userId: string | null;
   displayName: string;
@@ -227,6 +234,7 @@ export interface DiscordAdminStatsResponse {
     recent: AdminRecentAction[];
   };
   users: DiscordAdminUserRow[];
+  members: AdminFilterMember[];
   recent: DiscordAdminRecentActivity[];
 }
 
@@ -242,7 +250,7 @@ export interface DiscordAdminUserRow {
 }
 
 export interface DiscordAdminRecentActivity {
-  type: "message" | "voice";
+  type: "message" | "voice" | "bot";
   occurredAt: string;
   userId: string;
   displayName: string;
@@ -250,4 +258,6 @@ export interface DiscordAdminRecentActivity {
   channelName: string;
   durationSeconds: number | null;
   open: boolean;
+  eventType?: string | null;
+  detail?: string | null;
 }

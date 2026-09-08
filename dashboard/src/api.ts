@@ -58,13 +58,21 @@ export async function recordPageView(path: string): Promise<void> {
   }
 }
 
-export async function getAdminStats(range: AdminRangePreset): Promise<AdminStatsResponse> {
+export async function getAdminStats(
+  range: AdminRangePreset,
+  userIds?: string[]
+): Promise<AdminStatsResponse> {
   const params = new URLSearchParams({ range });
+  if (userIds?.length) params.set("users", userIds.join(","));
   return fetchApi<AdminStatsResponse>(`/api/admin/stats?${params}`);
 }
 
-export async function getDiscordAdminStats(range: AdminRangePreset): Promise<DiscordAdminStatsResponse> {
+export async function getDiscordAdminStats(
+  range: AdminRangePreset,
+  userIds?: string[]
+): Promise<DiscordAdminStatsResponse> {
   const params = new URLSearchParams({ range });
+  if (userIds?.length) params.set("users", userIds.join(","));
   return fetchApi<DiscordAdminStatsResponse>(`/api/admin/discord/stats?${params}`);
 }
 

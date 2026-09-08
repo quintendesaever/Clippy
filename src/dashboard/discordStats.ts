@@ -8,13 +8,18 @@ import {
   type DiscordVoiceRow,
 } from "./discordStatsAggregate.js";
 import { type AnalyticsEventRow } from "./analytics/events.js";
-import { loadMemberLabels } from "./memberLabels.js";
+import { labeledDisplayName, loadMemberLabels } from "./memberLabels.js";
 
 const MESSAGE_PAGE_SIZE = 1000;
 const MESSAGE_PAGE_CAP = 200;
 
 type ChannelNameRow = { channel_id: string; name: string | null };
-type MemberRow = { user_id: string; avatar_hash: string | null };
+type MemberRow = {
+  user_id: string;
+  avatar_hash: string | null;
+  display_name?: string | null;
+  username?: string | null;
+};
 type CalendarRow = { user_id: string; initials: string | null };
 type SnapshotRow = { recorded_at: string; member_count: number };
 
@@ -67,7 +72,7 @@ function resolveName(
 ): { displayName: string; username: string | null } {
   const label = labels.get(userId);
   return {
-    displayName: label?.displayName ?? initialsByUser.get(userId) ?? userId,
+    displayName: labeledDisplayName(userId, labels, initialsByUser.get(userId)),
     username: label?.username ?? null,
   };
 }
@@ -75,7 +80,8 @@ function resolveName(
 export async function loadDiscordStatsPayload(
   guildId: string,
   preset: AdminRangePreset,
-  client: Client | null
+  client: Client | null,
+  userIds?: string[] | null
 ) {
   const timezone = await getGuildTimezone(guildId);
   const now = new Date();
@@ -99,6 +105,12 @@ export async function loadDiscordStatsPayload(
     .lte("deleted_at", bounds.to.toISOString());
   if (bounds.from) {
     deletedQuery = deletedQuery.gte("deleted_at", bounds.from.toISOString());
+  }
+  if (userIds?.length) {
+    messagesTotalQuery = messagesTotalQuery.in("user_id", userIds);
+    voiceTotalQuery = voiceTotalQuery.in("user_id", userIds);
+    deletedQuery = deletedQuery.in("user_id", userIds);
+    eventsQuery = eventsQuery.in("user_id", userIds);
   }
 
   let eventsQuery = supabase
@@ -144,7 +156,7 @@ export async function loadDiscordStatsPayload(
       .eq("guild_id", guildId),
     voiceTotalQuery,
     supabase.from("channels").select("channel_id, name").eq("guild_id", guildId),
-    supabase.from("members").select("user_id, avatar_hash").eq("guild_id", guildId),
+    supabase.from("members").select("user_id, avatar_hash, display_name, username").eq("guild_id", guildId),
     supabase.from("member_calendars").select("user_id, initials").eq("guild_id", guildId),
     supabase
       .from("member_count_snapshots")
@@ -198,10 +210,12 @@ export async function loadDiscordStatsPayload(
     deletedInRange: deletedRes.count ?? 0,
     snapshots: (snapshotsRes.data ?? []) as { recorded_at: string; member_count: number }[],
     events: (eventsRes.data ?? []) as AnalyticsEventRow[],
+    userIds,
   });
 
-  const userIds = [
+  const labelUserIds = [
     ...new Set([
+      ...members.map((row) => row.user_id),
       ...aggregated.users.map((row) => row.userId),
       ...aggregated.recent.map((row) => row.userId),
       ...aggregated.topUsersByMessages.map((row) => row.key),
@@ -211,7 +225,7 @@ export async function loadDiscordStatsPayload(
         .filter((id): id is string => Boolean(id)),
     ]),
   ];
-  const labels = await loadMemberLabels(client, guildId, userIds);
+  const labels = await loadMemberLabels(client, guildId, labelUserIds);
 
   const labeledUsers = aggregated.users.map((row) => {
     const name = resolveName(row.userId, labels, initialsByUser);
@@ -267,10 +281,19 @@ export async function loadDiscordStatsPayload(
       })),
     },
     users: labeledUsers,
+    members: members.map((row) => {
+      const name = resolveName(row.user_id, labels, initialsByUser);
+      return {
+        userId: row.user_id,
+        displayName: name.displayName,
+        avatarHash: row.avatar_hash,
+        initials: initialsByUser.get(row.user_id) ?? null,
+      };
+    }),
     recent: aggregated.recent.map((row) => ({
       ...row,
       displayName: labelUser(row.userId),
-      channelName: labelChannel(row.channelId),
+      channelName: row.type === "bot" ? "" : labelChannel(row.channelId),
     })),
   };
 }

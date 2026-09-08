@@ -188,7 +188,15 @@ export default function Timetable({ user }: { user: DiscordUser }) {
                     </span>
                   )}
                 </span>
-                <MemberFilter calendars={calendars} selected={selected} onToggle={toggleMember} />
+                <MemberFilter
+                  members={calendars.map((c) => ({
+                    userId: c.user_id,
+                    label: c.initials,
+                    avatarHash: c.avatar_hash,
+                  }))}
+                  selected={selected}
+                  onToggle={toggleMember}
+                />
               </div>
 
               {ownCalendarMissing && (

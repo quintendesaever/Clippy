@@ -20,7 +20,7 @@ import {
 import { recordDashboardPageView } from "./analytics/collect.js";
 import { recordAnalyticsEvent } from "./analytics/events.js";
 import { createRequireAdmin, userIsGuildAdmin } from "./adminAuth.js";
-import { loadAdminStatsPayload, loadAdminUsersPayload, parseAdminRangePreset } from "./adminStats.js";
+import { loadAdminStatsPayload, loadAdminUsersPayload, parseAdminRangePreset, parseStatsUserIds } from "./adminStats.js";
 import { loadDiscordStatsPayload } from "./discordStats.js";
 import { assertIcsUrlSafe } from "../calendar/icsFetcher.js";
 import {
@@ -787,7 +787,8 @@ export function createDashboardApp(): express.Express {
       const payload = await loadAdminStatsPayload(
         getGuildId(),
         parseAdminRangePreset(req.query.range),
-        discordClient
+        discordClient,
+        parseStatsUserIds(req.query.users)
       );
       res.json({
         range: payload.range,
@@ -822,7 +823,8 @@ export function createDashboardApp(): express.Express {
       const payload = await loadDiscordStatsPayload(
         getGuildId(),
         parseAdminRangePreset(req.query.range),
-        discordClient
+        discordClient,
+        parseStatsUserIds(req.query.users)
       );
       res.json(payload);
     } catch (err) {
