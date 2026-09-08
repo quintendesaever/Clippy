@@ -106,12 +106,6 @@ export async function loadDiscordStatsPayload(
   if (bounds.from) {
     deletedQuery = deletedQuery.gte("deleted_at", bounds.from.toISOString());
   }
-  if (userIds?.length) {
-    messagesTotalQuery = messagesTotalQuery.in("user_id", userIds);
-    voiceTotalQuery = voiceTotalQuery.in("user_id", userIds);
-    deletedQuery = deletedQuery.in("user_id", userIds);
-    eventsQuery = eventsQuery.in("user_id", userIds);
-  }
 
   let eventsQuery = supabase
     .from("analytics_events")
@@ -122,6 +116,13 @@ export async function loadDiscordStatsPayload(
     .order("occurred_at", { ascending: false });
   if (bounds.from) {
     eventsQuery = eventsQuery.gte("occurred_at", bounds.from.toISOString());
+  }
+
+  if (userIds?.length) {
+    messagesTotalQuery = messagesTotalQuery.in("user_id", userIds);
+    voiceTotalQuery = voiceTotalQuery.in("user_id", userIds);
+    deletedQuery = deletedQuery.in("user_id", userIds);
+    eventsQuery = eventsQuery.in("user_id", userIds);
   }
 
   let snapshotsQuery = supabase
