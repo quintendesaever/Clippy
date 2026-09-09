@@ -1,10 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { toZonedTime } from "date-fns-tz";
+import { payloadHasUnresolvedNames } from "@shared/memberName";
 import { getAdminStats } from "../api";
 import { BarList, HourChart, StatCard } from "../components/AdminCharts";
 import AppShell from "../components/AppShell";
+import MemberFilter from "../components/MemberFilter";
 import PageLayout from "../components/PageLayout";
 import PagePanel from "../components/PagePanel";
+import {
+  statsUserFilterKey,
+  toggleMemberId,
+  useDebouncedValue,
+} from "../lib/adminMemberFilter";
 import type {
   AdminRangePreset,
   AdminStatsResponse,
@@ -76,21 +83,47 @@ export default function Admin({ user }: { user: DiscordUser }) {
   const [range, setRange] = useState<AdminRangePreset>("7d");
   const [stats, setStats] = useState<AdminStatsResponse | null>(null);
   const [users, setUsers] = useState<AdminUserRow[]>([]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [timezone, setTimezone] = useState("Europe/Brussels");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<"name" | "activity" | "visit" | "share">("name");
 
+  const memberIds = users.map((row) => row.userId);
+  const filterKey = statsUserFilterKey(selected, memberIds);
+  const debouncedFilterKey = useDebouncedValue(filterKey, 250);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    getAdminStats(range)
+    const userIds = debouncedFilterKey === "all" ? undefined : debouncedFilterKey.split(",");
+    const load = async (retried: boolean): Promise<AdminStatsResponse> => {
+      const statsPayload = await getAdminStats(range, userIds);
+      const names = [
+        ...statsPayload.members.map((row) => row.displayName),
+        ...statsPayload.web.recentVisits.map((row) => row.displayName),
+        ...statsPayload.dashboardActions.recent.map((row) => row.displayName),
+      ];
+      const ids = [
+        ...statsPayload.members.map((row) => row.userId),
+        ...statsPayload.web.recentVisits.map((row) => row.userId),
+        ...statsPayload.dashboardActions.recent.map((row) => row.userId),
+      ];
+      if (!retried && payloadHasUnresolvedNames(names, ids)) {
+        return load(true);
+      }
+      return statsPayload;
+    };
+    load(false)
       .then((statsPayload) => {
         if (cancelled) return;
         setStats(statsPayload);
         setUsers(statsPayload.members);
+        setSelected((prev) =>
+          prev.size === 0 ? new Set(statsPayload.members.map((row) => row.userId)) : prev
+        );
         setTimezone(statsPayload.timezone);
       })
       .catch((err) => {
@@ -102,17 +135,20 @@ export default function Admin({ user }: { user: DiscordUser }) {
     return () => {
       cancelled = true;
     };
-  }, [range]);
+  }, [range, debouncedFilterKey]);
 
   const filteredUsers = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const chipActive =
+      memberIds.length > 0 && selected.size > 0 && !memberIds.every((id) => selected.has(id));
+    const source = chipActive ? users.filter((row) => selected.has(row.userId)) : [...users];
     const rows = q
-      ? users.filter((row) =>
+      ? source.filter((row) =>
           [row.displayName, row.username, row.initials, row.userId]
             .filter(Boolean)
             .some((value) => value!.toLowerCase().includes(q))
         )
-      : [...users];
+      : source;
     rows.sort((a, b) => {
       if (sortKey === "activity") return b.activityCount - a.activityCount;
       if (sortKey === "visit") {
@@ -124,7 +160,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
       return a.displayName.localeCompare(b.displayName, "nl");
     });
     return rows;
-  }, [users, query, sortKey]);
+  }, [users, query, sortKey, selected, memberIds]);
 
   const nameByUser = useMemo(() => {
     const map = new Map<string, string>();
@@ -154,6 +190,19 @@ export default function Admin({ user }: { user: DiscordUser }) {
           </div>
         }
       >
+        {users.length > 0 && (
+          <div className="adminMemberFilter">
+            <MemberFilter
+              members={users.map((row) => ({
+                userId: row.userId,
+                label: row.initials ?? row.displayName,
+                avatarHash: row.avatarHash,
+              }))}
+              selected={selected}
+              onToggle={(userId) => setSelected((prev) => toggleMemberId(prev, userId))}
+            />
+          </div>
+        )}
         {loading && <p className="timetableLoading">Laden…</p>}
         {error && <p className="errorMsg">{error}</p>}
         {!loading && stats && (

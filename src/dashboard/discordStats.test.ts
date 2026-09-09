@@ -373,7 +373,70 @@ describe("aggregateDiscordStats", () => {
     assert.equal(stats.botUsage.recent[0]?.eventType, "f1.stats");
     assert.equal(stats.botUsage.recent[0]?.detail, "Meeting 12");
     assert.equal(stats.botUsage.recent[1]?.detail, "2026-08-25");
+    assert.equal(stats.recent[0]?.type, "bot");
+    assert.equal(stats.recent[0]?.eventType, "f1.stats");
+    assert.equal(stats.recent[0]?.detail, "Meeting 12");
+    assert.equal(stats.recent[1]?.detail, "2026-08-25");
     assert.equal(stats.memberCountOverTime.find((row) => row.key === "2026-08-25")?.count, 32);
     assert.equal(stats.memberCountOverTime.find((row) => row.key === "2026-08-01"), undefined);
+  });
+
+  it("merges bot events with messages in recent activity", () => {
+    const bounds = resolveRangeBounds("7d", TZ, NOW);
+    const stats = aggregateDiscordStats({
+      messages: [message({ created_at: "2026-08-25T09:00:00.000Z", user_id: "u1" })],
+      voiceSessions: [],
+      messagesTotal: 1,
+      voiceSessionsTotal: 0,
+      timezone: TZ,
+      preset: "7d",
+      from: bounds.from,
+      to: bounds.to,
+      fromDayKey: bounds.fromDayKey,
+      toDayKey: bounds.toDayKey,
+      memberCount: 2,
+      memberCountRecordedAt: null,
+      events: [
+        {
+          user_id: "u2",
+          occurred_at: "2026-08-25T11:00:00.000Z",
+          event_type: "command.ping",
+          metadata: { command: "ping" },
+        },
+      ],
+    });
+    assert.equal(stats.recent.length, 2);
+    assert.equal(stats.recent[0]?.type, "bot");
+    assert.equal(stats.recent[0]?.userId, "u2");
+    assert.equal(stats.recent[1]?.type, "message");
+  });
+
+  it("limits aggregates to selected user ids", () => {
+    const bounds = resolveRangeBounds("7d", TZ, NOW);
+    const stats = aggregateDiscordStats({
+      messages: [
+        message({ user_id: "keep", created_at: "2026-08-25T10:00:00.000Z" }),
+        message({ user_id: "drop", created_at: "2026-08-25T10:01:00.000Z" }),
+      ],
+      voiceSessions: [],
+      messagesTotal: 2,
+      voiceSessionsTotal: 0,
+      timezone: TZ,
+      preset: "7d",
+      from: bounds.from,
+      to: bounds.to,
+      fromDayKey: bounds.fromDayKey,
+      toDayKey: bounds.toDayKey,
+      memberCount: 2,
+      memberCountRecordedAt: null,
+      events: [
+        { user_id: "keep", occurred_at: "2026-08-25T10:02:00.000Z", event_type: "command.ping" },
+        { user_id: "drop", occurred_at: "2026-08-25T10:03:00.000Z", event_type: "command.timetable" },
+      ],
+      userIds: ["keep"],
+    });
+    assert.equal(stats.summary.messagesInRange, 1);
+    assert.equal(stats.botUsage.total, 1);
+    assert.equal(stats.recent.every((row) => row.userId === "keep"), true);
   });
 });

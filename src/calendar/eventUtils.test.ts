@@ -17,6 +17,15 @@ describe("parseActivitySummary", () => {
     assert.deepEqual(parsed.typeBadges, ["H"]);
   });
 
+  it("maps MyTimetable Computer Practical notes to werkcollege", () => {
+    const parsed = parseActivitySummary(
+      "TI3111TU - Algorithms and Data structures",
+      "Type: Computer Practical\nCourse code: TI3111TU"
+    );
+    assert.equal(parsed.title, "Algorithms and Data structures");
+    assert.deepEqual(parsed.typeBadges, ["W"]);
+  });
+
   it("strips every type word, not only the first", () => {
     const parsed = parseActivitySummary("Hoorcollege Algebra hoorcollege");
     assert.equal(parsed.title, "Algebra");

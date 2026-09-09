@@ -1,26 +1,31 @@
-import type { CalendarMember } from "../types";
 import Avatar from "./Avatar";
 
+export type MemberFilterItem = {
+  userId: string;
+  label: string;
+  avatarHash: string | null;
+};
+
 type MemberFilterProps = {
-  calendars: CalendarMember[];
+  members: MemberFilterItem[];
   selected: Set<string>;
   onToggle: (userId: string) => void;
 };
 
-export default function MemberFilter({ calendars, selected, onToggle }: MemberFilterProps) {
-  if (calendars.length === 0) return null;
+export default function MemberFilter({ members, selected, onToggle }: MemberFilterProps) {
+  if (members.length === 0) return null;
 
   return (
     <div className="memberFilter">
-      {calendars.map((c) => (
+      {members.map((member) => (
         <button
-          key={c.user_id}
+          key={member.userId}
           type="button"
-          className={`memberChip ${selected.has(c.user_id) ? "memberChipSelected" : ""}`}
-          onClick={() => onToggle(c.user_id)}
+          className={`memberChip ${selected.has(member.userId) ? "memberChipSelected" : ""}`}
+          onClick={() => onToggle(member.userId)}
         >
-          <Avatar userId={c.user_id} avatarHash={c.avatar_hash} alt={c.initials} />
-          {c.initials}
+          <Avatar userId={member.userId} avatarHash={member.avatarHash} alt={member.label} />
+          {member.label}
         </button>
       ))}
     </div>

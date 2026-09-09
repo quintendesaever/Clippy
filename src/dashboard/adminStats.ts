@@ -2,12 +2,13 @@ import type { Client } from "discord.js";
 import { supabase } from "../supabase.js";
 import { getGuildTimezone } from "../stats/helpers.js";
 import { formatApproximateLocation } from "./analytics/geo.js";
-import { loadMemberLabels } from "./memberLabels.js";
+import { labeledDisplayName, loadMemberLabels } from "./memberLabels.js";
 import {
   aggregateUserAndActivityStats,
   aggregateWebStats,
   aggregateCalendarCoverage,
   resolveRangeBounds,
+  filterByUserIds,
   type ActivityStatRow,
   type AdminRangePreset,
   type AdminUserRow,
@@ -26,6 +27,7 @@ export {
   aggregateWebStats,
   aggregateCalendarCoverage,
   parseAdminRangePreset,
+  parseStatsUserIds,
   resolveRangeBounds,
 } from "./adminStatsAggregate.js";
 export type {
@@ -41,7 +43,8 @@ export type {
 export async function loadAdminStatsPayload(
   guildId: string,
   preset: AdminRangePreset,
-  client: Client | null
+  client: Client | null,
+  userIds?: string[] | null
 ) {
   const timezone = await getGuildTimezone(guildId);
   const now = new Date();
@@ -95,17 +98,25 @@ export async function loadAdminStatsPayload(
   if (calendarsRes.error) throw new Error(calendarsRes.error.message);
   if (eventsRes.error) throw new Error(eventsRes.error.message);
 
-  const views = (viewsRes.data ?? []) as PageViewRow[];
+  const allViews = (viewsRes.data ?? []) as PageViewRow[];
   const members = (membersRes.data ?? []) as MemberStatRow[];
-  const activities = (activitiesRes.data ?? []) as ActivityStatRow[];
-  const participants = (participantsRes.data ?? []) as ParticipantStatRow[];
+  const allActivities = (activitiesRes.data ?? []) as ActivityStatRow[];
+  const allParticipants = (participantsRes.data ?? []) as ParticipantStatRow[];
   const calendarRows = (calendarsRes.data ?? []) as {
     user_id: string;
     initials: string;
     ics_url: string | null;
   }[];
-  const dashboardEvents = (eventsRes.data ?? []) as AnalyticsEventRow[];
-  const calendarCoverage = aggregateCalendarCoverage(members.length, calendarRows);
+  const allDashboardEvents = (eventsRes.data ?? []) as AnalyticsEventRow[];
+  const views = filterByUserIds(allViews, userIds, (row) => row.user_id);
+  const membersForAgg = userIds?.length
+    ? members.filter((member) => userIds.includes(member.user_id))
+    : members;
+  const activities = filterByUserIds(allActivities, userIds, (row) => row.created_by);
+  const participants = filterByUserIds(allParticipants, userIds, (row) => row.user_id);
+  const calendarRowsForCoverage = filterByUserIds(calendarRows, userIds, (row) => row.user_id);
+  const dashboardEvents = filterByUserIds(allDashboardEvents, userIds, (row) => row.user_id);
+  const calendarCoverage = aggregateCalendarCoverage(membersForAgg.length, calendarRowsForCoverage);
   const dashboardActions = aggregateAnalyticsEvents(dashboardEvents, timezone);
 
   const web = aggregateWebStats(views, timezone, now, bounds.from, bounds.to);
@@ -124,7 +135,7 @@ export async function loadAdminStatsPayload(
     web.newDashboardUsers = [...uniqueInRange].filter((id) => !priorUsers.has(id)).length;
   }
   const userActivity = aggregateUserAndActivityStats(
-    members,
+    membersForAgg,
     activities,
     participants,
     views,
@@ -147,7 +158,7 @@ export async function loadAdminStatsPayload(
     const label = labels.get(member.user_id);
     return {
       userId: member.user_id,
-      displayName: label?.displayName ?? initialsByUser.get(member.user_id) ?? member.user_id,
+      displayName: labeledDisplayName(member.user_id, labels, initialsByUser.get(member.user_id)),
       username: label?.username ?? null,
       initials: initialsByUser.get(member.user_id) ?? null,
       avatarHash: member.avatar_hash,
@@ -192,9 +203,7 @@ export async function loadAdminStatsPayload(
       recentVisits: web.recentVisits.map((visit) => ({
         ...visit,
         displayName: visit.userId
-          ? (labels.get(visit.userId)?.displayName ??
-            initialsByUser.get(visit.userId) ??
-            visit.userId)
+          ? labeledDisplayName(visit.userId, labels, initialsByUser.get(visit.userId))
           : null,
       })),
     },
@@ -205,13 +214,13 @@ export async function loadAdminStatsPayload(
       overTime: dashboardActions.overTime,
       topUsers: dashboardActions.topUsers.map((row) => ({
         userId: row.userId,
-        displayName: labels.get(row.userId)?.displayName ?? initialsByUser.get(row.userId) ?? row.userId,
+        displayName: labeledDisplayName(row.userId, labels, initialsByUser.get(row.userId)),
         count: row.count,
       })),
       recent: dashboardActions.recent.map((row) => ({
         ...row,
         displayName: row.userId
-          ? (labels.get(row.userId)?.displayName ?? initialsByUser.get(row.userId) ?? row.userId)
+          ? labeledDisplayName(row.userId, labels, initialsByUser.get(row.userId))
           : "Onbekend",
       })),
     },

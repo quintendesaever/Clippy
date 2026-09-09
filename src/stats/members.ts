@@ -6,13 +6,16 @@ const UPSERT_CHUNK = 80;
 export async function upsertMember(
   guildId: string,
   userId: string,
-  avatarHash?: string | null
+  avatarHash?: string | null,
+  profile?: { displayName?: string | null; username?: string | null }
 ): Promise<void> {
   const row: {
     guild_id: string;
     user_id: string;
     updated_at: string;
     avatar_hash?: string | null;
+    display_name?: string | null;
+    username?: string | null;
   } = {
     guild_id: guildId,
     user_id: userId,
@@ -20,6 +23,12 @@ export async function upsertMember(
   };
   if (avatarHash !== undefined) {
     row.avatar_hash = avatarHash;
+  }
+  if (profile?.displayName !== undefined) {
+    row.display_name = profile.displayName;
+  }
+  if (profile?.username !== undefined) {
+    row.username = profile.username;
   }
 
   const { error } = await supabase.from("members").upsert(row, { onConflict: "guild_id,user_id" });
@@ -47,6 +56,8 @@ export async function syncGuildMembers(guild: Guild): Promise<SyncGuildMembersRe
     guild_id: guild.id,
     user_id: member.id,
     avatar_hash: member.user.avatar,
+    display_name: member.displayName,
+    username: member.user.username,
     updated_at: now,
   }));
 

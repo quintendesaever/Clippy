@@ -749,6 +749,12 @@ select.formSelect {
   opacity: 0.55;
 }
 
+.adminMemberFilter {
+  margin: 0 0 1rem;
+}
+
+/* Avatar */
+
 /* Avatar */
 .avatar {
   border-radius: 50%;
