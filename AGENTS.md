@@ -203,27 +203,65 @@ Rules:
 
 ## Git Workflow
 
+Canonical workflow:
+
+```text
+Implement → checkpoint → push → PR → CI → independent review → merge → main
+```
+
 Intended flow:
 
 ```text
-Issue / specification
-    → feature / fix / WIP branch
+Inspect repository state
+    → feature / fix / chore / WIP branch
     → implementation
-    → build / tests
-    → pull request
-    → review
+    → local project checks
+    → review the diff
+    → commit a meaningful checkpoint
+    → push
+    → pull request when integration is intended
+    → GitHub Actions
+    → independent review where appropriate
     → merge to main
+    → verify main
 ```
 
 Rules:
 
+- `main` is integrated, reviewable, CI-verified project state
 - Do not work directly on `main` by default
-- Use feature, fix, or WIP branches
+- Branch model: `feature/<desc>`, `fix/<desc>`, `chore/<desc>`, `wip/<desc>`
+- Feature/fix/chore are for changes intended to reach `main`; `wip/` is for durable incomplete checkpoints
 - Prefer pull requests for integration into `main`
 - Do not force-push
 - Do not rewrite shared history unless the user explicitly authorizes it
+- Never use `git reset --hard`, `git clean -fd`, or force-push without explicit authorization
 - Keep commits focused; explain the change
+- Never commit secrets, `.env`, or machine-specific credentials
+- Preserve dirty WIP that is not yours; do not assume a dirty tree belongs to this session
 - Production deployment tracks **`main`**
+
+CI: GitHub Actions `.github/workflows/ci.yml`, job `validate` (`npm ci`, `npm test`, `npm run build`, `npm run build:dashboard`). Do not disable failing checks to make CI green.
+
+PRs should include: What changed, Why, Validation, Risk / impact, Known limitations. A template lives at `.github/PULL_REQUEST_TEMPLATE.md`.
+
+### Independent review
+
+Grok (and/or another independent reviewer) is a review layer **after CI**, not a substitute for it. Prefer it for infrastructure, security, networking, backups, migrations, deployment, and other high-impact changes. Trivial documentation changes may use reduced review depth. Humans remain the merge authority. There is no automated Grok merge gate in this repository.
+
+### Worker reporting
+
+When Worker (or an agent) completes a change, report:
+
+- repository
+- branch
+- commit SHA
+- files changed
+- checks run
+- CI status when known
+- remaining issues
+
+Worker must not destroy pre-existing WIP, force-push, bypass CI, silently merge important changes, commit secrets, or assume all dirty files belong to Worker.
 
 Commit message style in this repo is mixed (imperative sentences and conventional prefixes such as `fix:` / `chore:`). Prefer clear, focused subjects; do not invent a rigid format beyond that.
 
