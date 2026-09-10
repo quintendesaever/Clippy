@@ -44,6 +44,18 @@ Discord bot with Supabase stats tracking and a web settings dashboard.
    npm run build:dashboard
    ```
 
+## Development workflow
+
+Published work uses GitHub as the source of truth:
+
+1. Implement on a `feature/`, `fix/`, or `chore/` branch (not directly on `main`).
+2. Run local checks (`npm test`, `npm run build`, and `npm run build:dashboard` when relevant).
+3. Push the branch and open a Pull Request targeting `main`.
+4. Wait for GitHub Actions (`validate`) to pass.
+5. Review; humans remain the merge authority.
+
+Agent-oriented rules and safety constraints live in `AGENTS.md`.
+
 ## Production deploy (home server + Cloudflare Tunnel)
 
 **Server:** SSH to your home host on the LAN (user/host from your own notes — not committed here)  
