@@ -13,6 +13,7 @@ import { isF1ReminderJobRunning } from "../f1/reminderJob.js";
 import { getF1ReminderSettings } from "../f1/reminderStorage.js";
 import { isTimetablePanelJobRunning } from "../calendar/timetablePanelJob.js";
 import { collectAdminStatus, collectStatus, createPingSupabase } from "../health/collectStatus.js";
+import { attachStatusHistory } from "../health/statusHistory.js";
 import { ensureGuild, getGuildTimezone } from "../stats/helpers.js";
 import {
   getMemberLocationPrivacy,
@@ -238,12 +239,13 @@ export function createDashboardApp(): express.Express {
 
   app.get("/api/status", async (req, res) => {
     const report = await collectStatus(getStatusCollectorDeps());
+    const payload = attachStatusHistory(report);
     const ready = req.query.ready === "1" || req.query.ready === "true";
     if (ready && report.status === "unavailable") {
-      res.status(503).json(report);
+      res.status(503).json(payload);
       return;
     }
-    res.json(report);
+    res.json(payload);
   });
 
   app.get("/api/auth/discord", (req: Request, res: Response) => {
@@ -811,7 +813,7 @@ export function createDashboardApp(): express.Express {
 
   app.get("/api/admin/status", requireSession, requireAdmin, async (_req, res) => {
     const report = await collectAdminStatus(getStatusCollectorDeps());
-    res.json(report);
+    res.json(attachStatusHistory(report));
   });
 
   app.get("/api/admin/stats", requireSession, requireAdmin, async (req: Request, res: Response) => {

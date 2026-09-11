@@ -28,3 +28,11 @@ export type AdminStatusReport = StatusReport & {
     };
   };
 };
+
+export type StatusReportWithHistory = StatusReport & {
+  history: StatusReport[];
+};
+
+export type AdminStatusReportWithHistory = AdminStatusReport & {
+  history: StatusReport[];
+};

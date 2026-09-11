@@ -1,4 +1,5 @@
 import type { Client } from "discord.js";
+import { getStatusHistory, type StatusHistoryStore } from "./statusHistory.js";
 import type { AdminStatusReport, ComponentReport, StatusReport } from "./types.js";
 
 export const DEFAULT_STATUS_CHECK_TIMEOUT_MS = 2000;
@@ -18,6 +19,7 @@ export type CollectStatusDeps = {
   now?: () => Date;
   getUptimeSeconds?: () => number;
   timeoutMs?: number;
+  history?: Pick<StatusHistoryStore, "record" | "recent">;
 };
 
 export type CollectAdminStatusDeps = CollectStatusDeps & {
@@ -131,12 +133,14 @@ export async function collectStatus(deps: CollectStatusDeps): Promise<StatusRepo
     timetablePanelJob: reportJob(deps.isTimetablePanelJobRunning()),
   };
 
-  return {
+  const report: StatusReport = {
     status: rollupStatus(components),
     checkedAt: now.toISOString(),
     uptimeSeconds,
     components,
   };
+  (deps.history ?? getStatusHistory()).record(report);
+  return report;
 }
 
 const SAFE_F1_ADMIN = {
