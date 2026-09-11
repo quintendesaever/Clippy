@@ -33,6 +33,7 @@ const PATH_LABELS: Record<string, string> = {
   "/settings": "Instellingen",
   "/admin": "Beheer",
   "/admin/discord": "Discord",
+  "/admin/status": "Status",
 };
 
 const DEVICE_LABELS: Record<string, string> = {

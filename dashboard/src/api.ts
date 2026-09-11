@@ -3,6 +3,7 @@ import type {
   ActivityResponse,
   AdminRangePreset,
   AdminStatsResponse,
+  AdminStatusReport,
   AdminUsersResponse,
   DiscordAdminStatsResponse,
   CalendarResponse,
@@ -78,6 +79,10 @@ export async function getDiscordAdminStats(
 
 export async function getAdminUsers(): Promise<AdminUsersResponse> {
   return fetchApi<AdminUsersResponse>("/api/admin/users");
+}
+
+export async function getAdminStatus(): Promise<AdminStatusReport> {
+  return fetchApi<AdminStatusReport>("/api/admin/status");
 }
 
 export async function logout(): Promise<void> {
