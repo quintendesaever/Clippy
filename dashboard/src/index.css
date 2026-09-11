@@ -1954,3 +1954,225 @@ select.formSelect {
     grid-template-columns: 1fr;
   }
 }
+
+/* Operational status */
+.statusStack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.statusStack > .pagePanel {
+  margin-top: 0;
+}
+
+.statusHero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-left-width: 4px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+}
+
+.statusHero-ok {
+  border-left-color: var(--color-success);
+}
+
+.statusHero-degraded {
+  border-left-color: #f0b232;
+}
+
+.statusHero-unavailable {
+  border-left-color: var(--color-error);
+}
+
+.statusHeroLabel {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.statusHeroValue {
+  margin: 0.25rem 0 0;
+  font-size: 1.75rem;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.statusHeroMeta {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--color-text-muted) 18%, transparent);
+  color: var(--color-text-muted);
+}
+
+.statusBadge-ok {
+  background: color-mix(in srgb, var(--color-success) 18%, transparent);
+  color: var(--color-success);
+}
+
+.statusBadge-degraded {
+  background: color-mix(in srgb, #f0b232 22%, transparent);
+  color: #c49216;
+}
+
+.statusBadge-unavailable {
+  background: color-mix(in srgb, var(--color-error) 18%, transparent);
+  color: var(--color-error);
+}
+
+.statusBadge-disabled,
+.statusBadge-unknown {
+  background: color-mix(in srgb, var(--color-text-muted) 18%, transparent);
+  color: var(--color-text-muted);
+}
+
+[data-theme="light"] .statusBadge-degraded {
+  color: #9a7010;
+}
+
+.statusComponentGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.statusComponentCard {
+  padding: 0.9rem 1rem;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  border-left-width: 3px;
+  border-radius: var(--radius-md);
+}
+
+.statusTone-ok {
+  border-left-color: var(--color-success);
+}
+
+.statusTone-degraded {
+  border-left-color: #f0b232;
+}
+
+.statusTone-unavailable {
+  border-left-color: var(--color-error);
+}
+
+.statusTone-disabled {
+  border-left-color: var(--color-text-muted);
+}
+
+.statusComponentHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.statusComponentTitle {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.statusComponentDetail {
+  margin: 0.45rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.statusComponentLatency {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.statusMetaList {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+}
+
+.statusMetaList > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.875rem;
+}
+
+.statusMetaList dt {
+  color: var(--color-text-muted);
+}
+
+.statusMetaList dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+}
+
+.statusFlagList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.statusFlagRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.statusHistory {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.statusHistoryItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.statusHistoryItem:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.statusHistoryBody {
+  min-width: 0;
+}
+
+.statusHistoryTime {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
