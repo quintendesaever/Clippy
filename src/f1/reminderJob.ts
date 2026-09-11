@@ -171,3 +171,7 @@ export function startF1ReminderJob(client: Client): void {
     void applyF1ReminderTick(client).catch((err) => console.error("f1 reminder: tick failed", err));
   }, timing.jobIntervalMs);
 }
+
+export function isF1ReminderJobRunning(): boolean {
+  return intervalHandle != null;
+}

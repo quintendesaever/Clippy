@@ -8,6 +8,11 @@ import helmet from "helmet";
 import type { Client } from "discord.js";
 import { supabase } from "../supabase.js";
 import { getDashboardUrl, getGuildId } from "../config.js";
+import { isF1TestMode } from "../f1/config.js";
+import { isF1ReminderJobRunning } from "../f1/reminderJob.js";
+import { getF1ReminderSettings } from "../f1/reminderStorage.js";
+import { isTimetablePanelJobRunning } from "../calendar/timetablePanelJob.js";
+import { collectAdminStatus, collectStatus, createPingSupabase } from "../health/collectStatus.js";
 import { ensureGuild, getGuildTimezone } from "../stats/helpers.js";
 import {
   getMemberLocationPrivacy,
@@ -68,6 +73,18 @@ interface SessionData {
 }
 
 let discordClient: Client | null = null;
+
+function getStatusCollectorDeps() {
+  return {
+    getClient: () => discordClient,
+    getGuildId,
+    pingSupabase: createPingSupabase(supabase),
+    isF1ReminderJobRunning,
+    isTimetablePanelJobRunning,
+    getF1ReminderSettings,
+    isF1TestMode,
+  };
+}
 
 async function discordUserApi<T>(accessToken: string, apiPath: string): Promise<T> {
   const res = await fetch(`${DISCORD_API}${apiPath}`, {
@@ -217,6 +234,16 @@ export function createDashboardApp(): express.Express {
 
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true });
+  });
+
+  app.get("/api/status", async (req, res) => {
+    const report = await collectStatus(getStatusCollectorDeps());
+    const ready = req.query.ready === "1" || req.query.ready === "true";
+    if (ready && report.status === "unavailable") {
+      res.status(503).json(report);
+      return;
+    }
+    res.json(report);
   });
 
   app.get("/api/auth/discord", (req: Request, res: Response) => {
@@ -780,6 +807,11 @@ export function createDashboardApp(): express.Express {
       return;
     }
     res.json({ ok: true, recorded: result.recorded });
+  });
+
+  app.get("/api/admin/status", requireSession, requireAdmin, async (_req, res) => {
+    const report = await collectAdminStatus(getStatusCollectorDeps());
+    res.json(report);
   });
 
   app.get("/api/admin/stats", requireSession, requireAdmin, async (req: Request, res: Response) => {

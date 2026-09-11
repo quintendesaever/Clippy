@@ -19,3 +19,7 @@ export function startTimetablePanelJob(client: Client): void {
     );
   }, TIMETABLE_PANEL_TICK_MS);
 }
+
+export function isTimetablePanelJobRunning(): boolean {
+  return intervalHandle != null;
+}
