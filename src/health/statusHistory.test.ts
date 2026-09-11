@@ -20,6 +20,7 @@ function report(checkedAt: string, status: StatusReport["status"] = "ok"): Statu
       f1ReminderJob: { status: "ok" },
       timetablePanelJob: { status: "ok" },
     },
+    summary: { ok: 5, degraded: 0, unavailable: 0, disabled: 0 },
   };
 }
 
@@ -88,9 +89,21 @@ describe("StatusHistory", () => {
     store.record({
       ...report("A"),
       admin: { f1: { enabled: true, channelConfigured: true, roleConfigured: true, testMode: true } },
-    } as StatusReport & { admin: unknown });
+      runtime: { nodeEnv: "test", processStartedAt: "A", historyCapacity: 2 },
+    } as StatusReport & { admin: unknown; runtime: unknown });
     const [entry] = store.recent();
     assert.equal("admin" in (entry as object), false);
+    assert.equal("runtime" in (entry as object), false);
+    assert.deepEqual(entry?.summary, { ok: 5, degraded: 0, unavailable: 0, disabled: 0 });
+  });
+
+  it("clones summary so later mutation cannot corrupt history", () => {
+    const store = new StatusHistory(2);
+    const original = report("A");
+    store.record(original);
+    original.summary.ok = 0;
+    original.summary.unavailable = 5;
+    assert.deepEqual(store.recent()[0]?.summary, { ok: 5, degraded: 0, unavailable: 0, disabled: 0 });
   });
 });
 

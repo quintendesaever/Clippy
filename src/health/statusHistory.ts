@@ -8,6 +8,7 @@ import type {
 export const DEFAULT_STATUS_HISTORY_LIMIT = 20;
 
 export type StatusHistoryStore = {
+  readonly capacity?: number;
   record(report: StatusReport): void;
   recent(): StatusReport[];
   prior(): StatusReport[];
@@ -27,6 +28,7 @@ function cloneStatusReport(report: StatusReport): StatusReport {
     checkedAt: report.checkedAt,
     uptimeSeconds: report.uptimeSeconds,
     components: report.components,
+    summary: report.summary,
   });
 }
 

@@ -129,6 +129,10 @@ describe("GET /api/status", () => {
       "timetablePanelJob",
     ]);
     assert.equal("admin" in body, false);
+    assert.equal("runtime" in body, false);
+    assert.deepEqual(body.summary, { ok: 5, degraded: 0, unavailable: 0, disabled: 0 });
+    assert.equal(Number.isInteger(body.components.supabase.latencyMs), true);
+    assert.ok((body.components.supabase.latencyMs ?? -1) >= 0);
     assert.deepEqual(body.history, []);
     assert.doesNotMatch(JSON.stringify(body), /should-not-leak|guild-1/);
   });
@@ -157,6 +161,14 @@ describe("GET /api/status", () => {
       third.body.history.map((entry) => entry.checkedAt),
       ["2026-09-11T12:01:00.000Z", "2026-09-11T12:00:00.000Z"]
     );
+    assert.deepEqual(third.body.history[0]?.summary, {
+      ok: 5,
+      degraded: 0,
+      unavailable: 0,
+      disabled: 0,
+    });
+    assert.equal("admin" in third.body.history[0]!, false);
+    assert.equal("runtime" in third.body.history[0]!, false);
   });
 
   it("drops the oldest snapshot once the history buffer is full", async () => {
@@ -262,7 +274,12 @@ describe("GET /api/admin/status", () => {
       roleConfigured: true,
       testMode: false,
     });
-    assert.doesNotMatch(JSON.stringify(body), /should-not-leak/);
+    assert.deepEqual(body.summary, { ok: 5, degraded: 0, unavailable: 0, disabled: 0 });
+    assert.equal(body.runtime?.nodeEnv, process.env.NODE_ENV || "development");
+    assert.equal(body.runtime?.processStartedAt, "2026-09-11T11:59:48.000Z");
+    assert.equal(body.runtime?.historyCapacity, 20);
+    assert.equal(Number.isInteger(body.components.supabase.latencyMs), true);
+    assert.doesNotMatch(JSON.stringify(body), /should-not-leak|guild-1|DISCORD_TOKEN|SERVICE_ROLE/);
     assert.deepEqual(body.history, []);
   });
 
@@ -274,7 +291,16 @@ describe("GET /api/admin/status", () => {
     assert.equal(status, 200);
     assert.equal(body.history.length, 1);
     assert.equal("admin" in body.history[0]!, false);
+    assert.equal("runtime" in body.history[0]!, false);
+    assert.deepEqual(body.history[0]?.summary, {
+      ok: 5,
+      degraded: 0,
+      unavailable: 0,
+      disabled: 0,
+    });
     assert.equal("admin" in body, true);
+    assert.equal("runtime" in body, true);
+    assert.equal(body.runtime?.historyCapacity, 5);
     assert.doesNotMatch(JSON.stringify(body.history), /should-not-leak/);
   });
 });

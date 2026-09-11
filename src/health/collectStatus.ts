@@ -1,6 +1,12 @@
 import type { Client } from "discord.js";
-import { getStatusHistory, type StatusHistoryStore } from "./statusHistory.js";
-import type { AdminStatusReport, ComponentReport, StatusReport } from "./types.js";
+import { getStatusHistory, getStatusHistoryLimit, type StatusHistoryStore } from "./statusHistory.js";
+import type {
+  AdminStatusReport,
+  ComponentReport,
+  StatusReport,
+  StatusRuntime,
+  StatusSummary,
+} from "./types.js";
 
 export const DEFAULT_STATUS_CHECK_TIMEOUT_MS = 2000;
 
@@ -19,7 +25,7 @@ export type CollectStatusDeps = {
   now?: () => Date;
   getUptimeSeconds?: () => number;
   timeoutMs?: number;
-  history?: Pick<StatusHistoryStore, "record" | "recent">;
+  history?: Pick<StatusHistoryStore, "record" | "recent"> & { capacity?: number };
 };
 
 export type CollectAdminStatusDeps = CollectStatusDeps & {
@@ -91,19 +97,25 @@ function withTimeout(work: Promise<void>, timeoutMs: number): Promise<void> {
   });
 }
 
+function elapsedMs(startedAt: number): number {
+  return Math.max(0, Math.round(Date.now() - startedAt));
+}
+
 async function reportSupabase(
   pingSupabase: () => Promise<void>,
   timeoutMs: number
 ): Promise<ComponentReport> {
+  const startedAt = Date.now();
   try {
     await withTimeout(Promise.resolve().then(() => pingSupabase()), timeoutMs);
-    return { status: "ok" };
+    return { status: "ok", latencyMs: elapsedMs(startedAt) };
   } catch (err) {
+    const latencyMs = elapsedMs(startedAt);
     const message = err instanceof Error ? err.message : "probe failed";
     if (message === "timeout") {
-      return { status: "unavailable", detail: "timeout" };
+      return { status: "unavailable", detail: "timeout", latencyMs };
     }
-    return { status: "unavailable", detail: "probe failed" };
+    return { status: "unavailable", detail: "probe failed", latencyMs };
   }
 }
 
@@ -116,6 +128,38 @@ function rollupStatus(components: StatusReport["components"]): StatusReport["sta
     return "degraded";
   }
   return "ok";
+}
+
+export function summarizeComponents(components: StatusReport["components"]): StatusSummary {
+  const summary: StatusSummary = { ok: 0, degraded: 0, unavailable: 0, disabled: 0 };
+  for (const component of Object.values(components)) {
+    summary[component.status] += 1;
+  }
+  return summary;
+}
+
+function historyCapacityOf(history?: CollectStatusDeps["history"]): number {
+  const store = history ?? getStatusHistory();
+  const capacity = store.capacity;
+  if (typeof capacity === "number" && Number.isInteger(capacity) && capacity > 0) {
+    return capacity;
+  }
+  return getStatusHistoryLimit();
+}
+
+function processStartedAt(checkedAt: string, uptimeSeconds: number): string {
+  return new Date(Date.parse(checkedAt) - uptimeSeconds * 1000).toISOString();
+}
+
+export function buildStatusRuntime(
+  report: Pick<StatusReport, "checkedAt" | "uptimeSeconds">,
+  history?: CollectStatusDeps["history"]
+): StatusRuntime {
+  return {
+    nodeEnv: process.env.NODE_ENV || "development",
+    processStartedAt: processStartedAt(report.checkedAt, report.uptimeSeconds),
+    historyCapacity: historyCapacityOf(history),
+  };
 }
 
 export async function collectStatus(deps: CollectStatusDeps): Promise<StatusReport> {
@@ -138,6 +182,7 @@ export async function collectStatus(deps: CollectStatusDeps): Promise<StatusRepo
     checkedAt: now.toISOString(),
     uptimeSeconds,
     components,
+    summary: summarizeComponents(components),
   };
   (deps.history ?? getStatusHistory()).record(report);
   return report;
@@ -152,6 +197,7 @@ const SAFE_F1_ADMIN = {
 
 export async function collectAdminStatus(deps: CollectAdminStatusDeps): Promise<AdminStatusReport> {
   const report = await collectStatus(deps);
+  const runtime = buildStatusRuntime(report, deps.history);
   try {
     const settings = await deps.getF1ReminderSettings(deps.getGuildId());
     return {
@@ -164,11 +210,13 @@ export async function collectAdminStatus(deps: CollectAdminStatusDeps): Promise<
           testMode: deps.isF1TestMode(),
         },
       },
+      runtime,
     };
   } catch {
     return {
       ...report,
       admin: { f1: { ...SAFE_F1_ADMIN } },
+      runtime,
     };
   }
 }
