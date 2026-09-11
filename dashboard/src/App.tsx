@@ -10,6 +10,7 @@ import DiscordAdmin from "./pages/DiscordAdmin";
 import Forbidden from "./pages/Forbidden";
 import Login from "./pages/Login";
 import MyTimetable from "./pages/MyTimetable";
+import OperationalStatus from "./pages/OperationalStatus";
 import Settings from "./pages/Settings";
 import Timetable from "./pages/Timetable";
 
@@ -32,6 +33,12 @@ function AuthedRoutes({ me }: { me: MeResponse }) {
         <Route
           path="/admin/discord"
           element={me.is_admin ? <DiscordAdmin user={me.user} /> : <Forbidden user={me.user} />}
+        />
+        <Route
+          path="/admin/status"
+          element={
+            me.is_admin ? <OperationalStatus user={me.user} /> : <Forbidden user={me.user} />
+          }
         />
         <Route path="*" element={<Navigate to="/timetable" replace />} />
       </Routes>

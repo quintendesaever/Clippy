@@ -261,3 +261,57 @@ export interface DiscordAdminRecentActivity {
   eventType?: string | null;
   detail?: string | null;
 }
+
+export type HealthState = "ok" | "degraded" | "unavailable" | "disabled";
+
+export type OverallHealthState = "ok" | "degraded" | "unavailable";
+
+export interface ComponentReport {
+  status: HealthState;
+  detail?: string;
+  latencyMs?: number;
+}
+
+export interface StatusSummary {
+  ok: number;
+  degraded: number;
+  unavailable: number;
+  disabled: number;
+}
+
+export interface StatusRuntime {
+  nodeEnv: string;
+  processStartedAt: string;
+  historyCapacity: number;
+}
+
+export interface StatusComponents {
+  discord: ComponentReport;
+  supabase: ComponentReport;
+  dashboard: ComponentReport;
+  f1ReminderJob: ComponentReport;
+  timetablePanelJob: ComponentReport;
+}
+
+export interface StatusReport {
+  status: OverallHealthState;
+  checkedAt: string;
+  uptimeSeconds: number;
+  components: StatusComponents;
+  history?: StatusReport[];
+  summary?: StatusSummary;
+}
+
+export interface AdminF1Flags {
+  enabled: boolean;
+  channelConfigured: boolean;
+  roleConfigured: boolean;
+  testMode: boolean;
+}
+
+export interface AdminStatusReport extends StatusReport {
+  admin?: {
+    f1: AdminF1Flags;
+  };
+  runtime?: StatusRuntime;
+}
