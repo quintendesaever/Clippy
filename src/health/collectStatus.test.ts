@@ -9,6 +9,7 @@ import {
   type CollectAdminStatusDeps,
   type CollectStatusDeps,
 } from "./collectStatus.js";
+import { StatusHistory } from "./statusHistory.js";
 
 function mockDiscord(options: { ready?: boolean; hasGuild?: boolean } = {}): Client {
   const ready = options.ready !== false;
@@ -33,6 +34,7 @@ function okDeps(overrides: Partial<CollectStatusDeps> = {}): CollectStatusDeps {
     now: () => new Date("2026-09-11T12:00:00.000Z"),
     getUptimeSeconds: () => 42,
     timeoutMs: 200,
+    history: { record() {}, recent: () => [] },
     ...overrides,
   };
 }
@@ -138,6 +140,14 @@ describe("collectStatus", () => {
     assert.equal(report.components.supabase.status, "ok");
     assert.equal(report.status, "degraded");
   });
+
+  it("records the built StatusReport into the history store", async () => {
+    const history = new StatusHistory(5);
+    const report = await collectStatus(okDeps({ history }));
+    assert.equal(history.recent().length, 1);
+    assert.equal(history.recent()[0]?.checkedAt, report.checkedAt);
+    assert.deepEqual(history.prior(), []);
+  });
 });
 
 describe("collectAdminStatus", () => {
@@ -178,6 +188,15 @@ describe("collectAdminStatus", () => {
       roleConfigured: false,
       testMode: false,
     });
+  });
+
+  it("records a single public snapshot through collectStatus", async () => {
+    const history = new StatusHistory(5);
+    const report = await collectAdminStatus(adminDeps({ history }));
+    assert.equal(history.recent().length, 1);
+    assert.equal(history.prior().length, 0);
+    assert.equal("admin" in history.recent()[0]!, false);
+    assert.equal(report.admin.f1.enabled, true);
   });
 });
 
