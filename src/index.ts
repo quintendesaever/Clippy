@@ -74,11 +74,6 @@ client.once("clientReady", async () => {
 
   startF1ReminderJob(client);
   startTimetablePanelJob(client);
-
-  if (process.env.CLIENT_SECRET?.trim() && process.env.SESSION_SECRET?.trim()) {
-    const { startDashboardServer } = await import("./dashboard/server.js");
-    startDashboardServer(client);
-  }
 });
 
 client.on("interactionCreate", async (interaction) => {
@@ -255,7 +250,19 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
   }
 });
 
+// HTTP dashboard must come up even if Discord auth fails so container
+// /api/health (CD staging) stays green. Production deploy still gates on
+// /api/status?ready=1 which requires a ready Discord client.
+if (process.env.CLIENT_SECRET?.trim() && process.env.SESSION_SECRET?.trim()) {
+  const { startDashboardServer } = await import("./dashboard/server.js");
+  startDashboardServer(client);
+} else {
+  console.warn("Dashboard not started: CLIENT_SECRET or SESSION_SECRET missing");
+}
+
 client.login(token).catch((err) => {
   console.error("Failed to login:", err);
-  process.exit(1);
+  console.error(
+    "Discord unavailable; keeping process up for /api/health. Production ready checks will fail until Discord works."
+  );
 });
