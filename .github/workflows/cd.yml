@@ -12,7 +12,7 @@ on:
       skip_production:
         description: "Stop after staging (no production deploy)"
         type: boolean
-        default: true
+        default: false
 
 concurrency:
   group: clippy-cd-main
