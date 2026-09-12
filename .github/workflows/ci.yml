@@ -53,6 +53,7 @@ jobs:
           bash -n deploy/simulate-actions-deploy.sh
           bash -n deploy/check-host-readiness.sh
           bash -n deploy/test-forced-command.sh
+          bash -n deploy/seed-production-env.sh
 
       - name: Deploy forced-command allowlist tests
         run: bash deploy/test-forced-command.sh
