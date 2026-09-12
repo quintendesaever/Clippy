@@ -1,0 +1,20 @@
+# Shared Clippy runtime — image pulled from GHCR (never built on the server).
+# Requires CLIPPY_IMAGE=ghcr.io/quintendesaever/clippy:<40-hex-sha>
+# and a sibling .env with application secrets (mode 0600, not in Git).
+
+services:
+  clippy:
+    image: ${CLIPPY_IMAGE:?set CLIPPY_IMAGE to ghcr.io/quintendesaever/clippy:<sha>}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DASHBOARD_PORT: "3000"
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s

@@ -19,6 +19,10 @@ RUN npm run build
 # Production stage
 FROM node:22-alpine
 
+LABEL org.opencontainers.image.source="https://github.com/quintendesaever/Clippy"
+LABEL org.opencontainers.image.title="clippy"
+LABEL org.opencontainers.image.description="Clippy Discord bot + dashboard"
+
 RUN apk add --no-cache fontconfig ttf-dejavu wget \
   && addgroup -S clippy && adduser -S clippy -G clippy
 

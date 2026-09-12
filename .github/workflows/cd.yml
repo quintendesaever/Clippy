@@ -1,0 +1,145 @@
+# Continuous Delivery — build immutable image, deploy staging, await production approval.
+# Does not replace CI. Does not use self-hosted runners. Does not expose SSH publicly.
+name: CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      skip_production:
+        description: "Stop after staging (no production deploy)"
+        type: boolean
+        default: false
+
+concurrency:
+  # One CD pipeline at a time; never cancel an in-flight production deploy.
+  group: clippy-cd-main
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: ghcr.io/quintendesaever/clippy
+  # MagicDNS / Tailscale hostname from live inventory
+  DEPLOY_HOST: ai-server
+  # Interim: quinten + forced-command CD key (see deploy/ssh-forced-command.sh).
+  # Switch to deploy-clippy after sudo bootstrap (deploy/setup-deploy-user.sh --apply).
+  DEPLOY_USER: quinten
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+      sha: ${{ steps.meta.outputs.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Image metadata
+        id: meta
+        run: |
+          SHA="$(echo -n "${GITHUB_SHA}" | tr '[:upper:]' '[:lower:]')"
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "image=${IMAGE_NAME}:${SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.sha }}
+            ${{ env.IMAGE_NAME }}:main
+          labels: |
+            org.opencontainers.image.source=https://github.com/quintendesaever/Clippy
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-staging:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: staging
+    concurrency:
+      group: clippy-deploy-staging
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout (deploy scripts)
+        uses: actions/checkout@v4
+
+      - name: Connect Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Deploy staging via SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          IMAGE: ${{ needs.build-and-push.outputs.image }}
+        run: |
+          set -euo pipefail
+          test -n "${DEPLOY_SSH_KEY}" || { echo "DEPLOY_SSH_KEY secret missing"; exit 1; }
+          install -m 600 /dev/null "${RUNNER_TEMP}/deploy_key"
+          printf '%s\n' "${DEPLOY_SSH_KEY}" > "${RUNNER_TEMP}/deploy_key"
+          # shellcheck disable=SC2029
+          ssh -i "${RUNNER_TEMP}/deploy_key" \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="${GITHUB_WORKSPACE}/deploy/known_hosts" \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "/data/deployments/clippy/bin/deploy.sh staging '${IMAGE}'"
+
+  deploy-production:
+    needs: [build-and-push, deploy-staging]
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.skip_production != true }}
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: clippy-deploy-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout (deploy scripts)
+        uses: actions/checkout@v4
+
+      - name: Connect Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Deploy production via SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          IMAGE: ${{ needs.build-and-push.outputs.image }}
+        run: |
+          set -euo pipefail
+          test -n "${DEPLOY_SSH_KEY}" || { echo "DEPLOY_SSH_KEY secret missing"; exit 1; }
+          install -m 600 /dev/null "${RUNNER_TEMP}/deploy_key"
+          printf '%s\n' "${DEPLOY_SSH_KEY}" > "${RUNNER_TEMP}/deploy_key"
+          ssh -i "${RUNNER_TEMP}/deploy_key" \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="${GITHUB_WORKSPACE}/deploy/known_hosts" \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "/data/deployments/clippy/bin/deploy.sh production '${IMAGE}'"
