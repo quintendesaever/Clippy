@@ -1,0 +1,73 @@
+# Manual image-level rollback (not git revert).
+# Syncs deploy artifacts from the workflow ref, then deploys the requested SHA image.
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        type: choice
+        options:
+          - staging
+          - production
+        required: true
+      image_sha:
+        description: "40-char commit SHA tag already present in GHCR"
+        required: true
+        type: string
+
+concurrency:
+  group: clippy-deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_NAME: ghcr.io/quintendesaever/clippy
+  DEPLOY_HOST: ai-server
+  # INTERIM: quinten + forced-command CD key (see docs/deployment.md). Prefer deploy-clippy later.
+  DEPLOY_USER: quinten
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Validate SHA
+        id: meta
+        run: |
+          SHA="$(echo -n "${{ inputs.image_sha }}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "image_sha must be 40 hex chars"; exit 1; }
+          echo "image=${IMAGE_NAME}:${SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Connect Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Sync deploy artifacts + rollback deploy
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          IMAGE: ${{ steps.meta.outputs.image }}
+        run: |
+          set -euo pipefail
+          test -n "${DEPLOY_SSH_KEY}" || { echo "DEPLOY_SSH_KEY secret missing"; exit 1; }
+          install -m 600 /dev/null "${RUNNER_TEMP}/deploy_key"
+          printf '%s\n' "${DEPLOY_SSH_KEY}" > "${RUNNER_TEMP}/deploy_key"
+          tar -C deploy -czf "${RUNNER_TEMP}/clippy-cd.tgz" \
+            deploy.sh cd-apply.sh ssh-forced-command.sh cutover-production.sh \
+            compose known_hosts
+          ssh -i "${RUNNER_TEMP}/deploy_key" \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="${GITHUB_WORKSPACE}/deploy/known_hosts" \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "/data/deployments/clippy/bin/cd-apply.sh '${{ inputs.environment }}' '${IMAGE}'" \
+            < "${RUNNER_TEMP}/clippy-cd.tgz"

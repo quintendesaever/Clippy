@@ -42,3 +42,18 @@ jobs:
 
       - name: Build dashboard
         run: npm run build:dashboard
+
+      - name: Shell syntax check (deploy scripts)
+        run: |
+          bash -n deploy/deploy.sh
+          bash -n deploy/cd-apply.sh
+          bash -n deploy/ssh-forced-command.sh
+          bash -n deploy/cutover-production.sh
+          bash -n deploy/setup-deploy-user.sh
+          bash -n deploy/simulate-actions-deploy.sh
+          bash -n deploy/check-host-readiness.sh
+          bash -n deploy/test-forced-command.sh
+          bash -n deploy/seed-production-env.sh
+
+      - name: Deploy forced-command allowlist tests
+        run: bash deploy/test-forced-command.sh

@@ -1,0 +1,13 @@
+# Staging: private only. No Cloudflare tunnel. No host LAN publish.
+# Bind address comes from host-local staging .env (not committed):
+#   CLIPPY_STAGING_BIND=100.66.108.109
+# Usage (via cd-apply/deploy.sh): CLIPPY_IMAGE=… compose up -d
+
+name: clippy-staging
+
+services:
+  clippy:
+    ports:
+      - "${CLIPPY_STAGING_BIND:?set CLIPPY_STAGING_BIND in staging .env}:3100:3000"
+    environment:
+      DASHBOARD_PORT: "3000"

@@ -1,0 +1,35 @@
+# Production CD stack: same-origin Clippy + Cloudflare Tunnel (no host port publish).
+# Secrets: .env on the deployment host (CLOUDFLARE_TUNNEL_TOKEN + Discord/Supabase/OAuth).
+# Requires external Docker network: docker network create edge
+
+name: clippy-production
+
+services:
+  clippy:
+    ports: !reset []
+    expose:
+      - "3000"
+
+  cloudflared:
+    image: cloudflare/cloudflared@sha256:e39ee8da81ad5e05d77f38d2f51c60ca51bf2a8450ac3abab50c17fdb91d91bf
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+      TUNNEL_METRICS: 127.0.0.1:60123
+    healthcheck:
+      test: ["CMD", "cloudflared", "tunnel", "--metrics", "127.0.0.1:60123", "ready"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      clippy:
+        condition: service_started
+    networks:
+      - default
+      - edge
+
+networks:
+  edge:
+    external: true
