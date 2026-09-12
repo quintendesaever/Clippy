@@ -12,7 +12,7 @@ on:
       skip_production:
         description: "Stop after staging (no production deploy)"
         type: boolean
-        default: false
+        default: true
 
 concurrency:
   group: clippy-cd-main
@@ -187,7 +187,8 @@ jobs:
 
   deploy-production:
     needs: [ci-gate, build-and-push, deploy-staging]
-    if: ${{ github.event_name == 'workflow_run' || inputs.skip_production != true }}
+    # Production only via attended workflow_dispatch (skip_production=false); staging always on main.
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.skip_production != true }}
     runs-on: ubuntu-latest
     environment: production
     concurrency:
