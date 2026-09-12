@@ -115,3 +115,9 @@ Failed health → restore previous known-good SHA image → re-check health → 
 ## Cutover note
 
 Do **not** point CD production at `dashboard.clippybot.be` until staging + rollback drills pass and operator approves replacing `/data/apps/clippy` runtime.
+
+## Host-agent fallback
+
+When `TAILSCALE_AUTHKEY` / `TS_OAUTH_*` are unset, CD and Rollback use commit-status handoff
+(`cd-host/clippy/{staging|production}`) to ai-server `cd-host-agent`. `DEPLOY_SSH_KEY` is only
+required for the Tailscale SSH transport.
