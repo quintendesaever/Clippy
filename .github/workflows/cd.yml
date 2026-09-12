@@ -102,13 +102,14 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: read
+      statuses: write
     steps:
       - name: Checkout deploy sources
         uses: actions/checkout@v4
         with:
           ref: ${{ needs.ci-gate.outputs.sha }}
 
-      - name: Require Tailscale + deploy secrets
+      - name: Select deploy transport
         env:
           TS_OAUTH_CLIENT_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           TS_OAUTH_SECRET: ${{ secrets.TS_OAUTH_SECRET }}
@@ -122,9 +123,8 @@ jobs:
           elif [[ -n "${TAILSCALE_AUTHKEY}" ]]; then
             echo "TS_MODE=authkey" >> "$GITHUB_ENV"
           else
-            echo "Need TS_OAUTH_CLIENT_ID+TS_OAUTH_SECRET OR TAILSCALE_AUTHKEY"
-            echo "Create auth key: Tailscale Admin → Settings → Keys → Generate (reusable, ephemeral, tag:ci)"
-            exit 1
+            echo "TS_MODE=host_agent" >> "$GITHUB_ENV"
+            echo "No Tailscale secrets; using cd-host-agent handoff on ai-server"
           fi
       - name: Connect Tailscale (OAuth)
         if: env.TS_MODE == 'oauth'
@@ -140,6 +140,7 @@ jobs:
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
       - name: Sync deploy artifacts + deploy staging
+        if: env.TS_MODE == 'oauth' || env.TS_MODE == 'authkey'
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           IMAGE: ${{ needs.build-and-push.outputs.image }}
@@ -158,6 +159,31 @@ jobs:
             "${DEPLOY_USER}@${DEPLOY_HOST}" \
             "/data/deployments/clippy/bin/cd-apply.sh staging '${IMAGE}'" \
             < "${RUNNER_TEMP}/clippy-cd.tgz"
+      - name: Host-agent deploy handoff
+        if: env.TS_MODE == 'host_agent'
+        env:
+          SHA: ${{ needs.ci-gate.outputs.sha }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          CTX="cd-host/clippy/staging"
+          gh api -X POST "repos/${{ github.repository }}/statuses/${SHA}" \
+            -f state=pending \
+            -f context="$CTX" \
+            -f description="deploy:${SHA}"
+          echo "Waiting for ai-server cd-host-agent ($CTX)…"
+          for i in $(seq 1 90); do
+            STATE="$(gh api "repos/${{ github.repository }}/commits/${SHA}/statuses" \
+              | jq -r --arg c "$CTX" '[.[]|select(.context==$c)][0].state // empty')"
+            echo "poll $i state=${STATE:-none}"
+            case "${STATE}" in
+              success) exit 0 ;;
+              failure|error) exit 1 ;;
+            esac
+            sleep 10
+          done
+          echo "Timed out waiting for host agent"
+          exit 1
 
   deploy-production:
     needs: [ci-gate, build-and-push, deploy-staging]
@@ -169,13 +195,14 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: read
+      statuses: write
     steps:
       - name: Checkout deploy sources
         uses: actions/checkout@v4
         with:
           ref: ${{ needs.ci-gate.outputs.sha }}
 
-      - name: Require Tailscale + deploy secrets
+      - name: Select deploy transport
         env:
           TS_OAUTH_CLIENT_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           TS_OAUTH_SECRET: ${{ secrets.TS_OAUTH_SECRET }}
@@ -189,9 +216,8 @@ jobs:
           elif [[ -n "${TAILSCALE_AUTHKEY}" ]]; then
             echo "TS_MODE=authkey" >> "$GITHUB_ENV"
           else
-            echo "Need TS_OAUTH_CLIENT_ID+TS_OAUTH_SECRET OR TAILSCALE_AUTHKEY"
-            echo "Create auth key: Tailscale Admin → Settings → Keys → Generate (reusable, ephemeral, tag:ci)"
-            exit 1
+            echo "TS_MODE=host_agent" >> "$GITHUB_ENV"
+            echo "No Tailscale secrets; using cd-host-agent handoff on ai-server"
           fi
       - name: Connect Tailscale (OAuth)
         if: env.TS_MODE == 'oauth'
@@ -207,6 +233,7 @@ jobs:
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
       - name: Sync deploy artifacts + deploy production
+        if: env.TS_MODE == 'oauth' || env.TS_MODE == 'authkey'
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           IMAGE: ${{ needs.build-and-push.outputs.image }}
@@ -224,3 +251,29 @@ jobs:
             "${DEPLOY_USER}@${DEPLOY_HOST}" \
             "/data/deployments/clippy/bin/cd-apply.sh production '${IMAGE}'" \
             < "${RUNNER_TEMP}/clippy-cd.tgz"
+      - name: Host-agent deploy handoff
+        if: env.TS_MODE == 'host_agent'
+        env:
+          SHA: ${{ needs.ci-gate.outputs.sha }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          CTX="cd-host/clippy/production"
+          gh api -X POST "repos/${{ github.repository }}/statuses/${SHA}" \
+            -f state=pending \
+            -f context="$CTX" \
+            -f description="deploy:${SHA}"
+          echo "Waiting for ai-server cd-host-agent ($CTX)…"
+          for i in $(seq 1 90); do
+            STATE="$(gh api "repos/${{ github.repository }}/commits/${SHA}/statuses" \
+              | jq -r --arg c "$CTX" '[.[]|select(.context==$c)][0].state // empty')"
+            echo "poll $i state=${STATE:-none}"
+            case "${STATE}" in
+              success) exit 0 ;;
+              failure|error) exit 1 ;;
+            esac
+            sleep 10
+          done
+          echo "Timed out waiting for host agent"
+          exit 1
+
