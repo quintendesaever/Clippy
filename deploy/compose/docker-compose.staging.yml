@@ -1,14 +1,13 @@
 # Staging: private only. No Cloudflare tunnel. No host LAN publish.
-# Optional Tailscale bind for operator curl from the tailnet.
-# Usage (via deploy.sh): CLIPPY_IMAGE=… docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
+# Bind address comes from host-local staging .env (not committed):
+#   CLIPPY_STAGING_BIND=100.66.108.109
+# Usage (via cd-apply/deploy.sh): CLIPPY_IMAGE=… compose up -d
 
 name: clippy-staging
 
 services:
   clippy:
     ports:
-      # Tailscale IP only — discovered live host 100.66.108.109
-      - "100.66.108.109:3100:3000"
+      - "${CLIPPY_STAGING_BIND:?set CLIPPY_STAGING_BIND in staging .env}:3100:3000"
     environment:
-      # Staging dashboard URL must match staging secrets / OAuth redirect.
       DASHBOARD_PORT: "3000"

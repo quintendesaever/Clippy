@@ -1,9 +1,11 @@
-# Continuous Delivery — build immutable image, deploy staging, await production approval.
-# Does not replace CI. Does not use self-hosted runners. Does not expose SSH publicly.
+# Continuous Delivery — runs only after CI succeeds on main (or manual dispatch).
+# Does not replace CI. No self-hosted runners. No public SSH.
 name: CD
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
     inputs:
@@ -13,38 +15,59 @@ on:
         default: false
 
 concurrency:
-  # One CD pipeline at a time; never cancel an in-flight production deploy.
   group: clippy-cd-main
   cancel-in-progress: false
 
 permissions:
   contents: read
   packages: write
+  actions: read
 
 env:
   IMAGE_NAME: ghcr.io/quintendesaever/clippy
-  # MagicDNS / Tailscale hostname from live inventory
   DEPLOY_HOST: ai-server
-  # Interim: quinten + forced-command CD key (see deploy/ssh-forced-command.sh).
-  # Switch to deploy-clippy after sudo bootstrap (deploy/setup-deploy-user.sh --apply).
+  # INTERIM (accepted for first cutover): personal account + forced-command CD key.
+  # Blast radius: docker-group equivalent via this key only (cd-apply/deploy allowlist).
+  # Switch DEPLOY_USER to deploy-clippy after: sudo bash deploy/setup-deploy-user.sh --apply
+  # and move the forced-command pubkey to that account. Do not enable production
+  # Environment deploys until that switch is done OR this interim is explicitly re-accepted.
   DEPLOY_USER: quinten
 
 jobs:
+  ci-gate:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    outputs:
+      sha: ${{ steps.ref.outputs.sha }}
+      image: ${{ steps.ref.outputs.image }}
+    steps:
+      - name: Resolve commit SHA
+        id: ref
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
+            RAW="${{ github.event.workflow_run.head_sha }}"
+            echo "Triggered by CI run ${{ github.event.workflow_run.id }} conclusion=${{ github.event.workflow_run.conclusion }}"
+          else
+            RAW="${{ github.sha }}"
+            echo "Manual workflow_dispatch"
+          fi
+          SHA="$(echo -n "${RAW}" | tr '[:upper:]' '[:lower:]')"
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "invalid sha: $SHA"; exit 1; }
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "image=${IMAGE_NAME}:${SHA}" >> "$GITHUB_OUTPUT"
+
   build-and-push:
+    needs: ci-gate
     runs-on: ubuntu-latest
     outputs:
-      image: ${{ steps.meta.outputs.image }}
-      sha: ${{ steps.meta.outputs.sha }}
+      image: ${{ needs.ci-gate.outputs.image }}
+      sha: ${{ needs.ci-gate.outputs.sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Image metadata
-        id: meta
-        run: |
-          SHA="$(echo -n "${GITHUB_SHA}" | tr '[:upper:]' '[:lower:]')"
-          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
-          echo "image=${IMAGE_NAME}:${SHA}" >> "$GITHUB_OUTPUT"
+        with:
+          ref: ${{ needs.ci-gate.outputs.sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -62,16 +85,16 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.sha }}
+            ${{ env.IMAGE_NAME }}:${{ needs.ci-gate.outputs.sha }}
             ${{ env.IMAGE_NAME }}:main
           labels: |
             org.opencontainers.image.source=https://github.com/quintendesaever/Clippy
-            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.revision=${{ needs.ci-gate.outputs.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
   deploy-staging:
-    needs: build-and-push
+    needs: [ci-gate, build-and-push]
     runs-on: ubuntu-latest
     environment: staging
     concurrency:
@@ -80,8 +103,10 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Checkout (deploy scripts)
+      - name: Checkout deploy sources
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.ci-gate.outputs.sha }}
 
       - name: Require Tailscale + deploy secrets
         env:
@@ -95,7 +120,7 @@ jobs:
           [[ -n "${TS_OAUTH_SECRET}" ]] || { echo "Missing secret TS_OAUTH_SECRET"; missing=1; }
           [[ -n "${DEPLOY_SSH_KEY}" ]] || { echo "Missing secret DEPLOY_SSH_KEY"; missing=1; }
           if [[ "$missing" -ne 0 ]]; then
-            echo "See /data/docs/history/CLIPPY_CD_OPERATOR_UNBLOCK_2026-09-12.md (or docs/deployment.md)"
+            echo "See docs/deployment.md and CLIPPY_CD_OPERATOR_UNBLOCK runbook"
             exit 1
           fi
 
@@ -106,7 +131,7 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
-      - name: Deploy staging via SSH
+      - name: Sync deploy artifacts + deploy staging
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           IMAGE: ${{ needs.build-and-push.outputs.image }}
@@ -114,17 +139,21 @@ jobs:
           set -euo pipefail
           install -m 600 /dev/null "${RUNNER_TEMP}/deploy_key"
           printf '%s\n' "${DEPLOY_SSH_KEY}" > "${RUNNER_TEMP}/deploy_key"
-          # shellcheck disable=SC2029
+          tar -C deploy -czf "${RUNNER_TEMP}/clippy-cd.tgz" \
+            deploy.sh cd-apply.sh ssh-forced-command.sh cutover-production.sh \
+            compose known_hosts
+          # stdin tar → cd-apply.sh syncs host files from this commit, then deploys
           ssh -i "${RUNNER_TEMP}/deploy_key" \
             -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes \
             -o UserKnownHostsFile="${GITHUB_WORKSPACE}/deploy/known_hosts" \
             "${DEPLOY_USER}@${DEPLOY_HOST}" \
-            "/data/deployments/clippy/bin/deploy.sh staging '${IMAGE}'"
+            "/data/deployments/clippy/bin/cd-apply.sh staging '${IMAGE}'" \
+            < "${RUNNER_TEMP}/clippy-cd.tgz"
 
   deploy-production:
-    needs: [build-and-push, deploy-staging]
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.skip_production != true }}
+    needs: [ci-gate, build-and-push, deploy-staging]
+    if: ${{ github.event_name == 'workflow_run' || inputs.skip_production != true }}
     runs-on: ubuntu-latest
     environment: production
     concurrency:
@@ -133,8 +162,10 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Checkout (deploy scripts)
+      - name: Checkout deploy sources
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.ci-gate.outputs.sha }}
 
       - name: Require Tailscale + deploy secrets
         env:
@@ -156,18 +187,21 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
-      - name: Deploy production via SSH
+      - name: Sync deploy artifacts + deploy production
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           IMAGE: ${{ needs.build-and-push.outputs.image }}
         run: |
           set -euo pipefail
-          test -n "${DEPLOY_SSH_KEY}" || { echo "DEPLOY_SSH_KEY secret missing"; exit 1; }
           install -m 600 /dev/null "${RUNNER_TEMP}/deploy_key"
           printf '%s\n' "${DEPLOY_SSH_KEY}" > "${RUNNER_TEMP}/deploy_key"
+          tar -C deploy -czf "${RUNNER_TEMP}/clippy-cd.tgz" \
+            deploy.sh cd-apply.sh ssh-forced-command.sh cutover-production.sh \
+            compose known_hosts
           ssh -i "${RUNNER_TEMP}/deploy_key" \
             -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes \
             -o UserKnownHostsFile="${GITHUB_WORKSPACE}/deploy/known_hosts" \
             "${DEPLOY_USER}@${DEPLOY_HOST}" \
-            "/data/deployments/clippy/bin/deploy.sh production '${IMAGE}'"
+            "/data/deployments/clippy/bin/cd-apply.sh production '${IMAGE}'" \
+            < "${RUNNER_TEMP}/clippy-cd.tgz"

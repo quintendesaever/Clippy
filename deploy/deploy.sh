@@ -79,9 +79,12 @@ compose() {
   local dir
   dir="$(env_dir "$environment")"
   local image_env="${dir}/.image"
+  local secrets_env="${dir}/.env"
   [[ -f "$image_env" ]] || die "missing ${image_env} (CLIPPY_IMAGE)"
-  # .image holds CLIPPY_IMAGE=… for compose interpolation (separate from secret .env).
+  [[ -f "$secrets_env" ]] || die "missing ${secrets_env}"
+  # Pass both: --env-file replaces default .env loading for interpolation.
   docker compose --project-directory "$dir" \
+    --env-file "$secrets_env" \
     --env-file "$image_env" \
     -f "${dir}/docker-compose.yml" \
     -f "${dir}/docker-compose.${environment}.yml" \
@@ -275,13 +278,13 @@ main() {
       ;;
   esac
 
-  local lock_dir sdir
+  local lock_file sdir
   sdir="$(state_dir "$lock_env")"
   mkdir -p "$sdir"
-  lock_dir="${sdir}/lock"
-  exec 9>"${lock_dir}"
+  lock_file="${sdir}/lock"
+  exec 9>"${lock_file}"
   if ! flock -n 9; then
-    die "another deploy is in progress for ${lock_env} (lock ${lock_dir})"
+    die "another deploy is in progress for ${lock_env} (lock ${lock_file})"
   fi
 
   case "$action" in

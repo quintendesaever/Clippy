@@ -1,11 +1,9 @@
-# Publish-only workflow — proves GHCR immutable tags without deploying.
-# Use before Tailscale/SSH secrets exist, or to rebuild a SHA.
+# Publish-only workflow — SHA tags only (never :main).
+# Manual rebuild / emergency republish. Mainline :main tagging lives in cd.yml after CI.
 name: Publish image
 
 on:
   workflow_dispatch:
-  push:
-    branches: [feat/continuous-delivery]
 
 permissions:
   contents: read
@@ -38,9 +36,8 @@ jobs:
         with:
           context: .
           push: true
-          tags: |
-            ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.sha }}
-            ${{ env.IMAGE_NAME }}:main
+          # Immutable SHA only — do not retag :main from this workflow.
+          tags: ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.sha }}
           labels: |
             org.opencontainers.image.source=https://github.com/quintendesaever/Clippy
             org.opencontainers.image.revision=${{ github.sha }}

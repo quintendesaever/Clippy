@@ -1,4 +1,5 @@
 # Manual image-level rollback (not git revert).
+# Syncs deploy artifacts from the workflow ref, then deploys the requested SHA image.
 name: Rollback
 
 on:
@@ -26,6 +27,7 @@ permissions:
 env:
   IMAGE_NAME: ghcr.io/quintendesaever/clippy
   DEPLOY_HOST: ai-server
+  # INTERIM: quinten + forced-command CD key (see docs/deployment.md). Prefer deploy-clippy later.
   DEPLOY_USER: quinten
 
 jobs:
@@ -50,7 +52,7 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
-      - name: Deploy known-good image
+      - name: Sync deploy artifacts + rollback deploy
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           IMAGE: ${{ steps.meta.outputs.image }}
@@ -59,9 +61,13 @@ jobs:
           test -n "${DEPLOY_SSH_KEY}" || { echo "DEPLOY_SSH_KEY secret missing"; exit 1; }
           install -m 600 /dev/null "${RUNNER_TEMP}/deploy_key"
           printf '%s\n' "${DEPLOY_SSH_KEY}" > "${RUNNER_TEMP}/deploy_key"
+          tar -C deploy -czf "${RUNNER_TEMP}/clippy-cd.tgz" \
+            deploy.sh cd-apply.sh ssh-forced-command.sh cutover-production.sh \
+            compose known_hosts
           ssh -i "${RUNNER_TEMP}/deploy_key" \
             -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes \
             -o UserKnownHostsFile="${GITHUB_WORKSPACE}/deploy/known_hosts" \
             "${DEPLOY_USER}@${DEPLOY_HOST}" \
-            "/data/deployments/clippy/bin/deploy.sh '${{ inputs.environment }}' '${IMAGE}'"
+            "/data/deployments/clippy/bin/cd-apply.sh '${{ inputs.environment }}' '${IMAGE}'" \
+            < "${RUNNER_TEMP}/clippy-cd.tgz"

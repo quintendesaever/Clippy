@@ -7,35 +7,40 @@
 
 ```text
 merge → main
-  → CI (validate)
-  → CD build → ghcr.io/quintendesaever/clippy:<git-sha>
+  → CI (validate) succeeds
+  → CD (workflow_run on CI success)
+  → build → ghcr.io/quintendesaever/clippy:<git-sha> (+ :main only from CD on main)
   → Tailscale (ephemeral tag:ci)
-  → SSH deploy-clippy@ai-server
-  → /data/deployments/clippy/staging
-  → health GET /api/health
+  → SSH quinten@ai-server (INTERIM forced-command key; prefer deploy-clippy later)
+  → cd-apply.sh syncs deploy/* from git tar → /data/deployments/clippy
+  → staging health GET /api/health
   → GitHub Environment production approval
-  → /data/deployments/clippy/production
-  → health GET /api/health
+  → production health GET /api/health + /api/status?ready=1
 ```
 
 Immutable rule: deploy only `ghcr.io/quintendesaever/clippy:<40-hex-sha>`.
+`:main` is an optional convenience tag published only by CD after CI on `main` — never by feature-branch publish.
 
 ## Workflows
 
 | Workflow | File | Trigger |
 | --- | --- | --- |
 | CI | `.github/workflows/ci.yml` | PR + push main |
-| CD | `.github/workflows/cd.yml` | push main |
+| CD | `.github/workflows/cd.yml` | `workflow_run` after CI success on main; manual dispatch |
+| Publish image | `.github/workflows/publish-image.yml` | manual; **SHA tags only** |
 | Rollback | `.github/workflows/rollback.yml` | manual |
 
 ## Server layout
 
 | Path | Role |
 | --- | --- |
+| `/data/deployments/clippy/bin/cd-apply.sh` | Sync git bundle + invoke deploy (Actions entrypoint) |
 | `/data/deployments/clippy/bin/deploy.sh` | Deploy / rollback entrypoint |
 | `/data/deployments/clippy/staging/` | Staging compose + `.env` + `state/` |
 | `/data/deployments/clippy/production/` | Production CD compose + `.env` + `state/` |
 | `/data/apps/clippy` | **Current live production** until CD cutover |
+
+Staging bind address: set `CLIPPY_STAGING_BIND` in host-local staging `.env` (compose substitutes it; not hardcoded in git).
 
 ## Deploy identity
 
