@@ -41,30 +41,41 @@ Immutable rule: deploy only `ghcr.io/quintendesaever/clippy:<40-hex-sha>`.
 
 Intended user: `deploy-clippy` (docker group only; no sudo).
 
-**Status:** NOT YET CONFIGURED — creating the account requires interactive sudo on ai-server.
+**Status:** NOT YET CONFIGURED (needs interactive sudo).  
 
-Until then, local/operator tests may run deploy.sh as `quinten` (docker group). Actions must use `DEPLOY_SSH_KEY` for `deploy-clippy` once the account exists.
+**Interim (CURRENT):** GitHub Actions SSH as `quinten` with forced-command key  
+(`/data/deployments/clippy/bin/ssh-forced-command.sh`). Repo secret `DEPLOY_SSH_KEY` set.  
+Private key on host: `/data/ai-platform/secrets/clippy-deploy-ssh-key` (0600).
+
+## Operator unblock
+
+Exact remaining steps: `/data/docs/history/CLIPPY_CD_OPERATOR_UNBLOCK_2026-09-12.md`
+
+1. Tailscale OAuth → `TS_OAUTH_CLIENT_ID` / `TS_OAUTH_SECRET`
+2. Real staging Discord/Supabase `.env` (not production copy)
+3. Optional: `sudo … setup-deploy-user.sh --apply`
+4. Production cutover via `deploy/cutover-production.sh` after staging E2E
 
 ## Secrets
 
 | Class | Location |
 | --- | --- |
-| Actions | `TS_OAUTH_CLIENT_ID`, `TS_OAUTH_SECRET`, `DEPLOY_SSH_KEY` |
+| Actions | `TS_OAUTH_CLIENT_ID`, `TS_OAUTH_SECRET` (**missing**), `DEPLOY_SSH_KEY` (**set**) |
 | Staging runtime | `/data/deployments/clippy/staging/.env` (0600) — **not** production `.env` |
 | Production runtime | `/data/deployments/clippy/production/.env` (0600) after cutover; today `/data/apps/clippy/.env` |
 | Tunnel token source | `/data/ai-platform/secrets/clippy-cloudflare-tunnel-token` |
 
 Templates: `deploy/env.staging.example`, `deploy/env.production.example`.
 
-## Manual GitHub setup (required)
+## Manual GitHub setup
 
-1. Repo → Settings → Environments → create `staging` and `production`.
-2. On `production`: enable **Required reviewers** (operator account).
-3. Repo secrets:
-   - `TS_OAUTH_CLIENT_ID` / `TS_OAUTH_SECRET` — Tailscale OAuth client with `auth_keys` + tag `tag:ci`
-   - `DEPLOY_SSH_KEY` — private key for `deploy-clippy`
-4. Tailscale ACL: allow `tag:ci` SSH to `ai-server` as `deploy-clippy` only.
-5. GHCR: Actions `GITHUB_TOKEN` pushes; server needs `docker login ghcr.io` for `deploy-clippy` (read packages) if image is private. Public repo packages may be public — still avoid secrets in image layers.
+| Item | State |
+| --- | --- |
+| Environments `staging` + `production` | Done |
+| Production required reviewer | Done (`quintendesaever`) |
+| `DEPLOY_SSH_KEY` | Done |
+| `TS_OAUTH_*` | **NOT YET** — Tailscale admin login required |
+| Tailscale ACL `tag:ci` | **NOT YET** |
 
 ## Operator commands
 

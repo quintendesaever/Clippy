@@ -92,37 +92,59 @@ wait_healthy() {
   local environment="$1"
   local retries="${HEALTH_RETRIES:-30}"
   local sleep_s="${HEALTH_SLEEP_SECS:-5}"
-  local i status body
+  local i status body ready
   local service="clippy"
+  # production always requires readiness; staging can set HEALTH_REQUIRE_READY=1
+  local require_ready=0
+  if [[ "$environment" == "production" || "${HEALTH_REQUIRE_READY:-0}" == "1" ]]; then
+    require_ready=1
+  fi
 
-  echo "Waiting for health (retries=${retries}, sleep=${sleep_s}s)…"
+  echo "Waiting for health (retries=${retries}, sleep=${sleep_s}s, require_ready=${require_ready})…"
   for ((i = 1; i <= retries; i++)); do
     status="$(compose "$environment" ps --status running --services 2>/dev/null | grep -cx "$service" || true)"
-    if [[ "$status" == "1" ]]; then
-      if body="$(compose "$environment" exec -T "$service" wget -qO- http://127.0.0.1:3000/api/health 2>/dev/null)"; then
-        if [[ "$body" == *'"ok":true'* ]] || [[ "$body" == *'"ok": true'* ]]; then
-          echo "Health OK on attempt ${i}: ${body}"
-          return 0
-        fi
-        echo "Attempt ${i}: unexpected health body: ${body}"
-      else
-        # Fall back to Docker health status when exec is briefly unavailable.
-        local cid health
-        cid="$(compose "$environment" ps -q "$service" 2>/dev/null || true)"
-        if [[ -n "$cid" ]]; then
-          health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$cid" 2>/dev/null || echo unknown)"
-          echo "Attempt ${i}: container health=${health}"
-          if [[ "$health" == "healthy" ]]; then
-            return 0
-          fi
-        else
-          echo "Attempt ${i}: service not running yet"
-        fi
-      fi
-    else
+    if [[ "$status" != "1" ]]; then
       echo "Attempt ${i}: clippy service not running"
+      sleep "$sleep_s"
+      continue
     fi
-    sleep "$sleep_s"
+
+    if ! body="$(compose "$environment" exec -T "$service" wget -qO- http://127.0.0.1:3000/api/health 2>/dev/null)"; then
+      local cid health
+      cid="$(compose "$environment" ps -q "$service" 2>/dev/null || true)"
+      if [[ -n "$cid" ]]; then
+        health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$cid" 2>/dev/null || echo unknown)"
+        echo "Attempt ${i}: /api/health unreachable; container health=${health}"
+      else
+        echo "Attempt ${i}: /api/health unreachable"
+      fi
+      sleep "$sleep_s"
+      continue
+    fi
+
+    if [[ "$body" != *'"ok":true'* && "$body" != *'"ok": true'* ]]; then
+      echo "Attempt ${i}: unexpected health body: ${body}"
+      sleep "$sleep_s"
+      continue
+    fi
+
+    if [[ "$require_ready" -eq 1 ]]; then
+      if ! ready="$(compose "$environment" exec -T "$service" wget -qO- 'http://127.0.0.1:3000/api/status?ready=1' 2>/dev/null)"; then
+        echo "Attempt ${i}: liveness OK; readiness probe failed"
+        sleep "$sleep_s"
+        continue
+      fi
+      if [[ "$ready" == *'"status":"unavailable"'* || "$ready" == *'"status": "unavailable"'* ]]; then
+        echo "Attempt ${i}: liveness OK; status unavailable"
+        sleep "$sleep_s"
+        continue
+      fi
+      echo "Health+ready OK on attempt ${i}"
+      return 0
+    fi
+
+    echo "Health OK on attempt ${i}: ${body}"
+    return 0
   done
   echo "Health check failed after ${retries} attempts" >&2
   compose "$environment" ps >&2 || true

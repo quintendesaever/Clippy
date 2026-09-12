@@ -83,6 +83,22 @@ jobs:
       - name: Checkout (deploy scripts)
         uses: actions/checkout@v4
 
+      - name: Require Tailscale + deploy secrets
+        env:
+          TS_OAUTH_CLIENT_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          TS_OAUTH_SECRET: ${{ secrets.TS_OAUTH_SECRET }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          missing=0
+          [[ -n "${TS_OAUTH_CLIENT_ID}" ]] || { echo "Missing secret TS_OAUTH_CLIENT_ID"; missing=1; }
+          [[ -n "${TS_OAUTH_SECRET}" ]] || { echo "Missing secret TS_OAUTH_SECRET"; missing=1; }
+          [[ -n "${DEPLOY_SSH_KEY}" ]] || { echo "Missing secret DEPLOY_SSH_KEY"; missing=1; }
+          if [[ "$missing" -ne 0 ]]; then
+            echo "See /data/docs/history/CLIPPY_CD_OPERATOR_UNBLOCK_2026-09-12.md (or docs/deployment.md)"
+            exit 1
+          fi
+
       - name: Connect Tailscale
         uses: tailscale/github-action@v4
         with:
@@ -96,7 +112,6 @@ jobs:
           IMAGE: ${{ needs.build-and-push.outputs.image }}
         run: |
           set -euo pipefail
-          test -n "${DEPLOY_SSH_KEY}" || { echo "DEPLOY_SSH_KEY secret missing"; exit 1; }
           install -m 600 /dev/null "${RUNNER_TEMP}/deploy_key"
           printf '%s\n' "${DEPLOY_SSH_KEY}" > "${RUNNER_TEMP}/deploy_key"
           # shellcheck disable=SC2029
@@ -120,6 +135,19 @@ jobs:
     steps:
       - name: Checkout (deploy scripts)
         uses: actions/checkout@v4
+
+      - name: Require Tailscale + deploy secrets
+        env:
+          TS_OAUTH_CLIENT_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          TS_OAUTH_SECRET: ${{ secrets.TS_OAUTH_SECRET }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          missing=0
+          [[ -n "${TS_OAUTH_CLIENT_ID}" ]] || { echo "Missing secret TS_OAUTH_CLIENT_ID"; missing=1; }
+          [[ -n "${TS_OAUTH_SECRET}" ]] || { echo "Missing secret TS_OAUTH_SECRET"; missing=1; }
+          [[ -n "${DEPLOY_SSH_KEY}" ]] || { echo "Missing secret DEPLOY_SSH_KEY"; missing=1; }
+          [[ "$missing" -eq 0 ]] || exit 1
 
       - name: Connect Tailscale
         uses: tailscale/github-action@v4
