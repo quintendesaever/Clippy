@@ -175,8 +175,13 @@ export function createDashboardApp(): express.Express {
   const app = express();
   app.set("trust proxy", 1);
 
+  // Staging is served over plain HTTP on Tailscale. Helmet's default
+  // upgrade-insecure-requests + HSTS force the browser onto HTTPS → white screen.
+  const dashboardIsHttps = DASHBOARD_URL.startsWith("https://");
+
   app.use(
     helmet({
+      hsts: dashboardIsHttps ? undefined : false,
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
@@ -187,6 +192,7 @@ export function createDashboardApp(): express.Express {
           frameAncestors: ["'none'"],
           objectSrc: ["'none'"],
           baseUri: ["'self'"],
+          upgradeInsecureRequests: dashboardIsHttps ? [] : null,
         },
       },
       crossOriginEmbedderPolicy: false,
@@ -198,7 +204,7 @@ export function createDashboardApp(): express.Express {
       name: "clippy_session",
       keys: [SESSION_SECRET],
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      secure: isProduction,
+      secure: dashboardIsHttps,
       sameSite: "lax",
       httpOnly: true,
     })
@@ -802,7 +808,7 @@ export function createDashboardApp(): express.Express {
     const user = session?.user && session.guildVerified ? session.user : undefined;
     const result = await recordDashboardPageView(req, res, {
       user,
-      secure: isProduction,
+      secure: dashboardIsHttps,
     });
     if (!result.ok) {
       res.status(result.status).json({ error: result.error });
