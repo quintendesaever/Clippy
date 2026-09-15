@@ -94,7 +94,13 @@ export default function EventPopup({
 
   return (
     <div className="eventPopupOverlay" onClick={onClose}>
-      <div className="eventPopup" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="eventPopup"
+        role="dialog"
+        aria-modal="true"
+        aria-label={webCalendarTitle(event, showTypePrefix)}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="eventPopupHeader">
           <h3 className="eventPopupTitle">{webCalendarTitle(event, showTypePrefix)}</h3>
           <button
@@ -103,7 +109,7 @@ export default function EventPopup({
             onClick={onClose}
             aria-label="Sluiten"
           >
-            ×
+            <span aria-hidden="true">×</span>
           </button>
         </div>
         <dl className="eventPopupBody">
