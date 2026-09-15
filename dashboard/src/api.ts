@@ -5,6 +5,8 @@ import type {
   AdminStatsResponse,
   AdminStatusReport,
   AdminUsersResponse,
+  BotSettingsPatch,
+  BotSettingsPayload,
   DiscordAdminStatsResponse,
   CalendarResponse,
   CalendarsResponse,
@@ -83,6 +85,17 @@ export async function getAdminUsers(): Promise<AdminUsersResponse> {
 
 export async function getAdminStatus(): Promise<AdminStatusReport> {
   return fetchApi<AdminStatusReport>("/api/admin/status");
+}
+
+export async function getBotSettings(): Promise<BotSettingsPayload> {
+  return fetchApi<BotSettingsPayload>("/api/admin/bot-settings");
+}
+
+export async function saveBotSettings(patch: BotSettingsPatch): Promise<BotSettingsPayload> {
+  return fetchApi<BotSettingsPayload>("/api/admin/bot-settings", {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
 }
 
 export async function logout(): Promise<void> {

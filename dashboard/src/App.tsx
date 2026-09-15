@@ -6,6 +6,7 @@ import { PreferencesProvider } from "./hooks/usePreferences";
 import { ThemeProvider } from "./hooks/useTheme";
 import type { MeResponse } from "./types";
 import Admin from "./pages/Admin";
+import BotSettings from "./pages/BotSettings";
 import DiscordAdmin from "./pages/DiscordAdmin";
 import Forbidden from "./pages/Forbidden";
 import Login from "./pages/Login";
@@ -39,6 +40,10 @@ function AuthedRoutes({ me }: { me: MeResponse }) {
           element={
             me.is_admin ? <OperationalStatus user={me.user} /> : <Forbidden user={me.user} />
           }
+        />
+        <Route
+          path="/admin/bot"
+          element={me.is_admin ? <BotSettings user={me.user} /> : <Forbidden user={me.user} />}
         />
         <Route path="*" element={<Navigate to="/timetable" replace />} />
       </Routes>
