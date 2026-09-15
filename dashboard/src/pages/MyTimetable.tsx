@@ -28,7 +28,7 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
     shiftWeek,
     goToThisWeek,
     refetch,
-  } = useWeekTimetable();
+  } = useWeekTimetable({ scope: "personal" });
   const { layout, setLayout, showToggle, useAgenda } = useTimetableLayout();
   const { scale, decrease, increase, canDecrease, canIncrease } = useTimetableFontScale();
   const activityUi = useTimetableActivityUi(activities);

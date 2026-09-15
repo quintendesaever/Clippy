@@ -97,8 +97,15 @@ export async function getCalendars(): Promise<CalendarsResponse> {
   return fetchApi<CalendarsResponse>("/api/calendars");
 }
 
-export async function getTimetable(from: string, to: string): Promise<TimetableResponse> {
+export async function getTimetable(
+  from: string,
+  to: string,
+  options?: { scope?: "shared" | "personal" }
+): Promise<TimetableResponse> {
   const params = new URLSearchParams({ from, to });
+  if (options?.scope === "personal") {
+    params.set("scope", "personal");
+  }
   return fetchApi<TimetableResponse>(`/api/timetable?${params}`);
 }
 

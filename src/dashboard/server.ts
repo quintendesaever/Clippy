@@ -535,14 +535,18 @@ export function createDashboardApp(): express.Express {
       return;
     }
 
+    const scope = req.query.scope === "personal" ? "personal" : "shared";
+
     try {
-      const hasIcs = await memberHasConnectedIcs(guildId, viewerUserId);
-      if (!hasIcs) {
-        res.status(403).json({
-          error: "ICS calendar connection required",
-          code: "ics_required",
-        });
-        return;
+      if (scope === "shared") {
+        const hasIcs = await memberHasConnectedIcs(guildId, viewerUserId);
+        if (!hasIcs) {
+          res.status(403).json({
+            error: "ICS calendar connection required",
+            code: "ics_required",
+          });
+          return;
+        }
       }
 
       const timetable = await getGuildTimetableForDates(guildId, from, to);
@@ -563,16 +567,34 @@ export function createDashboardApp(): express.Express {
       const activities = timetable.events
         .filter((event) => event.source === "activity")
         .map(serialize);
+      const members = timetable.members.map((member) => ({
+        userId: member.userId,
+        initials: member.initials,
+        color: member.color,
+        error: member.error ?? null,
+      }));
+
+      if (scope === "personal") {
+        const personalActivities = activities.filter(
+          (event) =>
+            event.createdBy === viewerUserId ||
+            (event.participantIds ?? []).includes(viewerUserId)
+        );
+        res.json({
+          events: [...(eventsByUser[viewerUserId] ?? []), ...personalActivities],
+          eventsByUser: { [viewerUserId]: eventsByUser[viewerUserId] ?? [] },
+          activities: personalActivities,
+          members: members.filter((member) => member.userId === viewerUserId),
+          timezone: timetable.guildTimezone,
+        });
+        return;
+      }
+
       res.json({
         events: timetable.events.map(serialize),
         eventsByUser,
         activities,
-        members: timetable.members.map((member) => ({
-          userId: member.userId,
-          initials: member.initials,
-          color: member.color,
-          error: member.error ?? null,
-        })),
+        members,
         timezone: timetable.guildTimezone,
       });
     } catch (err) {

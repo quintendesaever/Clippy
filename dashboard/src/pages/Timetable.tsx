@@ -15,10 +15,11 @@ import { useWeekTimetable } from "../hooks/useWeekTimetable";
 import { DAY_LABELS, eventDayKey, getWeekMondayKey } from "../lib/dates";
 import type { CalendarMember, DiscordUser } from "../types";
 
-type AccessState = "loading" | "allowed" | "blocked";
+type AccessState = "loading" | "allowed" | "blocked" | "error";
 
 export default function Timetable({ user }: { user: DiscordUser }) {
   const [access, setAccess] = useState<AccessState>("loading");
+  const [accessError, setAccessError] = useState<string | null>(null);
   const allowed = access === "allowed";
 
   const {
@@ -32,7 +33,7 @@ export default function Timetable({ user }: { user: DiscordUser }) {
     shiftWeek,
     goToThisWeek,
     refetch,
-  } = useWeekTimetable({ enabled: allowed });
+  } = useWeekTimetable({ enabled: allowed, scope: "shared" });
   const { isMobile, layout, setLayout, showToggle, useAgenda } = useTimetableLayout();
   const { scale, decrease, increase, canDecrease, canIncrease } = useTimetableFontScale();
   const activityUi = useTimetableActivityUi(activities);
@@ -63,13 +64,16 @@ export default function Timetable({ user }: { user: DiscordUser }) {
   useEffect(() => {
     let cancelled = false;
     setAccess("loading");
+    setAccessError(null);
     getCalendar()
       .then((r) => {
         if (cancelled) return;
         setAccess(r.calendar?.ics_url?.trim() ? "allowed" : "blocked");
       })
-      .catch(() => {
-        if (!cancelled) setAccess("blocked");
+      .catch((err) => {
+        if (cancelled) return;
+        setAccess("error");
+        setAccessError(err instanceof Error ? err.message : "Kalenderstatus laden mislukt");
       });
     return () => {
       cancelled = true;
@@ -171,6 +175,37 @@ export default function Timetable({ user }: { user: DiscordUser }) {
         hideChrome
       >
         <p className="timetableLoading">Rooster laden…</p>
+      </TimetablePageShell>
+    );
+  }
+
+  if (access === "error") {
+    return (
+      <TimetablePageShell
+        user={user}
+        timezone={timezone}
+        fontScale={scale}
+        avatarByUser={avatarByUser}
+        error={accessError}
+        onAddActivity={() => {}}
+        onDecreaseFont={decrease}
+        onIncreaseFont={increase}
+        canDecreaseFont={canDecrease}
+        canIncreaseFont={canIncrease}
+        popupEvent={null}
+        onClosePopup={() => {}}
+        onEditEvent={() => {}}
+        onPopupDeleted={() => {}}
+        onPopupChanged={() => {}}
+        formOpen={false}
+        formMode="create"
+        editEvent={null}
+        formPrefill={null}
+        onCloseForm={() => {}}
+        onFormSaved={() => {}}
+        hideChrome
+      >
+        <p className="timetableEmpty">Kon niet controleren of je kalender gekoppeld is. Probeer opnieuw.</p>
       </TimetablePageShell>
     );
   }

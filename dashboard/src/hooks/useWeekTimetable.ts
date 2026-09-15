@@ -5,8 +5,12 @@ import type { TimetableEventDto, TimetableMemberDto } from "../types";
 
 const DEFAULT_TIMEZONE = "Europe/Brussels";
 
-export function useWeekTimetable(options?: { enabled?: boolean }) {
+export function useWeekTimetable(options?: {
+  enabled?: boolean;
+  scope?: "shared" | "personal";
+}) {
   const enabled = options?.enabled !== false;
+  const scope = options?.scope ?? "shared";
   const [timezone, setTimezone] = useState(DEFAULT_TIMEZONE);
   const [weekStart, setWeekStart] = useState(() => getWeekMondayKey(new Date(), DEFAULT_TIMEZONE));
   const [eventsByUser, setEventsByUser] = useState<Record<string, TimetableEventDto[]>>({});
@@ -36,7 +40,7 @@ export function useWeekTimetable(options?: { enabled?: boolean }) {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    getTimetable(from, to)
+    getTimetable(from, to, { scope })
       .then((r) => {
         if (cancelled) return;
         setEventsByUser(r.eventsByUser);
@@ -54,7 +58,7 @@ export function useWeekTimetable(options?: { enabled?: boolean }) {
     return () => {
       cancelled = true;
     };
-  }, [enabled, from, to, reloadToken]);
+  }, [enabled, from, to, reloadToken, scope]);
 
   function shiftWeek(delta: number) {
     setWeekStart(addCalendarDays(weekStart, delta * 7));
