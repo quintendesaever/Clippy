@@ -5,11 +5,16 @@ import AppShell from "../components/AppShell";
 import Button from "../components/Button";
 import PageLayout from "../components/PageLayout";
 import PagePanel from "../components/PagePanel";
-import { useTheme, type ThemePreference } from "../hooks/useTheme";
+import { useTheme, type ThemePalette, type ThemePreference } from "../hooks/useTheme";
 import { usePreferences } from "../hooks/usePreferences";
 import type { CalendarEntry, DiscordUser } from "../types";
 
-const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
+const PALETTE_OPTIONS: { value: ThemePalette; label: string; hint: string }[] = [
+  { value: "modern", label: "Modern", hint: "Huidige dashboardkleuren" },
+  { value: "classic", label: "Classic", hint: "Discord-achtige kleuren van het vorige dashboard" },
+];
+
+const MODE_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: "dark", label: "Donker" },
   { value: "light", label: "Licht" },
   { value: "system", label: "Systeem" },
@@ -53,7 +58,7 @@ function PreferenceToggle({
 }
 
 export default function Settings({ user }: { user: DiscordUser }) {
-  const { preference, setPreference } = useTheme();
+  const { preference, setPreference, palette, setPalette } = useTheme();
   const { showTypePrefix, setShowTypePrefix, shareLocation, setShareLocation } = usePreferences();
   const [initials, setInitials] = useState("");
   const [icsUrl, setIcsUrl] = useState("");
@@ -163,10 +168,40 @@ export default function Settings({ user }: { user: DiscordUser }) {
           <PagePanel className="pagePanelNarrow">
             <h2 className="cardTitle">Weergave</h2>
             <p className="cardHint">
-              Thema voor dit apparaat. Wordt lokaal bewaard en niet gesynchroniseerd via je account.
+              Thema en kleurmodus voor dit apparaat. Worden lokaal bewaard en niet gesynchroniseerd via
+              je account.
             </p>
-            <div className="topBarTabs themePicker" role="radiogroup" aria-label="Thema">
-              {THEME_OPTIONS.map((option) => (
+            <p className="settingsFieldLabel" id="theme-palette-label">
+              Thema
+            </p>
+            <div
+              className="topBarTabs themePicker"
+              role="radiogroup"
+              aria-labelledby="theme-palette-label"
+            >
+              {PALETTE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={palette === option.value}
+                  title={option.hint}
+                  className={`topBarTab ${palette === option.value ? "topBarTabActive" : ""}`}
+                  onClick={() => setPalette(option.value)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <p className="settingsFieldLabel" id="theme-mode-label">
+              Kleurmodus
+            </p>
+            <div
+              className="topBarTabs themePicker"
+              role="radiogroup"
+              aria-labelledby="theme-mode-label"
+            >
+              {MODE_OPTIONS.map((option) => (
                 <button
                   key={option.value}
                   type="button"
