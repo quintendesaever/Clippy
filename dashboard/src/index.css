@@ -63,9 +63,9 @@ a:hover {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--space-3);
   min-height: var(--topbar-height);
-  padding: 0.75rem 1.5rem;
+  padding: var(--space-3) var(--space-5);
   background: var(--color-bg-elevated);
   border-bottom: 1px solid var(--color-border);
 }
@@ -76,14 +76,15 @@ a:hover {
 
 .topBarTitle {
   margin: 0;
-  font-size: 1.125rem;
-  font-weight: 600;
-  line-height: 1.3;
+  font-size: var(--font-size-lg);
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
 }
 
 .topBarSubtitle {
   margin: 0.15rem 0 0;
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
 
@@ -91,13 +92,13 @@ a:hover {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-2) var(--space-3);
 }
 
 .pageLayoutContent {
   flex: 1;
   min-height: 0;
-  padding: 1.5rem;
+  padding: var(--space-5);
   overflow-y: auto;
 }
 
@@ -225,13 +226,13 @@ a:hover {
 .pagePanel {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-panel);
-  padding: 1.25rem 1.5rem;
+  padding: var(--space-4) var(--space-5);
 }
 
 .pagePanel + .pagePanel {
-  margin-top: 1rem;
+  margin-top: var(--space-3);
 }
 
 .pagePanelNarrow {
@@ -246,7 +247,7 @@ a:hover {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  background: var(--color-bg-elevated);
+  background: var(--color-bg-sidebar);
   border-right: 1px solid var(--color-border);
   min-height: 100vh;
   position: sticky;
@@ -257,16 +258,17 @@ a:hover {
 .sidebarBrand {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 1.25rem 1rem 1rem;
-  font-weight: 600;
-  font-size: 1.125rem;
+  gap: 0.55rem;
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  font-weight: 700;
+  font-size: var(--font-size-lg);
+  letter-spacing: -0.02em;
   color: var(--color-text);
 }
 
 .sidebarLogoIcon {
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 1.625rem;
+  height: 1.625rem;
   object-fit: contain;
   flex-shrink: 0;
   display: block;
@@ -275,64 +277,95 @@ a:hover {
 .sidebarNav {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
-  padding: 0 0.75rem;
+  gap: var(--space-4);
+  padding: 0 var(--space-2) var(--space-3);
   flex: 1;
+  overflow-y: auto;
+}
+
+.sidebarSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
 }
 
 .sidebarSectionLabel {
-  margin: 0 0 0.35rem 0.5rem;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  margin: 0 0 var(--space-1) 0.65rem;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--color-text-muted);
 }
 
 .sidebarLink {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.6rem 0.75rem;
-  border-radius: var(--radius-md);
+  gap: 0.55rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: var(--radius-sm);
   color: var(--color-text-muted);
-  font-size: 0.875rem;
+  font-size: var(--font-size-md);
+  font-weight: 500;
   text-decoration: none;
 }
 
 .sidebarLink:hover {
   color: var(--color-text);
-  background: color-mix(in srgb, var(--color-card) 40%, transparent);
+  background: var(--color-bg-hover);
   text-decoration: none;
 }
 
+.sidebarLink:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+}
+
 .sidebarLinkActive {
-  background: var(--color-card);
+  background: var(--color-bg-active);
   color: var(--color-text);
+  font-weight: 600;
+}
+
+.sidebarLinkActive::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.35rem;
+  bottom: 0.35rem;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--color-accent);
+}
+
+.sidebarLinkActive .sidebarNavIcon {
+  opacity: 1;
+  color: var(--color-accent);
 }
 
 .sidebarNavIcon {
   width: 1.125rem;
   height: 1.125rem;
   flex-shrink: 0;
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
 .sidebarFooter {
-  padding: 0.75rem;
+  padding: var(--space-2) var(--space-2) var(--space-3);
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-2);
+  border-top: 1px solid var(--color-border);
 }
 
 .sidebarProfileCard {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  padding: 0.65rem 0.75rem;
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  gap: 0.55rem;
+  padding: 0.45rem 0.55rem;
+  background: var(--color-bg-hover);
+  border-radius: var(--radius-sm);
   min-width: 0;
 }
 
@@ -344,7 +377,7 @@ a:hover {
 }
 
 .sidebarProfileName {
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text);
   overflow: hidden;
@@ -353,7 +386,7 @@ a:hover {
 }
 
 .sidebarProfileHandle {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -385,24 +418,37 @@ a:hover {
   background: color-mix(in srgb, var(--color-text) 8%, transparent);
 }
 
+.sidebarLogout:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 0.95rem;
   background: var(--color-accent);
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: var(--font-size-md);
+  font-weight: 600;
   cursor: pointer;
   font-family: inherit;
+  text-decoration: none;
 }
 
 .btn:hover {
   background: var(--color-accent-hover);
+  text-decoration: none;
+  color: #fff;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
 }
 
 .btn:disabled {
@@ -413,16 +459,17 @@ a:hover {
 .btnSecondary {
   background: var(--color-bg);
   color: var(--color-text);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-strong);
 }
 
 .btnSecondary:hover {
-  background: var(--color-border);
+  background: var(--color-bg-hover);
+  color: var(--color-text);
 }
 
 .btnSmall {
   padding: 0.35rem 0.65rem;
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
 }
 
 .btnBlock {
@@ -476,6 +523,7 @@ a:hover {
 .formInput:focus {
   outline: none;
   border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-soft);
 }
 
 select.formSelect {
@@ -609,50 +657,77 @@ select.formSelect {
 
 .errorMsg {
   color: var(--color-error);
-  font-size: 0.875rem;
+  font-size: var(--font-size-md);
+  margin: 0;
 }
 
 .successMsg {
   color: var(--color-success);
-  font-size: 0.875rem;
+  font-size: var(--font-size-md);
   margin-top: 0.75rem;
 }
 
 /* Login */
 .loginPage {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: var(--space-4);
   background: var(--color-bg-page);
 }
 
 .loginCard {
-  background: var(--color-card);
+  background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-panel);
-  padding: 2rem;
-  max-width: 400px;
+  border-radius: var(--radius-md);
+  padding: var(--space-6) var(--space-5);
+  max-width: 360px;
   width: 100%;
   text-align: center;
 }
 
+.loginBrand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  margin: 0 0 var(--space-3);
+}
+
+.loginBrand img {
+  width: 2rem;
+  height: 2rem;
+  object-fit: contain;
+}
+
 .loginCard h1 {
-  margin: 0 0 0.5rem;
-  font-size: 1.5rem;
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .loginCard p {
   color: var(--color-text-muted);
-  margin: 0 0 1.5rem;
+  margin: 0 0 var(--space-5);
+  font-size: var(--font-size-md);
+  line-height: 1.45;
+}
+
+.loginCard .errorMsg {
+  margin-top: var(--space-4);
+}
+
+.loginCard .btn {
+  width: 100%;
 }
 
 /* Top bar tab pills */
 .topBarTabs {
   display: inline-flex;
-  gap: 0.25rem;
+  gap: 0.2rem;
   padding: 0.2rem;
   background: var(--color-bg-page);
   border: 1px solid var(--color-border);
@@ -660,12 +735,13 @@ select.formSelect {
 }
 
 .topBarTab {
-  padding: 0.35rem 0.75rem;
+  padding: 0.35rem 0.7rem;
   background: none;
   border: none;
   border-radius: calc(var(--radius-md) - 2px);
   color: var(--color-text-muted);
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
   cursor: pointer;
   font-family: inherit;
   white-space: nowrap;
@@ -673,11 +749,18 @@ select.formSelect {
 
 .topBarTab:hover {
   color: var(--color-text);
+  background: var(--color-bg-hover);
+}
+
+.topBarTab:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
 }
 
 .topBarTabActive {
-  background: var(--color-card);
+  background: var(--color-bg-active);
   color: var(--color-text);
+  font-weight: 600;
 }
 
 .themePicker {
@@ -1530,8 +1613,8 @@ select.formSelect {
   .sidebarBrand {
     grid-area: brand;
     min-height: var(--mobile-topbar-height);
-    padding: calc(env(safe-area-inset-top, 0px) + 0.5rem) 0.25rem 0.5rem 1rem;
-    background: var(--color-bg-elevated);
+    padding: calc(env(safe-area-inset-top, 0px) + 0.4rem) 0.25rem 0.4rem 0.85rem;
+    background: var(--color-bg-sidebar);
     border-bottom: 1px solid var(--color-border);
     font-size: 1rem;
   }
@@ -1541,9 +1624,10 @@ select.formSelect {
     display: flex;
     align-items: center;
     min-height: var(--mobile-topbar-height);
-    padding: calc(env(safe-area-inset-top, 0px) + 0.5rem) 0.75rem 0.5rem 0.25rem;
-    background: var(--color-bg-elevated);
+    padding: calc(env(safe-area-inset-top, 0px) + 0.4rem) 0.65rem 0.4rem 0.25rem;
+    background: var(--color-bg-sidebar);
     border-bottom: 1px solid var(--color-border);
+    border-top: none;
   }
 
   .sidebarProfileCard {
@@ -1564,11 +1648,23 @@ select.formSelect {
     flex: unset;
     justify-content: stretch;
     align-items: stretch;
-    gap: 0.15rem;
-    padding: 0.4rem 0.35rem calc(0.5rem + env(safe-area-inset-bottom, 0px));
-    background: var(--color-bg-elevated);
+    gap: 0.1rem;
+    padding: 0.3rem 0.25rem calc(0.4rem + env(safe-area-inset-bottom, 0px));
+    background: var(--color-bg-sidebar);
     border-top: 1px solid var(--color-border);
     z-index: 20;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .sidebarNav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sidebarSection {
+    display: contents;
   }
 
   .sidebarSectionLabel {
@@ -1576,15 +1672,30 @@ select.formSelect {
   }
 
   .sidebarLink {
-    flex: 1;
+    flex: 1 1 0;
     flex-direction: column;
     justify-content: center;
-    gap: 0.2rem;
+    gap: 0.15rem;
+    min-width: 3.25rem;
     min-height: unset;
-    padding: 0.45rem 0.25rem 0.4rem;
+    padding: 0.4rem 0.2rem 0.35rem;
     border-radius: var(--radius-sm);
-    font-size: 0.6875rem;
+    font-size: 0.625rem;
+    font-weight: 500;
     text-align: center;
+  }
+
+  .sidebarLinkActive {
+    background: var(--color-accent-soft);
+    color: var(--color-text);
+  }
+
+  .sidebarLinkActive::before {
+    display: none;
+  }
+
+  .sidebarLinkActive .sidebarNavIcon {
+    color: var(--color-accent);
   }
 
   .sidebarLinkLabel {
@@ -1595,8 +1706,8 @@ select.formSelect {
   }
 
   .sidebarNavIcon {
-    width: 1.25rem;
-    height: 1.25rem;
+    width: 1.2rem;
+    height: 1.2rem;
   }
 
   .appContentColumn {
@@ -1612,7 +1723,7 @@ select.formSelect {
   }
 
   .topBar {
-    padding: 0.65rem 0.75rem;
+    padding: 0.55rem 0.75rem;
     min-height: unset;
   }
 
@@ -1644,7 +1755,7 @@ select.formSelect {
   }
 
   .pagePanel {
-    padding: 1rem;
+    padding: 0.85rem 0.95rem;
   }
 
   .timetableToolbar {
@@ -1762,7 +1873,7 @@ select.formSelect {
 .adminStatCard {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-panel);
   padding: 1rem 1.1rem;
 }
