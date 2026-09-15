@@ -12,7 +12,7 @@ import {
   recordMemberCountSnapshot,
 } from "./stats/liveHandlers.js";
 import { ensureGuild } from "./stats/helpers.js";
-import { syncGuildMembers } from "./stats/members.js";
+import { syncGuildMembers, markMemberLeft } from "./stats/members.js";
 import { startF1ReminderJob } from "./f1/reminderJob.js";
 import { startTimetablePanelJob } from "./calendar/timetablePanelJob.js";
 import { handleTimetableButton } from "./calendar/timetableInteractions.js";
@@ -64,10 +64,15 @@ client.once("clientReady", async () => {
   const guild = client.guilds.cache.get(guildId);
   if (guild) {
     ensureGuild(guildId).catch((err) => console.error("stats: ensure guild:", err));
-    syncGuildMembers(guild).catch((err) => console.error("stats: sync members:", err));
-    recordMemberCountSnapshot(guildId, guild.memberCount).catch((err) =>
-      console.error("stats: member count snapshot:", err)
-    );
+    syncGuildMembers(guild)
+      .then((result) => {
+        if (result.error) {
+          console.error("stats: sync members:", result.error);
+          return;
+        }
+        return recordMemberCountSnapshot(guildId, result.humanCount);
+      })
+      .catch((err) => console.error("stats: sync members / snapshot:", err));
   } else {
     console.warn(`Bot is not in configured GUILD_ID=${guildId}`);
   }
@@ -168,9 +173,10 @@ client.on("interactionCreate", async (interaction) => {
 client.on("guildMemberRemove", async (member) => {
   if (member.guild.id !== guildId) return;
   try {
+    await markMemberLeft(guildId, member.id);
     await deleteMemberCalendar(guildId, member.id);
   } catch (err) {
-    console.error("guildMemberRemove calendar cleanup:", err);
+    console.error("guildMemberRemove cleanup:", err);
   }
 });
 
