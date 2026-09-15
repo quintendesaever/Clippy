@@ -81,7 +81,9 @@ export async function loadAdminStatsPayload(
       .select(
         "user_id, share_location, last_country, last_region, last_city, last_dashboard_at, avatar_hash"
       )
-      .eq("guild_id", guildId),
+      .eq("guild_id", guildId)
+      .is("left_guild_at", null)
+      .eq("is_bot", false),
     supabase.from("timetable_activities").select("id, created_by, start_at").eq("guild_id", guildId),
     supabase
       .from("timetable_activity_participants")

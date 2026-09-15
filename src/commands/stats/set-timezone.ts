@@ -150,7 +150,10 @@ export const setTimezone: Command = {
         }
 
         await interaction.editReply(
-          `Synced **${result.count}** member(s) to the database (user IDs and avatar hashes).`
+          `Synced **${result.humanCount}** human member(s) to the database` +
+            (result.count !== result.humanCount
+              ? ` (${result.count - result.humanCount} bot(s) stored but excluded from stats).`
+              : ".")
         );
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);

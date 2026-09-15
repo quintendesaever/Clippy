@@ -21,7 +21,6 @@ type MemberRow = {
   username?: string | null;
 };
 type CalendarRow = { user_id: string; initials: string | null };
-type SnapshotRow = { recorded_at: string; member_count: number };
 
 async function fetchPaginatedMessages(
   guildId: string,
@@ -144,7 +143,6 @@ export async function loadDiscordStatsPayload(
     channelsRes,
     membersRes,
     calendarsRes,
-    snapshotRes,
     snapshotsRes,
     eventsRes,
   ] = await Promise.all([
@@ -157,15 +155,13 @@ export async function loadDiscordStatsPayload(
       .eq("guild_id", guildId),
     voiceTotalQuery,
     supabase.from("channels").select("channel_id, name").eq("guild_id", guildId),
-    supabase.from("members").select("user_id, avatar_hash, display_name, username").eq("guild_id", guildId),
-    supabase.from("member_calendars").select("user_id, initials").eq("guild_id", guildId),
     supabase
-      .from("member_count_snapshots")
-      .select("recorded_at, member_count")
+      .from("members")
+      .select("user_id, avatar_hash, display_name, username")
       .eq("guild_id", guildId)
-      .order("recorded_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+      .is("left_guild_at", null)
+      .eq("is_bot", false),
+    supabase.from("member_calendars").select("user_id, initials").eq("guild_id", guildId),
     snapshotsQuery,
     eventsQuery,
   ]);
@@ -177,14 +173,12 @@ export async function loadDiscordStatsPayload(
   if (channelsRes.error) throw new Error(channelsRes.error.message);
   if (membersRes.error) throw new Error(membersRes.error.message);
   if (calendarsRes.error) throw new Error(calendarsRes.error.message);
-  if (snapshotRes.error) throw new Error(snapshotRes.error.message);
   if (snapshotsRes.error) throw new Error(snapshotsRes.error.message);
   if (eventsRes.error) throw new Error(eventsRes.error.message);
 
   const voiceSessions = (voiceRes.data ?? []) as DiscordVoiceRow[];
   const channels = (channelsRes.data ?? []) as ChannelNameRow[];
   const members = (membersRes.data ?? []) as MemberRow[];
-  const snapshot = (snapshotRes.data ?? null) as SnapshotRow | null;
   const channelNameById = new Map(
     channels.map((row) => [row.channel_id, row.name?.trim() || "unknown"])
   );
@@ -206,8 +200,8 @@ export async function loadDiscordStatsPayload(
     to: bounds.to,
     fromDayKey: bounds.fromDayKey,
     toDayKey: bounds.toDayKey,
-    memberCount: snapshot?.member_count ?? members.length,
-    memberCountRecordedAt: snapshot?.recorded_at ?? null,
+    memberCount: members.length,
+    memberCountRecordedAt: null,
     deletedInRange: deletedRes.count ?? 0,
     snapshots: (snapshotsRes.data ?? []) as { recorded_at: string; member_count: number }[],
     events: (eventsRes.data ?? []) as AnalyticsEventRow[],
