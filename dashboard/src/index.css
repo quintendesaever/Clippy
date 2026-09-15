@@ -1975,7 +1975,11 @@ select.formSelect {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 0.65rem;
-  margin-bottom: 0.65rem;
+  margin-bottom: 0;
+}
+
+.adminSectionStack > .adminStatGrid + .adminStatGrid {
+  margin-top: 0;
 }
 
 .adminStatGridPrimary {
@@ -1984,7 +1988,6 @@ select.formSelect {
 
 .adminStatGridSecondary {
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  margin-bottom: 0;
 }
 
 .adminStatCard {
