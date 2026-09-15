@@ -137,9 +137,7 @@ export function HourChart({ hours }: { hours: { hour: number; count: number }[] 
               aria-pressed={selected}
               onMouseEnter={() => setActiveHour(item.hour)}
               onFocus={() => setActiveHour(item.hour)}
-              onClick={() =>
-                setActiveHour((current) => (current === item.hour ? null : item.hour))
-              }
+              onClick={() => setActiveHour(item.hour)}
             >
               <div
                 className="adminHourBar"
