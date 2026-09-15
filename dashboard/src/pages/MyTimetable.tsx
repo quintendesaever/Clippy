@@ -1,19 +1,15 @@
 import { withoutEmptyWeekendDays } from "@shared/timetable/weekDays";
-import { useEffect, useMemo, useState } from "react";
-import ActivityForm, { type ActivityFormPrefill } from "../components/ActivityForm";
-import AppShell from "../components/AppShell";
-import EventPopup from "../components/EventPopup";
+import { useMemo } from "react";
 import PagePanel from "../components/PagePanel";
-import TimetableAddActivityButton from "../components/TimetableAddActivityButton";
-import TimetableFontSizeControls from "../components/TimetableFontSizeControls";
-import TimetableLayoutToggle from "../components/TimetableLayoutToggle";
+import TimetablePageShell from "../components/TimetablePageShell";
+import TimetableToolbar from "../components/TimetableToolbar";
 import WeekAgendaList from "../components/WeekAgendaList";
 import WeekGrid from "../components/WeekGrid";
-import WeekNav from "../components/WeekNav";
+import { useTimetableActivityUi } from "../hooks/useTimetableActivityUi";
 import { useTimetableFontScale } from "../hooks/useTimetableFontScale";
 import { useTimetableLayout } from "../hooks/useTimetableLayout";
 import { useWeekTimetable } from "../hooks/useWeekTimetable";
-import { DAY_LABELS, eventDayKey, formatWeekRange } from "../lib/dates";
+import { DAY_LABELS, eventDayKey, getWeekMondayKey } from "../lib/dates";
 import type { DiscordUser, TimetableEventDto } from "../types";
 
 function isPersonalActivity(event: TimetableEventDto, userId: string): boolean {
@@ -35,12 +31,7 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
   } = useWeekTimetable();
   const { layout, setLayout, showToggle, useAgenda } = useTimetableLayout();
   const { scale, decrease, increase, canDecrease, canIncrease } = useTimetableFontScale();
-
-  const [popupEvent, setPopupEvent] = useState<TimetableEventDto | null>(null);
-  const [formOpen, setFormOpen] = useState(false);
-  const [formMode, setFormMode] = useState<"create" | "edit">("create");
-  const [editEvent, setEditEvent] = useState<TimetableEventDto | null>(null);
-  const [formPrefill, setFormPrefill] = useState<ActivityFormPrefill | null>(null);
+  const activityUi = useTimetableActivityUi(activities);
 
   const personalActivities = useMemo(
     () => activities.filter((activity) => isPersonalActivity(activity, user.id)),
@@ -87,133 +78,87 @@ export default function MyTimetable({ user }: { user: DiscordUser }) {
     return map;
   }, [activities, user.avatar, user.id]);
 
-  useEffect(() => {
-    if (!popupEvent?.id) return;
-    const updated = activities.find((activity) => activity.id === popupEvent.id);
-    if (updated) setPopupEvent(updated);
-  }, [activities, popupEvent?.id]);
-
-  function openCreate(prefill?: ActivityFormPrefill | null) {
-    setFormMode("create");
-    setEditEvent(null);
-    setFormPrefill(prefill ?? null);
-    setFormOpen(true);
-  }
-
-  function openEdit(event: TimetableEventDto) {
-    setFormMode("edit");
-    setEditEvent(event);
-    setFormPrefill(null);
-    setFormOpen(true);
-  }
-
   const ownCalendarError = members.find((member) => member.userId === user.id && member.error);
   const hasWeekData = dayDates.length > 0;
+  const isCurrentWeek =
+    hasWeekData && dayDates[0] === getWeekMondayKey(new Date(), timezone);
 
   return (
-    <AppShell user={user}>
-      <div
-        className="pageLayout timetablePage"
-        style={{ "--tt-font-scale": scale } as React.CSSProperties}
-      >
-        <div className="pageLayoutContent">
-          {error && <p className="errorMsg">{error}</p>}
+    <TimetablePageShell
+      user={user}
+      timezone={timezone}
+      fontScale={scale}
+      avatarByUser={avatarByUser}
+      error={error}
+      onAddActivity={() => activityUi.openCreate()}
+      onDecreaseFont={decrease}
+      onIncreaseFont={increase}
+      canDecreaseFont={canDecrease}
+      canIncreaseFont={canIncrease}
+      popupEvent={activityUi.popupEvent}
+      onClosePopup={activityUi.closePopup}
+      onEditEvent={activityUi.openEdit}
+      onPopupDeleted={() => {
+        activityUi.closePopup();
+        refetch();
+      }}
+      onPopupChanged={refetch}
+      formOpen={activityUi.formOpen}
+      formMode={activityUi.formMode}
+      editEvent={activityUi.editEvent}
+      formPrefill={activityUi.formPrefill}
+      onCloseForm={activityUi.closeForm}
+      onFormSaved={() => {
+        activityUi.closeForm();
+        refetch();
+      }}
+    >
+      {hasWeekData && (
+        <>
+          <TimetableToolbar
+            dayDates={dayDates}
+            loading={loading}
+            onPrev={() => shiftWeek(-1)}
+            onThisWeek={goToThisWeek}
+            onNext={() => shiftWeek(1)}
+            showToggle={showToggle}
+            layout={layout}
+            onLayoutChange={setLayout}
+            timelineLabel="Rooster"
+            isCurrentWeek={isCurrentWeek}
+          />
 
-          {hasWeekData && (
-            <>
-              <div className="timetableToolbar">
-                <WeekNav
-                  onPrev={() => shiftWeek(-1)}
-                  onThisWeek={goToThisWeek}
-                  onNext={() => shiftWeek(1)}
-                  disabled={loading}
-                />
-                {showToggle && (
-                  <TimetableLayoutToggle value={layout} onChange={setLayout} />
-                )}
-                <span
-                  className={`timetableWeekLabel${loading ? " timetableWeekLabelLoading" : ""}`}
-                >
-                  <span className="timetableWeekRange">
-                    {formatWeekRange(dayDates[0], dayDates[dayDates.length - 1])}
-                  </span>
-                  {loading && (
-                    <span className="timetableLoading" role="status">
-                      Rooster laden…
-                    </span>
-                  )}
-                </span>
-              </div>
-
-              {ownCalendarError && (
-                <p className="timetableEmpty">{ownCalendarError.error}</p>
-              )}
-
-              <PagePanel>
-                {useAgenda ? (
-                  personalEvents.length === 0 ? (
-                    <p className="timetableEmpty">
-                      Geen lessen of activiteiten deze week. Koppel een kalender of voeg een
-                      activiteit toe.
-                    </p>
-                  ) : (
-                    <WeekAgendaList
-                      days={weekDays}
-                      timezone={timezone}
-                      avatarByUser={avatarByUser}
-                      onEventClick={setPopupEvent}
-                    />
-                  )
-                ) : (
-                  <WeekGrid
-                    dayDates={visibleDayDates.length > 0 ? visibleDayDates : dayDates}
-                    events={personalEvents}
-                    timezone={timezone}
-                    onEventClick={setPopupEvent}
-                    scale={scale}
-                  />
-                )}
-              </PagePanel>
-            </>
+          {ownCalendarError && (
+            <p className="timetableEmpty">{ownCalendarError.error}</p>
           )}
-        </div>
-        <TimetableAddActivityButton onClick={() => openCreate()} />
-        <TimetableFontSizeControls
-          onDecrease={decrease}
-          onIncrease={increase}
-          canDecrease={canDecrease}
-          canIncrease={canIncrease}
-        />
-      </div>
 
-      {popupEvent && (
-        <EventPopup
-          event={popupEvent}
-          currentUserId={user.id}
-          timezone={timezone}
-          avatarByUser={avatarByUser}
-          onClose={() => setPopupEvent(null)}
-          onEdit={openEdit}
-          onDeleted={() => {
-            setPopupEvent(null);
-            refetch();
-          }}
-          onChanged={refetch}
-        />
+          <PagePanel className="timetablePanel">
+            {useAgenda ? (
+              personalEvents.length === 0 ? (
+                <p className="timetableEmpty">
+                  Geen lessen of activiteiten deze week. Koppel een kalender of voeg een
+                  activiteit toe.
+                </p>
+              ) : (
+                <WeekAgendaList
+                  days={weekDays}
+                  timezone={timezone}
+                  avatarByUser={avatarByUser}
+                  onEventClick={activityUi.setPopupEvent}
+                />
+              )
+            ) : (
+              <WeekGrid
+                dayDates={visibleDayDates.length > 0 ? visibleDayDates : dayDates}
+                events={personalEvents}
+                timezone={timezone}
+                onEventClick={activityUi.setPopupEvent}
+                scale={scale}
+              />
+            )}
+          </PagePanel>
+        </>
       )}
-      {formOpen && (
-        <ActivityForm
-          mode={formMode}
-          timezone={timezone}
-          initial={editEvent}
-          prefill={formPrefill}
-          onClose={() => setFormOpen(false)}
-          onSaved={() => {
-            setFormOpen(false);
-            refetch();
-          }}
-        />
-      )}
-    </AppShell>
+    </TimetablePageShell>
   );
 }

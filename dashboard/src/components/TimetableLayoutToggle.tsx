@@ -4,9 +4,15 @@ import Button from "./Button";
 type TimetableLayoutToggleProps = {
   value: TimetableLayout;
   onChange: (layout: TimetableLayout) => void;
+  /** Label for the non-list view (timeline or personal grid). */
+  timelineLabel?: string;
 };
 
-export default function TimetableLayoutToggle({ value, onChange }: TimetableLayoutToggleProps) {
+export default function TimetableLayoutToggle({
+  value,
+  onChange,
+  timelineLabel = "Tijdlijn",
+}: TimetableLayoutToggleProps) {
   return (
     <div className="timetableLayoutToggle" role="group" aria-label="Weergave">
       <Button
@@ -25,7 +31,7 @@ export default function TimetableLayoutToggle({ value, onChange }: TimetableLayo
         onClick={() => onChange("timeline")}
         aria-pressed={value === "timeline"}
       >
-        Tijdlijn
+        {timelineLabel}
       </Button>
     </div>
   );
