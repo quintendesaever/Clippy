@@ -29,6 +29,8 @@ type TimetablePageShellProps = {
   formPrefill: ActivityFormPrefill | null;
   onCloseForm: () => void;
   onFormSaved: () => void;
+  /** Hide floating add/font controls (e.g. ICS gate). */
+  hideChrome?: boolean;
 };
 
 export default function TimetablePageShell({
@@ -54,6 +56,7 @@ export default function TimetablePageShell({
   formPrefill,
   onCloseForm,
   onFormSaved,
+  hideChrome = false,
 }: TimetablePageShellProps) {
   return (
     <AppShell user={user}>
@@ -65,13 +68,17 @@ export default function TimetablePageShell({
           {error && <p className="errorMsg">{error}</p>}
           {children}
         </div>
-        <TimetableAddActivityButton onClick={onAddActivity} />
-        <TimetableFontSizeControls
-          onDecrease={onDecreaseFont}
-          onIncrease={onIncreaseFont}
-          canDecrease={canDecreaseFont}
-          canIncrease={canIncreaseFont}
-        />
+        {!hideChrome && (
+          <>
+            <TimetableAddActivityButton onClick={onAddActivity} />
+            <TimetableFontSizeControls
+              onDecrease={onDecreaseFont}
+              onIncrease={onIncreaseFont}
+              canDecrease={canDecreaseFont}
+              canIncrease={canIncreaseFont}
+            />
+          </>
+        )}
       </div>
 
       {popupEvent && (

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getCalendar, getCalendars } from "../api";
 import MemberFilter from "../components/MemberFilter";
 import PagePanel from "../components/PagePanel";
+import SharedTimetableGate from "../components/SharedTimetableGate";
 import TimetablePageShell from "../components/TimetablePageShell";
 import TimetableToolbar from "../components/TimetableToolbar";
 import WeekAgendaList from "../components/WeekAgendaList";
@@ -14,7 +15,13 @@ import { useWeekTimetable } from "../hooks/useWeekTimetable";
 import { DAY_LABELS, eventDayKey, getWeekMondayKey } from "../lib/dates";
 import type { CalendarMember, DiscordUser } from "../types";
 
+type AccessState = "loading" | "allowed" | "blocked" | "error";
+
 export default function Timetable({ user }: { user: DiscordUser }) {
+  const [access, setAccess] = useState<AccessState>("loading");
+  const [accessError, setAccessError] = useState<string | null>(null);
+  const allowed = access === "allowed";
+
   const {
     dayDates,
     eventsByUser,
@@ -26,7 +33,7 @@ export default function Timetable({ user }: { user: DiscordUser }) {
     shiftWeek,
     goToThisWeek,
     refetch,
-  } = useWeekTimetable();
+  } = useWeekTimetable({ enabled: allowed, scope: "shared" });
   const { isMobile, layout, setLayout, showToggle, useAgenda } = useTimetableLayout();
   const { scale, decrease, increase, canDecrease, canIncrease } = useTimetableFontScale();
   const activityUi = useTimetableActivityUi(activities);
@@ -34,7 +41,6 @@ export default function Timetable({ user }: { user: DiscordUser }) {
   const [calendars, setCalendars] = useState<CalendarMember[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [calendarError, setCalendarError] = useState<string | null>(null);
-  const [ownCalendarMissing, setOwnCalendarMissing] = useState(false);
 
   const avatarByUser = useMemo(() => {
     const map = new Map<string, string | null>();
@@ -56,6 +62,26 @@ export default function Timetable({ user }: { user: DiscordUser }) {
   }, [activities, calendars, user.avatar, user.id]);
 
   useEffect(() => {
+    let cancelled = false;
+    setAccess("loading");
+    setAccessError(null);
+    getCalendar()
+      .then((r) => {
+        if (cancelled) return;
+        setAccess(r.calendar?.ics_url?.trim() ? "allowed" : "blocked");
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setAccess("error");
+        setAccessError(err instanceof Error ? err.message : "Kalenderstatus laden mislukt");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!allowed) return;
     getCalendars()
       .then((r) => {
         setCalendars(r.calendars);
@@ -66,10 +92,7 @@ export default function Timetable({ user }: { user: DiscordUser }) {
       .catch((e) =>
         setCalendarError(e instanceof Error ? e.message : "Kalenders laden mislukt")
       );
-    getCalendar()
-      .then((r) => setOwnCalendarMissing(!r.calendar?.ics_url))
-      .catch(() => {});
-  }, []);
+  }, [allowed]);
 
   const selectedCalendars = calendars.filter((c) => selected.has(c.user_id));
 
@@ -124,6 +147,97 @@ export default function Timetable({ user }: { user: DiscordUser }) {
       else next.add(userId);
       return next;
     });
+  }
+
+  if (access === "loading") {
+    return (
+      <TimetablePageShell
+        user={user}
+        timezone={timezone}
+        fontScale={scale}
+        avatarByUser={avatarByUser}
+        onAddActivity={() => {}}
+        onDecreaseFont={decrease}
+        onIncreaseFont={increase}
+        canDecreaseFont={canDecrease}
+        canIncreaseFont={canIncrease}
+        popupEvent={null}
+        onClosePopup={() => {}}
+        onEditEvent={() => {}}
+        onPopupDeleted={() => {}}
+        onPopupChanged={() => {}}
+        formOpen={false}
+        formMode="create"
+        editEvent={null}
+        formPrefill={null}
+        onCloseForm={() => {}}
+        onFormSaved={() => {}}
+        hideChrome
+      >
+        <p className="timetableLoading">Rooster laden…</p>
+      </TimetablePageShell>
+    );
+  }
+
+  if (access === "error") {
+    return (
+      <TimetablePageShell
+        user={user}
+        timezone={timezone}
+        fontScale={scale}
+        avatarByUser={avatarByUser}
+        error={accessError}
+        onAddActivity={() => {}}
+        onDecreaseFont={decrease}
+        onIncreaseFont={increase}
+        canDecreaseFont={canDecrease}
+        canIncreaseFont={canIncrease}
+        popupEvent={null}
+        onClosePopup={() => {}}
+        onEditEvent={() => {}}
+        onPopupDeleted={() => {}}
+        onPopupChanged={() => {}}
+        formOpen={false}
+        formMode="create"
+        editEvent={null}
+        formPrefill={null}
+        onCloseForm={() => {}}
+        onFormSaved={() => {}}
+        hideChrome
+      >
+        <p className="timetableEmpty">Kon niet controleren of je kalender gekoppeld is. Probeer opnieuw.</p>
+      </TimetablePageShell>
+    );
+  }
+
+  if (access === "blocked") {
+    return (
+      <TimetablePageShell
+        user={user}
+        timezone={timezone}
+        fontScale={scale}
+        avatarByUser={avatarByUser}
+        onAddActivity={() => {}}
+        onDecreaseFont={decrease}
+        onIncreaseFont={increase}
+        canDecreaseFont={canDecrease}
+        canIncreaseFont={canIncrease}
+        popupEvent={null}
+        onClosePopup={() => {}}
+        onEditEvent={() => {}}
+        onPopupDeleted={() => {}}
+        onPopupChanged={() => {}}
+        formOpen={false}
+        formMode="create"
+        editEvent={null}
+        formPrefill={null}
+        onCloseForm={() => {}}
+        onFormSaved={() => {}}
+        hideChrome
+      >
+        <SharedTimetableGate />
+      </TimetablePageShell>
+    );
   }
 
   return (
@@ -181,12 +295,6 @@ export default function Timetable({ user }: { user: DiscordUser }) {
               />
             }
           />
-
-          {ownCalendarMissing && (
-            <p className="timetableEmpty">
-              Koppel je kalender in Instellingen om je lessen in het rooster te zien.
-            </p>
-          )}
 
           {calendars.length === 0 && activities.length === 0 && (
             <p className="timetableEmpty">

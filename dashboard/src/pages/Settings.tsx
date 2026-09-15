@@ -317,7 +317,9 @@ export default function Settings({ user }: { user: DiscordUser }) {
                     onChange={(e) => setIcsUrl(e.target.value)}
                     placeholder="https://…/calendar.ics"
                   />
-                  <span className="formCheckHint">Zonder URL geen lessen in het gedeelde rooster.</span>
+                  <span className="formCheckHint">
+                    Verplicht voor het gedeelde rooster. Zonder URL kun je dat rooster niet openen.
+                  </span>
                 </label>
                 <div className="formActions">
                   <Button type="submit" disabled={saving}>

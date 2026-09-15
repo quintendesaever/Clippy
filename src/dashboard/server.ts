@@ -28,6 +28,11 @@ import { recordAnalyticsEvent } from "./analytics/events.js";
 import { createRequireAdmin, userIsGuildAdmin } from "./adminAuth.js";
 import { loadAdminStatsPayload, loadAdminUsersPayload, parseAdminRangePreset, parseStatsUserIds } from "./adminStats.js";
 import { loadDiscordStatsPayload } from "./discordStats.js";
+import {
+  filterPersonalTimetablePayload,
+  parseTimetableScope,
+  sharedTimetableRequiresIcs,
+} from "./timetableScope.js";
 import { assertIcsUrlSafe } from "../calendar/icsFetcher.js";
 import {
   ActivityValidationError,
@@ -37,7 +42,7 @@ import {
   leaveActivity,
   updateActivity,
 } from "../calendar/activities.js";
-import { getGuildCalendarMembers } from "../calendar/memberCalendars.js";
+import { getGuildCalendarMembers, memberHasConnectedIcs } from "../calendar/memberCalendars.js";
 import { getGuildTimetableForDates } from "../calendar/timetableService.js";
 import { serializeEventForApi } from "../calendar/serializeEvent.js";
 import { inclusiveDaySpan, MAX_TIMETABLE_RANGE_DAYS } from "../../shared/timetable/dates.js";
@@ -535,7 +540,20 @@ export function createDashboardApp(): express.Express {
       return;
     }
 
+    const scope = parseTimetableScope(req.query.scope);
+
     try {
+      if (sharedTimetableRequiresIcs(scope)) {
+        const hasIcs = await memberHasConnectedIcs(guildId, viewerUserId);
+        if (!hasIcs) {
+          res.status(403).json({
+            error: "ICS calendar connection required",
+            code: "ics_required",
+          });
+          return;
+        }
+      }
+
       const timetable = await getGuildTimetableForDates(guildId, from, to);
       const { shareLocationByUser, memberGeoByUser } = await getMemberLocationPrivacy(guildId);
       const viewerIsAdmin = await userIsGuildAdmin(discordClient, guildId, viewerUserId);
@@ -554,16 +572,26 @@ export function createDashboardApp(): express.Express {
       const activities = timetable.events
         .filter((event) => event.source === "activity")
         .map(serialize);
+      const members = timetable.members.map((member) => ({
+        userId: member.userId,
+        initials: member.initials,
+        color: member.color,
+        error: member.error ?? null,
+      }));
+
+      if (scope === "personal") {
+        res.json({
+          ...filterPersonalTimetablePayload(viewerUserId, eventsByUser, activities, members),
+          timezone: timetable.guildTimezone,
+        });
+        return;
+      }
+
       res.json({
         events: timetable.events.map(serialize),
         eventsByUser,
         activities,
-        members: timetable.members.map((member) => ({
-          userId: member.userId,
-          initials: member.initials,
-          color: member.color,
-          error: member.error ?? null,
-        })),
+        members,
         timezone: timetable.guildTimezone,
       });
     } catch (err) {

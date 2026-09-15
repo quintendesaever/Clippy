@@ -5,17 +5,22 @@ import type { TimetableEventDto, TimetableMemberDto } from "../types";
 
 const DEFAULT_TIMEZONE = "Europe/Brussels";
 
-export function useWeekTimetable() {
+export function useWeekTimetable(options?: {
+  enabled?: boolean;
+  scope?: "shared" | "personal";
+}) {
+  const enabled = options?.enabled !== false;
+  const scope = options?.scope ?? "shared";
   const [timezone, setTimezone] = useState(DEFAULT_TIMEZONE);
   const [weekStart, setWeekStart] = useState(() => getWeekMondayKey(new Date(), DEFAULT_TIMEZONE));
   const [eventsByUser, setEventsByUser] = useState<Record<string, TimetableEventDto[]>>({});
   const [activities, setActivities] = useState<TimetableEventDto[]>([]);
   const [members, setMembers] = useState<TimetableMemberDto[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
-  const dayDates = useMemo(() => weekDayDates(weekStart), [weekStart]);
+  const dayDates = useMemo(() => (enabled ? weekDayDates(weekStart) : []), [enabled, weekStart]);
   const from = weekStart;
   const to = dayDates[6];
 
@@ -24,10 +29,18 @@ export function useWeekTimetable() {
   }, []);
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      setError(null);
+      setEventsByUser({});
+      setActivities([]);
+      setMembers([]);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);
-    getTimetable(from, to)
+    getTimetable(from, to, { scope })
       .then((r) => {
         if (cancelled) return;
         setEventsByUser(r.eventsByUser);
@@ -45,7 +58,7 @@ export function useWeekTimetable() {
     return () => {
       cancelled = true;
     };
-  }, [from, to, reloadToken]);
+  }, [enabled, from, to, reloadToken, scope]);
 
   function shiftWeek(delta: number) {
     setWeekStart(addCalendarDays(weekStart, delta * 7));

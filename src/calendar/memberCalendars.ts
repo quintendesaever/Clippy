@@ -1,6 +1,21 @@
 import { supabase } from "../supabase.js";
 import type { MemberCalendar } from "./types.js";
 
+/** True when the member has a non-empty ICS URL connected for this guild. */
+export async function memberHasConnectedIcs(guildId: string, userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("member_calendars")
+    .select("ics_url")
+    .eq("guild_id", guildId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to check calendar connection: ${error.message}`);
+  }
+  return Boolean(data?.ics_url?.trim());
+}
+
 export async function getGuildMemberCalendars(guildId: string): Promise<MemberCalendar[]> {
   const { data, error } = await supabase
     .from("member_calendars")
