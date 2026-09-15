@@ -3,7 +3,6 @@ import { toZonedTime } from "date-fns-tz";
 import { getAdminStatus } from "../api";
 import { StatCard } from "../components/AdminCharts";
 import AdminSection from "../components/AdminSection";
-import AdminSubnav from "../components/AdminSubnav";
 import AppShell from "../components/AppShell";
 import Button from "../components/Button";
 import PageLayout from "../components/PageLayout";
@@ -143,7 +142,6 @@ export default function OperationalStatus({ user }: { user: DiscordUser }) {
           </Button>
         }
       >
-        <AdminSubnav />
         {loading && !report && <p className="timetableLoading">Laden…</p>}
         {error && <p className="errorMsg">{error}</p>}
         {report && (
