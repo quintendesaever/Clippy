@@ -381,6 +381,17 @@ a:hover {
   gap: 0.35rem;
 }
 
+.settingsFieldLabel {
+  margin: 0.85rem 0 0.4rem;
+  font-size: var(--font-size-sm);
+  font-weight: 650;
+  color: var(--color-text);
+}
+
+.settingsFieldLabel:first-of-type {
+  margin-top: 0.15rem;
+}
+
 .settingsPrefBlock .cardHint {
   margin: 0;
 }

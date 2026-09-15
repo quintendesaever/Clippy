@@ -14,7 +14,11 @@
             (pref === "system" && matchMedia("(prefers-color-scheme: light)").matches)
               ? "light"
               : "dark";
+          var palette = localStorage.getItem("clippy.themePalette") || "modern";
+          var allowedPalettes = ["modern", "classic"];
+          if (allowedPalettes.indexOf(palette) < 0) palette = "modern";
           document.documentElement.dataset.theme = theme;
+          document.documentElement.dataset.palette = palette;
           document.documentElement.style.colorScheme = theme;
         } catch (e) {}
       })();
