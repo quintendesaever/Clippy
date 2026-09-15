@@ -2,7 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { toZonedTime } from "date-fns-tz";
 import { payloadHasUnresolvedNames } from "@shared/memberName";
 import { getAdminStats } from "../api";
-import { BarList, HourChart, StatCard } from "../components/AdminCharts";
+import {
+  AreaChart,
+  BarList,
+  DayHeatmap,
+  DonutChart,
+  HourChart,
+  StatCard,
+} from "../components/AdminCharts";
 import AppShell from "../components/AppShell";
 import MemberFilter from "../components/MemberFilter";
 import PageLayout from "../components/PageLayout";
@@ -78,6 +85,26 @@ function formatDateTime(iso: string | null, timezone: string): string {
   const hh = String(zoned.getHours()).padStart(2, "0");
   const mm = String(zoned.getMinutes()).padStart(2, "0");
   return `${d}/${m} ${hh}:${mm}`;
+}
+
+function AdminSection({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="adminSection">
+      <header className="adminSectionHead">
+        <h2 className="adminSectionTitle">{title}</h2>
+        {hint && <p className="adminSectionHint">{hint}</p>}
+      </header>
+      {children}
+    </section>
+  );
 }
 
 export default function Admin({ user }: { user: DiscordUser }) {
@@ -208,151 +235,171 @@ export default function Admin({ user }: { user: DiscordUser }) {
         {error && <p className="errorMsg">{error}</p>}
         {!loading && stats && (
           <>
-            <div className="adminStatGrid">
-              <StatCard label="Paginaweergaven" value={stats.web.pageViews} />
-              <StatCard
-                label="Unieke gebruikers"
-                value={stats.web.uniqueUsers}
-                hint="Aangemelde Discord-gebruikers"
-              />
-              <StatCard
-                label="Unieke sessies"
-                value={stats.web.uniqueSessions}
-                hint="Onderscheiden analytics-sessies"
-              />
-              <StatCard label="Bezoeken vandaag" value={stats.web.visitsToday} />
-              <StatCard label="Leden" value={stats.users.total} />
-              <StatCard label="Actief in periode" value={stats.users.active} />
-              <StatCard label="Activiteiten in periode" value={stats.activities.inRange} />
-              <StatCard
-                label="Locatie delen aan"
-                value={`${stats.users.shareLocationEnabled}/${stats.users.total}`}
-              />
-              <StatCard
-                label="Kalender gekoppeld"
-                value={`${stats.calendars?.withIcs ?? 0}/${stats.users.total}`}
-                hint="Leden met een niet-lege kalender-URL. De URL zelf wordt niet getoond."
-              />
-              <StatCard
-                label="Zonder kalender-URL"
-                value={stats.calendars?.withoutIcs ?? 0}
-                hint="Leden zonder gekoppelde ICS."
-              />
-            </div>
+            <AdminSection title="Overzicht" hint="Belangrijkste dashboardcijfers voor de gekozen periode.">
+              <div className="adminStatGrid adminStatGridPrimary">
+                <StatCard label="Paginaweergaven" value={stats.web.pageViews} />
+                <StatCard
+                  label="Unieke gebruikers"
+                  value={stats.web.uniqueUsers}
+                  hint="Aangemelde Discord-gebruikers"
+                />
+                <StatCard
+                  label="Unieke sessies"
+                  value={stats.web.uniqueSessions}
+                  hint="Onderscheiden analytics-sessies"
+                />
+                <StatCard label="Bezoeken vandaag" value={stats.web.visitsToday} />
+              </div>
+              <div className="adminStatGrid adminStatGridSecondary">
+                <StatCard compact label="Leden" value={stats.users.total} />
+                <StatCard compact label="Actief in periode" value={stats.users.active} />
+                <StatCard compact label="Activiteiten" value={stats.activities.inRange} />
+                <StatCard
+                  compact
+                  label="Nieuwe gebruikers"
+                  value={stats.users.newDashboardUsers}
+                  hint="Eerste geregistreerde bezoek in deze periode"
+                />
+                <StatCard
+                  compact
+                  label="Locatie delen"
+                  value={`${stats.users.shareLocationEnabled}/${stats.users.total}`}
+                />
+                <StatCard
+                  compact
+                  label="Kalender gekoppeld"
+                  value={`${stats.calendars?.withIcs ?? 0}/${stats.users.total}`}
+                  hint="Leden met een niet-lege kalender-URL"
+                />
+                <StatCard
+                  compact
+                  label="Zonder kalender"
+                  value={stats.calendars?.withoutIcs ?? 0}
+                />
+                <StatCard compact label="Dashboardacties" value={stats.dashboardActions.total} />
+              </div>
+            </AdminSection>
 
-            <div className="adminSplit">
-              <PagePanel>
-                <h2 className="cardTitle">Paginaweergaven in de tijd</h2>
-                <p className="cardHint">Per dag in de guild-tijdzone ({stats.timezone}).</p>
-                <BarList
+            <AdminSection
+              title="Webverkeer"
+              hint={`Trends en piekmomenten in ${stats.timezone}.`}
+            >
+              <PagePanel className="adminPanelFlush">
+                <h3 className="adminSubhead">Paginaweergaven in de tijd</h3>
+                <AreaChart
                   items={stats.web.viewsOverTime.map((row) => ({
                     label: row.day,
                     value: row.count,
                   }))}
                   empty="Nog geen paginaweergaven in deze periode."
+                  ariaLabel="Paginaweergaven per dag"
                 />
               </PagePanel>
-              <PagePanel>
-                <h2 className="cardTitle">Piekuren</h2>
-                <p className="cardHint">Wanneer het dashboard bezocht wordt.</p>
-                <HourChart hours={stats.web.peakHours} />
-              </PagePanel>
-            </div>
+              <div className="adminSplit">
+                <PagePanel>
+                  <h3 className="adminSubhead">Piekuren</h3>
+                  <p className="cardHint">Wanneer het dashboard bezocht wordt.</p>
+                  <HourChart hours={stats.web.peakHours} />
+                </PagePanel>
+                <PagePanel>
+                  <h3 className="adminSubhead">Piekdagen</h3>
+                  <p className="cardHint">Weekdagen met de meeste bezoeken.</p>
+                  <DayHeatmap
+                    days={stats.web.peakDays}
+                    empty="Nog geen paginaweergaven in deze periode."
+                  />
+                </PagePanel>
+              </div>
+            </AdminSection>
 
-            <div className="adminSplit">
-              <PagePanel>
-                <h2 className="cardTitle">Piekdagen</h2>
-                <p className="cardHint">Weekdagen in de guild-tijdzone ({stats.timezone}).</p>
-                <BarList
-                  items={stats.web.peakDays.map((row) => ({
+            <AdminSection title="Bezoekers" hint="Waar vandaan en waarmee mensen het dashboard openen.">
+              <div className="adminSplit">
+                <PagePanel>
+                  <h3 className="adminSubhead">Apparaten</h3>
+                  <DonutChart
+                    items={stats.web.byDevice.map((row) => ({
+                      label: DEVICE_LABELS[row.deviceType] ?? row.deviceType,
+                      value: row.count,
+                    }))}
+                    empty="Nog geen apparaatgegevens."
+                    ariaLabel="Apparaten"
+                  />
+                </PagePanel>
+                <PagePanel>
+                  <h3 className="adminSubhead">Browsers</h3>
+                  <BarList
+                    items={stats.web.byBrowser.map((row) => ({
+                      label: row.browserFamily,
+                      value: row.count,
+                    }))}
+                    empty="Nog geen browsergegevens."
+                  />
+                </PagePanel>
+              </div>
+              <div className="adminSplit">
+                <PagePanel>
+                  <h3 className="adminSubhead">Meest bezochte pagina’s</h3>
+                  <BarList
+                    items={stats.web.mostVisitedPages.map((row) => ({
+                      label: pathLabel(row.path),
+                      value: row.count,
+                    }))}
+                    empty="Nog geen paginaweergaven."
+                  />
+                </PagePanel>
+                <PagePanel>
+                  <h3 className="adminSubhead">Verwijzers</h3>
+                  <p className="cardHint">Externe sites; interne navigatie telt niet mee.</p>
+                  <BarList
+                    items={(stats.web.referrers ?? []).map((row) => ({
+                      label: referrerLabel(row.referrer),
+                      value: row.count,
+                    }))}
+                    empty="Nog geen externe verwijzers in deze periode."
+                  />
+                </PagePanel>
+              </div>
+              <div className="adminSplit">
+                <PagePanel>
+                  <h3 className="adminSubhead">Land</h3>
+                  <BarList
+                    items={stats.web.byCountry.map((row) => ({
+                      label: row.country,
+                      value: row.count,
+                    }))}
+                    empty="Nog geen locatiegegevens. Cloudflare visitor headers vullen land/stad."
+                  />
+                </PagePanel>
+                <PagePanel>
+                  <h3 className="adminSubhead">Stad / regio</h3>
+                  <BarList
+                    items={stats.web.byCity.map((row) => ({
+                      label: [row.city, row.region, row.country].filter(Boolean).join(", "),
+                      value: row.count,
+                    }))}
+                    empty="Nog geen stadsgegevens."
+                  />
+                </PagePanel>
+              </div>
+            </AdminSection>
+
+            <AdminSection
+              title="Activiteiten"
+              hint={`Totaal ${stats.activities.total} · gemiddeld ${stats.activities.averagePerUser} per lid.`}
+            >
+              <PagePanel className="adminPanelFlush">
+                <h3 className="adminSubhead">Activiteiten per dag</h3>
+                <AreaChart
+                  items={stats.activities.perDay.map((row) => ({
                     label: row.day,
                     value: row.count,
                   }))}
-                  empty="Nog geen paginaweergaven in deze periode."
+                  empty="Geen activiteiten in deze periode."
+                  ariaLabel="Activiteiten per dag"
                 />
               </PagePanel>
-              <PagePanel>
-                <h2 className="cardTitle">Verwijzers</h2>
-                <p className="cardHint">
-                  Externe sites die naar het dashboard linken. Interne navigatie telt niet mee.
-                </p>
-                <BarList
-                  items={(stats.web.referrers ?? []).map((row) => ({
-                    label: referrerLabel(row.referrer),
-                    value: row.count,
-                  }))}
-                  empty="Nog geen externe verwijzers in deze periode."
-                />
-              </PagePanel>
-            </div>
-
-            <div className="adminSplit">
-              <PagePanel>
-                <h2 className="cardTitle">Meest bezochte pagina’s</h2>
-                <BarList
-                  items={stats.web.mostVisitedPages.map((row) => ({
-                    label: pathLabel(row.path),
-                    value: row.count,
-                  }))}
-                  empty="Nog geen paginaweergaven."
-                />
-              </PagePanel>
-              <PagePanel>
-                <h2 className="cardTitle">Apparaten en browsers</h2>
-                <BarList
-                  items={stats.web.byDevice.map((row) => ({
-                    label: DEVICE_LABELS[row.deviceType] ?? row.deviceType,
-                    value: row.count,
-                  }))}
-                  empty="Nog geen apparaatgegevens."
-                />
-                <div className="adminSpacer" />
-                <BarList
-                  items={stats.web.byBrowser.map((row) => ({
-                    label: row.browserFamily,
-                    value: row.count,
-                  }))}
-                  empty="Nog geen browsergegevens."
-                />
-              </PagePanel>
-            </div>
-
-            <div className="adminSplit">
-              <PagePanel>
-                <h2 className="cardTitle">Bezoekers per land</h2>
-                <BarList
-                  items={stats.web.byCountry.map((row) => ({
-                    label: row.country,
-                    value: row.count,
-                  }))}
-                  empty="Nog geen locatiegegevens. Cloudflare visitor headers vullen land/stad."
-                />
-              </PagePanel>
-              <PagePanel>
-                <h2 className="cardTitle">Stad / regio</h2>
-                <BarList
-                  items={stats.web.byCity.map((row) => ({
-                    label: [row.city, row.region, row.country].filter(Boolean).join(", "),
-                    value: row.count,
-                  }))}
-                  empty="Nog geen stadsgegevens."
-                />
-              </PagePanel>
-            </div>
-
-            <PagePanel>
-              <h2 className="cardTitle">Activiteiten</h2>
-              <p className="cardHint">
-                Totaal {stats.activities.total} · gemiddeld {stats.activities.averagePerUser} per
-                lid · {stats.users.newDashboardUsers} nieuwe dashboardgebruikers in deze periode
-                (eerste geregistreerde bezoek).
-              </p>
-              <BarList
-                items={stats.activities.perDay.map((row) => ({ label: row.day, value: row.count }))}
-                empty="Geen activiteiten in deze periode."
-              />
               <div className="adminSplit">
-                <div>
+                <PagePanel>
                   <h3 className="adminSubhead">Meest actieve leden</h3>
                   <BarList
                     items={stats.users.mostActive.map((row) => ({
@@ -361,8 +408,8 @@ export default function Admin({ user }: { user: DiscordUser }) {
                     }))}
                     empty="Nog geen deelnames in deze periode."
                   />
-                </div>
-                <div>
+                </PagePanel>
+                <PagePanel>
                   <h3 className="adminSubhead">Aanmakers</h3>
                   <BarList
                     items={stats.activities.byCreator.map((row) => ({
@@ -371,188 +418,192 @@ export default function Admin({ user }: { user: DiscordUser }) {
                     }))}
                     empty="Nog geen activiteiten aangemaakt in deze periode."
                   />
-                </div>
+                </PagePanel>
               </div>
-            </PagePanel>
+            </AdminSection>
 
-            <PagePanel>
-              <h2 className="cardTitle">Dashboardacties</h2>
-              <p className="cardHint">
-                Mutaties in het dashboard in deze periode. Geen berichtinhoud, kalender-URL’s of
-                tokens.
-              </p>
-              <div className="adminStatGrid">
-                {stats.dashboardActions.byType.length === 0 ? (
-                  <StatCard label="Acties" value={0} hint="Nog geen dashboardacties in deze periode." />
-                ) : (
-                  stats.dashboardActions.byType.map((row) => (
-                    <StatCard key={row.key} label={actionTypeLabel(row.key)} value={row.count} />
-                  ))
-                )}
-              </div>
+            <AdminSection
+              title="Dashboardacties"
+              hint="Mutaties in het dashboard. Geen berichtinhoud, kalender-URL’s of tokens."
+            >
               <div className="adminSplit">
-                <div>
+                <PagePanel>
                   <h3 className="adminSubhead">Acties in de tijd</h3>
-                  <BarList
+                  <AreaChart
                     items={stats.dashboardActions.overTime.map((row) => ({
                       label: row.day,
                       value: row.count,
                     }))}
                     empty="Nog geen dashboardacties in deze periode."
+                    ariaLabel="Dashboardacties per dag"
                   />
-                </div>
-                <div>
-                  <h3 className="adminSubhead">Meest actieve gebruikers</h3>
+                </PagePanel>
+                <PagePanel>
+                  <h3 className="adminSubhead">Per type</h3>
                   <BarList
-                    items={stats.dashboardActions.topUsers.map((row) => ({
-                      label: row.displayName,
+                    items={stats.dashboardActions.byType.map((row) => ({
+                      label: actionTypeLabel(row.key),
                       value: row.count,
                     }))}
                     empty="Nog geen dashboardacties in deze periode."
                   />
-                </div>
+                </PagePanel>
               </div>
-              <h3 className="adminSubhead">Recente dashboardacties</h3>
-              {stats.dashboardActions.recent.length === 0 ? (
-                <p className="cardHint">Nog geen dashboardacties in deze periode.</p>
-              ) : (
-                <div className="adminTableWrap">
-                  <table className="adminTable">
-                    <thead>
-                      <tr>
-                        <th>Gebruiker</th>
-                        <th>Tijdstip</th>
-                        <th>Type</th>
-                        <th>Detail</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {stats.dashboardActions.recent.map((row, index) => (
-                        <tr key={`${row.occurredAt}-${row.userId ?? "anon"}-${row.eventType}-${index}`}>
-                          <td>{row.displayName}</td>
-                          <td>{formatDateTime(row.occurredAt, timezone)}</td>
-                          <td>{actionTypeLabel(row.eventType)}</td>
-                          <td>{row.detail ?? "—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </PagePanel>
-
-            <PagePanel>
-              <h2 className="cardTitle">Recente dashboardactiviteit</h2>
-              <p className="cardHint">
-                Wie het dashboard bezocht, wanneer, welke pagina, en de laatst gedetecteerde
-                benaderende locatie (geen GPS).
-              </p>
-              {stats.web.recentVisits.length === 0 ? (
-                <p className="cardHint">Nog geen bezoeken in deze periode.</p>
-              ) : (
-                <div className="adminTableWrap">
-                  <table className="adminTable">
-                    <thead>
-                      <tr>
-                        <th>Gebruiker</th>
-                        <th>Tijdstip</th>
-                        <th>Pagina</th>
-                        <th>Laatst gedetecteerde locatie</th>
-                        <th>Apparaat</th>
-                        <th>Browser</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {stats.web.recentVisits.map((visit, index) => (
-                        <tr key={`${visit.occurredAt}-${visit.userId ?? "anon"}-${visit.path}-${index}`}>
-                          <td>{visit.displayName ?? visit.userId ?? "Niet aangemeld"}</td>
-                          <td>{formatDateTime(visit.occurredAt, timezone)}</td>
-                          <td>{pathLabel(visit.path)}</td>
-                          <td>{visit.locationLabel ?? "—"}</td>
-                          <td>
-                            {visit.deviceType
-                              ? (DEVICE_LABELS[visit.deviceType] ?? visit.deviceType)
-                              : "—"}
-                          </td>
-                          <td>{visit.browserFamily ?? "—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </PagePanel>
-
-            <PagePanel>
-              <h2 className="cardTitle">Leden</h2>
-              <p className="cardHint">
-                Locatie delen is de expliciete voorkeur. De getoonde locatie is de laatst
-                gedetecteerde dashboardlocatie; beheerders zien die ook als delen uitstaat.
-              </p>
-              <div className="adminUserToolbar">
-                <input
-                  className="formInput"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Zoek op naam…"
-                  aria-label="Leden zoeken"
+              <PagePanel>
+                <h3 className="adminSubhead">Meest actieve gebruikers</h3>
+                <BarList
+                  items={stats.dashboardActions.topUsers.map((row) => ({
+                    label: row.displayName,
+                    value: row.count,
+                  }))}
+                  empty="Nog geen dashboardacties in deze periode."
                 />
-                <label className="adminSort">
-                  Sorteren
-                  <select
-                    className="formInput formSelect"
-                    value={sortKey}
-                    onChange={(e) => setSortKey(e.target.value as typeof sortKey)}
-                  >
-                    <option value="name">Naam</option>
-                    <option value="activity">Activiteiten</option>
-                    <option value="visit">Laatste bezoek</option>
-                    <option value="share">Locatie delen</option>
-                  </select>
-                </label>
-              </div>
-              <div className="adminTableWrap">
-                <table className="adminTable">
-                  <thead>
-                    <tr>
-                      <th>Lid</th>
-                      <th>Activiteiten</th>
-                      <th>Laatste activiteit</th>
-                      <th>Laatste dashboardbezoek</th>
-                      <th>Laatst gedetecteerde locatie</th>
-                      <th>Locatie delen</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredUsers.map((row) => (
-                      <tr key={row.userId}>
-                        <td>
-                          <div className="adminUserCell">
-                            <strong>{row.displayName}</strong>
-                            {row.username && (
-                              <span className="adminMuted">@{row.username}</span>
-                            )}
-                          </div>
-                        </td>
-                        <td>{row.activityCount}</td>
-                        <td>{formatDateTime(row.lastActivityAt, timezone)}</td>
-                        <td>{formatDateTime(row.lastDashboardAt, timezone)}</td>
-                        <td>{row.lastDetectedLocation ?? "—"}</td>
-                        <td>
-                          <span
-                            className={`adminShareBadge ${
-                              row.shareLocation ? "adminShareOn" : "adminShareOff"
-                            }`}
+                <h3 className="adminSubhead">Recente dashboardacties</h3>
+                {stats.dashboardActions.recent.length === 0 ? (
+                  <p className="cardHint">Nog geen dashboardacties in deze periode.</p>
+                ) : (
+                  <div className="adminTableWrap">
+                    <table className="adminTable">
+                      <thead>
+                        <tr>
+                          <th>Gebruiker</th>
+                          <th>Tijdstip</th>
+                          <th>Type</th>
+                          <th>Detail</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {stats.dashboardActions.recent.map((row, index) => (
+                          <tr
+                            key={`${row.occurredAt}-${row.userId ?? "anon"}-${row.eventType}-${index}`}
                           >
-                            {row.shareLocation ? "Ingeschakeld" : "Uitgeschakeld"}
-                          </span>
-                        </td>
+                            <td>{row.displayName}</td>
+                            <td>{formatDateTime(row.occurredAt, timezone)}</td>
+                            <td>{actionTypeLabel(row.eventType)}</td>
+                            <td>{row.detail ?? "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </PagePanel>
+            </AdminSection>
+
+            <AdminSection
+              title="Recente bezoeken"
+              hint="Wie het dashboard bezocht, wanneer, welke pagina, en de laatst gedetecteerde benaderende locatie (geen GPS)."
+            >
+              <PagePanel>
+                {stats.web.recentVisits.length === 0 ? (
+                  <p className="cardHint">Nog geen bezoeken in deze periode.</p>
+                ) : (
+                  <div className="adminTableWrap">
+                    <table className="adminTable">
+                      <thead>
+                        <tr>
+                          <th>Gebruiker</th>
+                          <th>Tijdstip</th>
+                          <th>Pagina</th>
+                          <th>Laatst gedetecteerde locatie</th>
+                          <th>Apparaat</th>
+                          <th>Browser</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {stats.web.recentVisits.map((visit, index) => (
+                          <tr
+                            key={`${visit.occurredAt}-${visit.userId ?? "anon"}-${visit.path}-${index}`}
+                          >
+                            <td>{visit.displayName ?? visit.userId ?? "Niet aangemeld"}</td>
+                            <td>{formatDateTime(visit.occurredAt, timezone)}</td>
+                            <td>{pathLabel(visit.path)}</td>
+                            <td>{visit.locationLabel ?? "—"}</td>
+                            <td>
+                              {visit.deviceType
+                                ? (DEVICE_LABELS[visit.deviceType] ?? visit.deviceType)
+                                : "—"}
+                            </td>
+                            <td>{visit.browserFamily ?? "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </PagePanel>
+            </AdminSection>
+
+            <AdminSection
+              title="Leden"
+              hint="Locatie delen is de expliciete voorkeur. De getoonde locatie is de laatst gedetecteerde dashboardlocatie."
+            >
+              <PagePanel>
+                <div className="adminUserToolbar">
+                  <input
+                    className="formInput"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Zoek op naam…"
+                    aria-label="Leden zoeken"
+                  />
+                  <label className="adminSort">
+                    Sorteren
+                    <select
+                      className="formInput formSelect"
+                      value={sortKey}
+                      onChange={(e) => setSortKey(e.target.value as typeof sortKey)}
+                    >
+                      <option value="name">Naam</option>
+                      <option value="activity">Activiteiten</option>
+                      <option value="visit">Laatste bezoek</option>
+                      <option value="share">Locatie delen</option>
+                    </select>
+                  </label>
+                </div>
+                <div className="adminTableWrap">
+                  <table className="adminTable">
+                    <thead>
+                      <tr>
+                        <th>Lid</th>
+                        <th>Activiteiten</th>
+                        <th>Laatste activiteit</th>
+                        <th>Laatste dashboardbezoek</th>
+                        <th>Laatst gedetecteerde locatie</th>
+                        <th>Locatie delen</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </PagePanel>
+                    </thead>
+                    <tbody>
+                      {filteredUsers.map((row) => (
+                        <tr key={row.userId}>
+                          <td>
+                            <div className="adminUserCell">
+                              <strong>{row.displayName}</strong>
+                              {row.username && (
+                                <span className="adminMuted">@{row.username}</span>
+                              )}
+                            </div>
+                          </td>
+                          <td>{row.activityCount}</td>
+                          <td>{formatDateTime(row.lastActivityAt, timezone)}</td>
+                          <td>{formatDateTime(row.lastDashboardAt, timezone)}</td>
+                          <td>{row.lastDetectedLocation ?? "—"}</td>
+                          <td>
+                            <span
+                              className={`adminShareBadge ${
+                                row.shareLocation ? "adminShareOn" : "adminShareOff"
+                              }`}
+                            >
+                              {row.shareLocation ? "Ingeschakeld" : "Uitgeschakeld"}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </PagePanel>
+            </AdminSection>
           </>
         )}
       </PageLayout>
