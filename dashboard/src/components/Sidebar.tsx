@@ -1,3 +1,4 @@
+import { useEffect, useId, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { logout } from "../api";
 import { usePreferences } from "../hooks/usePreferences";
@@ -88,11 +89,30 @@ function navLinkClass(pathname: string, to: string) {
   return `sidebarLink${pathname === to ? " sidebarLinkActive" : ""}`;
 }
 
+function isAdminPath(pathname: string) {
+  return pathname === "/admin" || pathname.startsWith("/admin/");
+}
+
 export default function Sidebar({ user }: { user: DiscordUser }) {
   const location = useLocation();
   const { isAdmin } = usePreferences();
   const displayName = user.nickname ?? user.username;
   const { pathname } = location;
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
+  const adminMenuId = useId();
+
+  useEffect(() => {
+    setAdminMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!adminMenuOpen) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setAdminMenuOpen(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [adminMenuOpen]);
 
   async function handleLogout() {
     await logout();
@@ -115,32 +135,99 @@ export default function Sidebar({ user }: { user: DiscordUser }) {
           </Link>
           <Link to="/my-timetable" className={navLinkClass(pathname, "/my-timetable")}>
             <UserIcon />
-            <span className="sidebarLinkLabel">Mijn rooster</span>
+            <span className="sidebarLinkLabel">
+              <span className="sidebarLabelFull">Mijn rooster</span>
+              <span className="sidebarLabelShort">Mijn</span>
+            </span>
           </Link>
           <Link to="/settings" className={navLinkClass(pathname, "/settings")}>
             <SettingsIcon />
-            <span className="sidebarLinkLabel">Instellingen</span>
+            <span className="sidebarLinkLabel">
+              <span className="sidebarLabelFull">Instellingen</span>
+              <span className="sidebarLabelShort">Account</span>
+            </span>
           </Link>
         </div>
 
         {isAdmin && (
-          <div className="sidebarSection">
-            <p className="sidebarSectionLabel">Beheer</p>
-            <Link to="/admin" className={navLinkClass(pathname, "/admin")}>
+          <>
+            <div className="sidebarSection sidebarAdminDesktop">
+              <p className="sidebarSectionLabel">Beheer</p>
+              <Link to="/admin" className={navLinkClass(pathname, "/admin")}>
+                <ChartIcon />
+                <span className="sidebarLinkLabel">Beheer</span>
+              </Link>
+              <Link to="/admin/discord" className={navLinkClass(pathname, "/admin/discord")}>
+                <DiscordIcon />
+                <span className="sidebarLinkLabel">Discord</span>
+              </Link>
+              <Link to="/admin/status" className={navLinkClass(pathname, "/admin/status")}>
+                <StatusIcon />
+                <span className="sidebarLinkLabel">Status</span>
+              </Link>
+            </div>
+
+            <div className="sidebarAdminMobile">
+              <button
+                type="button"
+                className={`sidebarLink sidebarAdminTrigger${
+                  isAdminPath(pathname) ? " sidebarLinkActive" : ""
+                }`}
+                aria-expanded={adminMenuOpen}
+                aria-controls={adminMenuId}
+                onClick={() => setAdminMenuOpen((open) => !open)}
+              >
+                <ChartIcon />
+                <span className="sidebarLinkLabel">Beheer</span>
+              </button>
+            </div>
+          </>
+        )}
+      </nav>
+
+      {isAdmin && adminMenuOpen && (
+        <div className="sidebarAdminSheet" role="presentation">
+          <button
+            type="button"
+            className="sidebarAdminSheetBackdrop"
+            aria-label="Beheermenu sluiten"
+            onClick={() => setAdminMenuOpen(false)}
+          />
+          <div
+            id={adminMenuId}
+            className="sidebarAdminSheetPanel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Beheer"
+          >
+            <p className="sidebarAdminSheetTitle">Beheer</p>
+            <Link
+              to="/admin"
+              className={navLinkClass(pathname, "/admin")}
+              onClick={() => setAdminMenuOpen(false)}
+            >
               <ChartIcon />
               <span className="sidebarLinkLabel">Beheer</span>
             </Link>
-            <Link to="/admin/discord" className={navLinkClass(pathname, "/admin/discord")}>
+            <Link
+              to="/admin/discord"
+              className={navLinkClass(pathname, "/admin/discord")}
+              onClick={() => setAdminMenuOpen(false)}
+            >
               <DiscordIcon />
               <span className="sidebarLinkLabel">Discord</span>
             </Link>
-            <Link to="/admin/status" className={navLinkClass(pathname, "/admin/status")}>
+            <Link
+              to="/admin/status"
+              className={navLinkClass(pathname, "/admin/status")}
+              onClick={() => setAdminMenuOpen(false)}
+            >
               <StatusIcon />
               <span className="sidebarLinkLabel">Status</span>
             </Link>
           </div>
-        )}
-      </nav>
+        </div>
+      )}
 
       <div className="sidebarFooter">
         <div className="sidebarProfileCard">
