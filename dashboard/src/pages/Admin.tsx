@@ -274,6 +274,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
                   }))}
                   empty="Nog geen paginaweergaven in deze periode."
                   ariaLabel="Paginaweergaven per dag"
+                  valueLabel="paginaweergaven"
                 />
               </PagePanel>
               <div className="adminSplit">
@@ -377,6 +378,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
                   }))}
                   empty="Geen activiteiten in deze periode."
                   ariaLabel="Activiteiten per dag"
+                  valueLabel="activiteiten"
                 />
               </PagePanel>
               <div className="adminSplit">
@@ -417,6 +419,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
                     }))}
                     empty="Nog geen dashboardacties in deze periode."
                     ariaLabel="Dashboardacties per dag"
+                    valueLabel="acties"
                   />
                 </PagePanel>
                 <PagePanel>
