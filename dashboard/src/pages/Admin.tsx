@@ -383,7 +383,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
               </div>
             </AdminSection>
 
-            <AdminSection title="Dashboardacties">
+            <AdminSection title="Dashboardacties" hint="Geen berichtinhoud, kalender-URL’s of tokens.">
               <div className="adminSplit">
                 <PagePanel>
                   <h3 className="adminSubhead">Acties in de tijd</h3>

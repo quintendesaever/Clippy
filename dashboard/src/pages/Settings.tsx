@@ -194,7 +194,7 @@ export default function Settings({ user }: { user: DiscordUser }) {
             <h2 className="cardTitle">Privacy</h2>
             <PreferenceToggle
               label="Leslocaties delen"
-              hint="Stad/regio van dashboardbezoeken blijft alleen voor beheerders zichtbaar."
+              hint="Aan: andere leden zien je ICS-lokalen en je dashboard stad/regio. Uit: alleen jij en beheerders. Activiteitslocaties blijven zichtbaar."
               checked={shareLocation}
               disabled={savingShare}
               onChange={handleShareLocation}

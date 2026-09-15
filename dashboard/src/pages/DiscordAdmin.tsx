@@ -491,10 +491,7 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
               </PagePanel>
             </AdminSection>
 
-            <AdminSection
-              title="Gebruikers"
-
-            >
+            <AdminSection title="Gebruikers">
               <PagePanel>
                 <div className="adminUserToolbar">
                   <input
