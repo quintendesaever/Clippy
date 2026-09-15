@@ -28,6 +28,11 @@ import { recordAnalyticsEvent } from "./analytics/events.js";
 import { createRequireAdmin, userIsGuildAdmin } from "./adminAuth.js";
 import { loadAdminStatsPayload, loadAdminUsersPayload, parseAdminRangePreset, parseStatsUserIds } from "./adminStats.js";
 import { loadDiscordStatsPayload } from "./discordStats.js";
+import {
+  filterPersonalTimetablePayload,
+  parseTimetableScope,
+  sharedTimetableRequiresIcs,
+} from "./timetableScope.js";
 import { assertIcsUrlSafe } from "../calendar/icsFetcher.js";
 import {
   ActivityValidationError,
@@ -535,10 +540,10 @@ export function createDashboardApp(): express.Express {
       return;
     }
 
-    const scope = req.query.scope === "personal" ? "personal" : "shared";
+    const scope = parseTimetableScope(req.query.scope);
 
     try {
-      if (scope === "shared") {
+      if (sharedTimetableRequiresIcs(scope)) {
         const hasIcs = await memberHasConnectedIcs(guildId, viewerUserId);
         if (!hasIcs) {
           res.status(403).json({
@@ -575,16 +580,8 @@ export function createDashboardApp(): express.Express {
       }));
 
       if (scope === "personal") {
-        const personalActivities = activities.filter(
-          (event) =>
-            event.createdBy === viewerUserId ||
-            (event.participantIds ?? []).includes(viewerUserId)
-        );
         res.json({
-          events: [...(eventsByUser[viewerUserId] ?? []), ...personalActivities],
-          eventsByUser: { [viewerUserId]: eventsByUser[viewerUserId] ?? [] },
-          activities: personalActivities,
-          members: members.filter((member) => member.userId === viewerUserId),
+          ...filterPersonalTimetablePayload(viewerUserId, eventsByUser, activities, members),
           timezone: timetable.guildTimezone,
         });
         return;
