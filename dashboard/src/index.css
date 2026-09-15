@@ -2118,6 +2118,8 @@ select.formSelect {
 /* Admin dashboard */
 .adminSection {
   margin-bottom: 1.35rem;
+  --admin-chart-min-height: 12rem;
+  --admin-section-gap: 0.75rem;
 }
 
 .adminSectionHead {
@@ -2138,9 +2140,15 @@ select.formSelect {
   color: var(--color-text-muted);
 }
 
+.adminSectionStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--admin-section-gap);
+}
+
 .adminSection .pagePanel + .pagePanel,
 .adminSection .adminSplit {
-  margin-top: 0.75rem;
+  margin-top: 0;
 }
 
 .adminPanelFlush {
@@ -2151,7 +2159,11 @@ select.formSelect {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 0.65rem;
-  margin-bottom: 0.65rem;
+  margin-bottom: 0;
+}
+
+.adminSectionStack > .adminStatGrid + .adminStatGrid {
+  margin-top: 0;
 }
 
 .adminStatGridPrimary {
@@ -2160,7 +2172,6 @@ select.formSelect {
 
 .adminStatGridSecondary {
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  margin-bottom: 0;
 }
 
 .adminStatCard {
@@ -2202,11 +2213,47 @@ select.formSelect {
 .adminSplit {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
+  gap: var(--admin-section-gap, 0.75rem);
+  align-items: stretch;
 }
 
 .adminSplit > .pagePanel {
   margin-top: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.adminSplit > .pagePanel > .adminSubhead {
+  flex-shrink: 0;
+}
+
+.adminSplit > .pagePanel > .cardHint {
+  flex-shrink: 0;
+}
+
+.adminSplit > .pagePanel > .adminBars,
+.adminSplit > .pagePanel > .adminDonutWrap,
+.adminSplit > .pagePanel > .adminAreaChart,
+.adminSplit > .pagePanel > .adminHourChart,
+.adminSplit > .pagePanel > .adminHourChartWrap,
+.adminSplit > .pagePanel > .adminDayHeatmap,
+.adminSplit > .pagePanel > .adminDayHeatmapWrap,
+.adminSplit > .pagePanel > .adminTableWrap,
+.adminSplit > .pagePanel > .adminChartTooltip {
+  flex: 1 1 auto;
+}
+
+.adminSplit > .pagePanel > .adminBars,
+.adminSplit > .pagePanel > .adminDonutWrap,
+.adminSplit > .pagePanel > .adminAreaChart,
+.adminSplit > .pagePanel > .adminHourChart,
+.adminSplit > .pagePanel > .adminHourChartWrap,
+.adminSplit > .pagePanel > .adminDayHeatmap,
+.adminSplit > .pagePanel > .adminDayHeatmapWrap,
+.adminSplit > .pagePanel > .adminTableWrap {
+  min-height: var(--admin-chart-min-height, 12rem);
 }
 
 .adminBars {
