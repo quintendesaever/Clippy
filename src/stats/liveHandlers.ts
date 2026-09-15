@@ -181,10 +181,15 @@ export async function handleVoiceStateJoin(state: VoiceState): Promise<void> {
   const guildId = state.guild?.id;
   const channelId = state.channelId;
   if (!guildId || !channelId || !state.member?.id) return;
+  if (state.member.user.bot) return;
 
   await ensureGuild(guildId);
   await ensureChannel(guildId, channelId, state.channel?.name);
-  await upsertMember(guildId, state.member.id, state.member.user.avatar);
+  await upsertMember(guildId, state.member.id, state.member.user.avatar, {
+    displayName: state.member.displayName,
+    username: state.member.user.username,
+    isBot: false,
+  });
 
   await supabase.from("voice_sessions").insert({
     guild_id: guildId,
