@@ -275,6 +275,15 @@ a:hover {
   margin-right: auto;
 }
 
+.timetableGate {
+  margin-top: 1.5rem;
+  text-align: left;
+}
+
+.timetableGate .formActions {
+  margin-top: 1rem;
+}
+
 .settingsStack {
   display: flex;
   flex-direction: column;

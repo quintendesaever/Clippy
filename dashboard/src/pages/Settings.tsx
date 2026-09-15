@@ -259,7 +259,7 @@ export default function Settings({ user }: { user: DiscordUser }) {
                     placeholder="https://…/calendar.ics"
                   />
                   <span className="formCheckHint">
-                    Optioneel. Zonder URL blijf je in het rooster staan maar zonder lessen.
+                    Verplicht voor het gedeelde rooster. Zonder URL kun je dat rooster niet openen.
                   </span>
                 </label>
                 <div className="formActions">

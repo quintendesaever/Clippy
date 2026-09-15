@@ -37,7 +37,7 @@ import {
   leaveActivity,
   updateActivity,
 } from "../calendar/activities.js";
-import { getGuildCalendarMembers } from "../calendar/memberCalendars.js";
+import { getGuildCalendarMembers, memberHasConnectedIcs } from "../calendar/memberCalendars.js";
 import { getGuildTimetableForDates } from "../calendar/timetableService.js";
 import { serializeEventForApi } from "../calendar/serializeEvent.js";
 import { inclusiveDaySpan, MAX_TIMETABLE_RANGE_DAYS } from "../../shared/timetable/dates.js";
@@ -536,6 +536,15 @@ export function createDashboardApp(): express.Express {
     }
 
     try {
+      const hasIcs = await memberHasConnectedIcs(guildId, viewerUserId);
+      if (!hasIcs) {
+        res.status(403).json({
+          error: "ICS calendar connection required",
+          code: "ics_required",
+        });
+        return;
+      }
+
       const timetable = await getGuildTimetableForDates(guildId, from, to);
       const { shareLocationByUser, memberGeoByUser } = await getMemberLocationPrivacy(guildId);
       const viewerIsAdmin = await userIsGuildAdmin(discordClient, guildId, viewerUserId);
