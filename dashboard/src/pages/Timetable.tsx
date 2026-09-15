@@ -12,7 +12,7 @@ import { useTimetableActivityUi } from "../hooks/useTimetableActivityUi";
 import { useTimetableFontScale } from "../hooks/useTimetableFontScale";
 import { useTimetableLayout } from "../hooks/useTimetableLayout";
 import { useWeekTimetable } from "../hooks/useWeekTimetable";
-import { useMemberColors, colorForUserId } from "../hooks/useMemberColors";
+import { buildMemberColorMap, useMemberColors } from "../hooks/useMemberColors";
 import { DAY_LABELS, eventDayKey, getWeekMondayKey } from "../lib/dates";
 import type { CalendarMember, DiscordUser } from "../types";
 
@@ -64,27 +64,18 @@ export default function Timetable({ user }: { user: DiscordUser }) {
   }, [activities, calendars, user.avatar, user.id]);
 
   const colorByUser = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const member of members) {
-      if (member.color) map.set(member.userId, member.color);
-    }
+    const userIds = new Set<string>();
     for (const calendar of calendars) {
-      if (!map.has(calendar.user_id)) {
-        map.set(calendar.user_id, colorForUserId(calendar.user_id));
-      }
+      userIds.add(calendar.user_id);
     }
     for (const activity of activities) {
-      if (!map.has(activity.userId)) {
-        map.set(activity.userId, colorForUserId(activity.userId));
-      }
+      userIds.add(activity.userId);
       for (const participantId of activity.participantIds ?? []) {
-        if (!map.has(participantId)) {
-          map.set(participantId, colorForUserId(participantId));
-        }
+        userIds.add(participantId);
       }
     }
-    return map;
-  }, [activities, calendars, members]);
+    return buildMemberColorMap(userIds);
+  }, [activities, calendars]);
 
   useEffect(() => {
     let cancelled = false;
@@ -236,6 +227,13 @@ export default function Timetable({ user }: { user: DiscordUser }) {
   }
 
   if (access === "blocked") {
+    const defaultInitials = (user.nickname ?? user.username)
+      .split(/\s+/)
+      .map((part) => part[0] ?? "")
+      .join("")
+      .slice(0, 4)
+      .toUpperCase();
+
     return (
       <TimetablePageShell
         user={user}
@@ -260,7 +258,10 @@ export default function Timetable({ user }: { user: DiscordUser }) {
         onFormSaved={() => {}}
         hideChrome
       >
-        <SharedTimetableGate />
+        <SharedTimetableGate
+          defaultInitials={defaultInitials}
+          onConnected={() => setAccess("allowed")}
+        />
       </TimetablePageShell>
     );
   }
@@ -317,6 +318,8 @@ export default function Timetable({ user }: { user: DiscordUser }) {
                 }))}
                 selected={selected}
                 onToggle={toggleMember}
+                onSelectAll={() => setSelected(new Set(calendars.map((c) => c.user_id)))}
+                onDeselectAll={() => setSelected(new Set())}
               />
             }
           />

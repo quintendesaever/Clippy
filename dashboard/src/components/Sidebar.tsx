@@ -228,10 +228,7 @@ export default function Sidebar({ user }: { user: DiscordUser }) {
             <UserIcon />
             <span className="sidebarLinkLabel">
               <span className="sidebarLabelFull">Mijn rooster</span>
-              <span className="sidebarLabelShort sidebarLabelStacked" aria-hidden="true">
-                <span>Mijn</span>
-                <span>rooster</span>
-              </span>
+              <span className="sidebarLabelShort" aria-hidden="true">Mijn rooster</span>
             </span>
           </Link>
           <Link to="/settings" className={navLinkClass(pathname, "/settings")}>
@@ -278,7 +275,7 @@ export default function Sidebar({ user }: { user: DiscordUser }) {
                 onClick={() => setAdminMenuOpen((open) => !open)}
               >
                 <ChartIcon />
-                <span className="sidebarLinkLabel">Beheer</span>
+                <span className="sidebarLinkLabel">Admin</span>
               </button>
             </div>
           </>

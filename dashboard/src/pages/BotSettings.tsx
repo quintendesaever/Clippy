@@ -150,19 +150,21 @@ export default function BotSettings({ user }: { user: DiscordUser }) {
                 <p className="cardHint">
                   Tijdzone voor stats, rooster en F1-herinneringen (IANA, bv. Europe/Brussels).
                 </p>
-                <label className="settingsFieldLabel" htmlFor="bot-timezone">
-                  Tijdzone
-                </label>
-                <input
-                  id="bot-timezone"
-                  className="formInput"
-                  value={timezone}
-                  onChange={(e) => setTimezone(e.target.value)}
-                  placeholder="Europe/Brussels"
-                  autoComplete="off"
-                  spellCheck={false}
-                  disabled={savingTimezone}
-                />
+                <div className="botSettingsFields">
+                  <label className="botSettingsField" htmlFor="bot-timezone">
+                    <span>Tijdzone</span>
+                    <input
+                      id="bot-timezone"
+                      className="formInput"
+                      value={timezone}
+                      onChange={(e) => setTimezone(e.target.value)}
+                      placeholder="Europe/Brussels"
+                      autoComplete="off"
+                      spellCheck={false}
+                      disabled={savingTimezone}
+                    />
+                  </label>
+                </div>
                 {timezoneError && <p className="errorMsg">{timezoneError}</p>}
                 {timezoneMessage && <p className="successMsg">{timezoneMessage}</p>}
                 <div className="settingsActions">
@@ -189,58 +191,61 @@ export default function BotSettings({ user }: { user: DiscordUser }) {
                   }}
                 />
 
-                <label className="settingsFieldLabel" htmlFor="bot-f1-channel">
-                  Kanaal
-                </label>
-                <select
-                  id="bot-f1-channel"
-                  className="formInput formSelect"
-                  value={channelId}
-                  onChange={(e) => setChannelId(e.target.value)}
-                  disabled={savingF1}
-                >
-                  <option value="">— Kies een kanaal —</option>
-                  {channels.map((channel) => (
-                    <option key={channel.id} value={channel.id}>
-                      #{channel.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="botSettingsFields botSettingsGrid">
+                  <label className="botSettingsField" htmlFor="bot-f1-channel">
+                    <span>Kanaal</span>
+                    <select
+                      id="bot-f1-channel"
+                      className="formInput formSelect"
+                      value={channelId}
+                      onChange={(e) => setChannelId(e.target.value)}
+                      disabled={savingF1}
+                    >
+                      <option value="">— Kies een kanaal —</option>
+                      {channels.map((channel) => (
+                        <option key={channel.id} value={channel.id}>
+                          #{channel.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
-                <label className="settingsFieldLabel" htmlFor="bot-f1-role">
-                  Rol
-                </label>
-                <select
-                  id="bot-f1-role"
-                  className="formInput formSelect"
-                  value={roleId}
-                  onChange={(e) => setRoleId(e.target.value)}
-                  disabled={savingF1}
-                >
-                  <option value="">— Kies een rol —</option>
-                  {roles.map((role) => (
-                    <option key={role.id} value={role.id}>
-                      @{role.name}
-                    </option>
-                  ))}
-                </select>
+                  <label className="botSettingsField" htmlFor="bot-f1-role">
+                    <span>Rol</span>
+                    <select
+                      id="bot-f1-role"
+                      className="formInput formSelect"
+                      value={roleId}
+                      onChange={(e) => setRoleId(e.target.value)}
+                      disabled={savingF1}
+                    >
+                      <option value="">— Kies een rol —</option>
+                      {roles.map((role) => (
+                        <option key={role.id} value={role.id}>
+                          @{role.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
-                <label className="settingsFieldLabel" htmlFor="bot-f1-url">
-                  Prediction-URL
-                </label>
-                <input
-                  id="bot-f1-url"
-                  className="formInput"
-                  value={predictionUrl}
-                  onChange={(e) => setPredictionUrl(e.target.value)}
-                  placeholder="https://…"
-                  autoComplete="off"
-                  spellCheck={false}
-                  disabled={savingF1}
-                />
-                <p className="cardHint">
-                  Publieke https-URL zonder inloggegevens. Leeg laten verwijdert de knop.
-                </p>
+                  <label
+                    className="botSettingsField botSettingsFieldWide"
+                    htmlFor="bot-f1-url"
+                  >
+                    <span>Prediction-URL</span>
+                    <input
+                      id="bot-f1-url"
+                      className="formInput"
+                      value={predictionUrl}
+                      onChange={(e) => setPredictionUrl(e.target.value)}
+                      placeholder="https://…"
+                      autoComplete="off"
+                      spellCheck={false}
+                      disabled={savingF1}
+                    />
+                    <small>Publieke https-URL; leeg laten verwijdert de knop.</small>
+                  </label>
+                </div>
 
                 <p className="settingsStateLine" aria-live="polite">
                   Status:{" "}

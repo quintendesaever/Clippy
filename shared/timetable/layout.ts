@@ -11,6 +11,8 @@ export type LayoutEvent = {
   end: Date;
   title: string;
   userId: string;
+  /** Additional owners/participants represented by this event card. */
+  participantIds?: string[];
   allDay: boolean;
   /** Distinguishes ICS lessons from shared activities when merging cards. */
   source?: "ics" | "activity";
@@ -183,11 +185,12 @@ export function eventMergeKey(event: {
 }
 
 function toRenderCard(event: LayoutEvent, source: "ics" | "activity"): RenderCard {
+  const userIds = [...new Set([event.userId, ...(event.participantIds ?? [])])];
   return {
     start: event.start,
     end: event.end,
     title: event.title,
-    userIds: [event.userId],
+    userIds,
     startMs: event.start.getTime(),
     endMs: event.end.getTime(),
     source,
