@@ -1847,7 +1847,6 @@ select.formSelect {
   .sidebarBrand,
   .sidebarFooter,
   .sidebarSectionLabel,
-  .sidebarAdminDesktop,
   .sidebarLabelFull {
     display: none;
   }
@@ -1877,6 +1876,11 @@ select.formSelect {
 
   .sidebarSection {
     display: contents;
+  }
+
+  /* Must follow .sidebarSection — both classes are on the desktop Beheer block. */
+  .sidebarSection.sidebarAdminDesktop {
+    display: none;
   }
 
   .sidebarLink,
