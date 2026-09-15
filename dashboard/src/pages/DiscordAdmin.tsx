@@ -2,12 +2,21 @@ import { useEffect, useMemo, useState } from "react";
 import { toZonedTime } from "date-fns-tz";
 import { payloadHasUnresolvedNames } from "@shared/memberName";
 import { getDiscordAdminStats } from "../api";
-import { BarList, HourChart, StatCard } from "../components/AdminCharts";
+import {
+  AreaChart,
+  BarList,
+  DonutChart,
+  HourChart,
+  StatCard,
+} from "../components/AdminCharts";
+import AdminSection from "../components/AdminSection";
 import AppShell from "../components/AppShell";
+import MemberFilter from "../components/MemberFilter";
 import PageLayout from "../components/PageLayout";
 import PagePanel from "../components/PagePanel";
 import {
   statsUserFilterKey,
+  toggleMemberId,
   useDebouncedValue,
 } from "../lib/adminMemberFilter";
 import type {
@@ -182,6 +191,11 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
   const voiceHint =
     "Spraaktijd telt alleen afgesloten sessies tot 24 uur. Open of vastgelopen sessies zitten niet in de duur.";
 
+  const botCommandItems = (stats?.botUsage.commands ?? []).map((row) => ({
+    label: COMMAND_LABELS[row.key] ?? `/${row.key}`,
+    value: row.count,
+  }));
+
   return (
     <AppShell user={user}>
       <PageLayout
@@ -204,203 +218,234 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
           </div>
         }
       >
+        {chipMembers.length > 0 && (
+          <div className="adminMemberFilter">
+            <MemberFilter
+              members={chipMembers.map((row) => ({
+                userId: row.userId,
+                label: row.initials ?? row.displayName,
+                avatarHash: row.avatarHash,
+              }))}
+              selected={selected}
+              onToggle={(userId) => setSelected((prev) => toggleMemberId(prev, userId))}
+            />
+          </div>
+        )}
         {loading && <p className="timetableLoading">Laden…</p>}
         {error && <p className="errorMsg">{error}</p>}
         {!loading && stats && (
           <>
-            <div className="adminStatGrid">
-              <StatCard label="Berichten" value={stats.summary.messagesInRange} />
-              <StatCard label="Berichten totaal" value={stats.summary.messagesTotal} />
-              <StatCard label="Unieke auteurs" value={stats.summary.uniqueAuthors} />
-              <StatCard label="Bijlagen" value={stats.summary.attachmentsInRange} />
-              <StatCard
-                label="Gem. woorden"
-                value={stats.summary.avgWordCount}
-                hint="Gemiddeld aantal woorden per bericht"
-              />
-              <StatCard
-                label="Antwoorden"
-                value={stats.summary.replyCount}
-                hint={`Antwoordpercentage ${formatPercent(stats.summary.replyRate)}`}
-              />
-              <StatCard
-                label="Verwijderd"
-                value={stats.summary.deletedInRange}
-                hint="Berichten die in deze periode zijn verwijderd. Tellen niet mee in het berichttotaal."
-              />
-              <StatCard
-                label="Reacties"
-                value={stats.summary.reactionsInRange}
-                hint="Totaal aantal emoji-reacties op berichten in deze periode"
-              />
-              <StatCard label="Spraaksessies" value={stats.summary.voiceSessionsInRange} />
-              <StatCard label="Spraaksessies totaal" value={stats.summary.voiceSessionsTotal} />
-              <StatCard
-                label="Spraaktijd"
-                value={formatDuration(stats.summary.voiceSecondsClosed)}
-                hint={voiceHint}
-              />
-              <StatCard
-                label="Gem. sessieduur"
-                value={formatDuration(stats.summary.voiceAverageSeconds)}
-                hint={
-                  stats.summary.voiceOpenInRange > 0
-                    ? `${stats.summary.voiceOpenInRange} open sessie(s) in deze periode`
-                    : voiceHint
-                }
-              />
-              <StatCard label="Actief in periode" value={stats.summary.activeUsers} />
-              <StatCard
-                label="Ledental"
-                value={stats.summary.memberCount ?? "—"}
-                hint={
-                  stats.summary.memberCountRecordedAt
-                    ? `Laatste snapshot ${formatDateTime(stats.summary.memberCountRecordedAt, timezone)}`
-                    : "Op basis van bekende leden"
-                }
-              />
-              <StatCard
-                label="Vastgelopen spraak"
-                value={stats.summary.voiceUnreliableClosed}
-                hint="Afgesloten sessies langer dan 24 uur, vermoedelijk crash-restanten. Niet meegeteld in de spraaktijd."
-              />
-            </div>
+            <AdminSection
+              title="Overzicht"
+              hint="Belangrijkste Discordcijfers voor de gekozen periode."
+            >
+              <div className="adminStatGrid adminStatGridPrimary">
+                <StatCard label="Berichten" value={stats.summary.messagesInRange} />
+                <StatCard label="Unieke auteurs" value={stats.summary.uniqueAuthors} />
+                <StatCard
+                  label="Spraaktijd"
+                  value={formatDuration(stats.summary.voiceSecondsClosed)}
+                  hint={voiceHint}
+                />
+                <StatCard label="Actief in periode" value={stats.summary.activeUsers} />
+              </div>
+              <div className="adminStatGrid adminStatGridSecondary">
+                <StatCard compact label="Berichten totaal" value={stats.summary.messagesTotal} />
+                <StatCard compact label="Bijlagen" value={stats.summary.attachmentsInRange} />
+                <StatCard
+                  compact
+                  label="Antwoorden"
+                  value={stats.summary.replyCount}
+                  hint={`Antwoordpercentage ${formatPercent(stats.summary.replyRate)}`}
+                />
+                <StatCard
+                  compact
+                  label="Reacties"
+                  value={stats.summary.reactionsInRange}
+                  hint="Totaal aantal emoji-reacties"
+                />
+                <StatCard
+                  compact
+                  label="Verwijderd"
+                  value={stats.summary.deletedInRange}
+                  hint="Tellen niet mee in het berichttotaal"
+                />
+                <StatCard
+                  compact
+                  label="Gem. woorden"
+                  value={stats.summary.avgWordCount}
+                />
+                <StatCard compact label="Spraaksessies" value={stats.summary.voiceSessionsInRange} />
+                <StatCard
+                  compact
+                  label="Gem. sessieduur"
+                  value={formatDuration(stats.summary.voiceAverageSeconds)}
+                  hint={
+                    stats.summary.voiceOpenInRange > 0
+                      ? `${stats.summary.voiceOpenInRange} open sessie(s)`
+                      : voiceHint
+                  }
+                />
+                <StatCard
+                  compact
+                  label="Ledental"
+                  value={stats.summary.memberCount ?? "—"}
+                  hint={
+                    stats.summary.memberCountRecordedAt
+                      ? `Snapshot ${formatDateTime(stats.summary.memberCountRecordedAt, timezone)}`
+                      : "Op basis van bekende leden"
+                  }
+                />
+                <StatCard
+                  compact
+                  label="Vastgelopen spraak"
+                  value={stats.summary.voiceUnreliableClosed}
+                  hint="Sessies >24u, niet meegeteld in spraaktijd"
+                />
+                <StatCard compact label="Botacties" value={stats.botUsage.total} />
+                <StatCard
+                  compact
+                  label="Spraaksessies totaal"
+                  value={stats.summary.voiceSessionsTotal}
+                />
+              </div>
+            </AdminSection>
 
-            <div className="adminSplit">
-              <PagePanel>
-                <h2 className="cardTitle">Berichten in de tijd</h2>
-                <p className="cardHint">
-                  {range === "all"
-                    ? `Per maand in de guild-tijdzone (${stats.timezone}).`
-                    : `Per dag in de guild-tijdzone (${stats.timezone}).`}
-                </p>
-                <BarList
+            <AdminSection
+              title="Berichten"
+              hint={
+                range === "all"
+                  ? `Trends per maand in ${stats.timezone}.`
+                  : `Trends per dag in ${stats.timezone}.`
+              }
+            >
+              <PagePanel className="adminPanelFlush">
+                <h3 className="adminSubhead">Berichten in de tijd</h3>
+                <AreaChart
                   items={stats.messagesOverTime.map((row) => ({
                     label: row.key,
                     value: row.count,
                   }))}
                   empty="Nog geen Discord-berichten in deze periode."
+                  ariaLabel="Berichten per periode"
                 />
               </PagePanel>
-              <PagePanel>
-                <h2 className="cardTitle">Spraakminuten in de tijd</h2>
-                <p className="cardHint">{voiceHint}</p>
-                <BarList
+              <div className="adminSplit">
+                <PagePanel>
+                  <h3 className="adminSubhead">Piekuren</h3>
+                  <p className="cardHint">Wanneer er berichten verstuurd worden.</p>
+                  <HourChart hours={stats.peakHours} />
+                </PagePanel>
+                <PagePanel>
+                  <h3 className="adminSubhead">Meest gebruikte emoji</h3>
+                  <p className="cardHint">Reacties op berichten in deze periode.</p>
+                  <BarList
+                    items={stats.topEmojis.map((row) => ({
+                      label: row.key,
+                      value: row.count,
+                    }))}
+                    empty="Nog geen reacties in deze periode."
+                  />
+                </PagePanel>
+              </div>
+              <div className="adminSplit">
+                <PagePanel>
+                  <h3 className="adminSubhead">Meest actieve gebruikers</h3>
+                  <BarList
+                    items={stats.topUsersByMessages.map((row) => ({
+                      label: row.displayName,
+                      value: row.count,
+                    }))}
+                    empty="Nog geen berichten in deze periode."
+                  />
+                </PagePanel>
+                <PagePanel>
+                  <h3 className="adminSubhead">Berichten per kanaal</h3>
+                  <BarList
+                    items={stats.topChannelsByMessages.map((row) => ({
+                      label: row.name,
+                      value: row.count,
+                    }))}
+                    empty="Nog geen kanaalactiviteit in deze periode."
+                  />
+                </PagePanel>
+              </div>
+            </AdminSection>
+
+            <AdminSection title="Spraak" hint={voiceHint}>
+              <PagePanel className="adminPanelFlush">
+                <h3 className="adminSubhead">Spraakminuten in de tijd</h3>
+                <AreaChart
                   items={stats.voiceMinutesOverTime.map((row) => ({
                     label: row.key,
                     value: row.count,
                   }))}
                   empty="Nog geen afgesloten spraaksessies in deze periode."
+                  ariaLabel="Spraakminuten per periode"
                 />
               </PagePanel>
-            </div>
-
-            <div className="adminSplit">
+              <div className="adminSplit">
+                <PagePanel>
+                  <h3 className="adminSubhead">Spraakpiekuren</h3>
+                  <p className="cardHint">Wanneer spraaksessies starten.</p>
+                  <HourChart hours={stats.voicePeakHours} />
+                </PagePanel>
+                <PagePanel>
+                  <h3 className="adminSubhead">Spraak per kanaal</h3>
+                  <p className="cardHint">Minuten in afgesloten sessies.</p>
+                  <BarList
+                    items={stats.topChannelsByVoiceSeconds.map((row) => ({
+                      label: row.name,
+                      value: Math.round(row.seconds / 60),
+                    }))}
+                    empty="Nog geen spraakactiviteit in deze periode."
+                  />
+                </PagePanel>
+              </div>
               <PagePanel>
-                <h2 className="cardTitle">Piekuren</h2>
-                <p className="cardHint">Wanneer er berichten verstuurd worden.</p>
-                <HourChart hours={stats.peakHours} />
-              </PagePanel>
-              <PagePanel>
-                <h2 className="cardTitle">Spraakpiekuren</h2>
-                <p className="cardHint">Wanneer spraaksessies starten.</p>
-                <HourChart hours={stats.voicePeakHours} />
-              </PagePanel>
-            </div>
-
-            <div className="adminSplit">
-              <PagePanel>
-                <h2 className="cardTitle">Meest actieve gebruikers</h2>
+                <h3 className="adminSubhead">Meest actieve spraakgebruikers</h3>
                 <BarList
-                  items={stats.topUsersByMessages.map((row) => ({
+                  items={stats.topUsersByVoiceSeconds.map((row) => ({
                     label: row.displayName,
-                    value: row.count,
+                    value: Math.round(row.seconds / 60),
                   }))}
-                  empty="Nog geen berichten in deze periode."
+                  empty="Nog geen afgesloten spraaksessies in deze periode."
                 />
               </PagePanel>
-              <PagePanel>
-                <h2 className="cardTitle">Meest gebruikte emoji</h2>
-                <p className="cardHint">Reacties op berichten in deze periode.</p>
-                <BarList
-                  items={stats.topEmojis.map((row) => ({
+            </AdminSection>
+
+            <AdminSection
+              title="Ledental"
+              hint="Snapshots worden bij het opstarten van de bot genomen, dus de reeks is spaarzaam."
+            >
+              <PagePanel className="adminPanelFlush">
+                <AreaChart
+                  items={stats.memberCountOverTime.map((row) => ({
                     label: row.key,
                     value: row.count,
                   }))}
-                  empty="Nog geen reacties in deze periode."
+                  empty="Nog geen ledental-snapshots in deze periode."
+                  ariaLabel="Ledental in de tijd"
                 />
               </PagePanel>
-            </div>
+            </AdminSection>
 
-            <div className="adminSplit">
-              <PagePanel>
-                <h2 className="cardTitle">Berichten per kanaal</h2>
-                <BarList
-                  items={stats.topChannelsByMessages.map((row) => ({
-                    label: row.name,
-                    value: row.count,
-                  }))}
-                  empty="Nog geen kanaalactiviteit in deze periode."
-                />
-              </PagePanel>
-              <PagePanel>
-                <h2 className="cardTitle">Spraak per kanaal</h2>
-                <p className="cardHint">Minuten in afgesloten sessies.</p>
-                <BarList
-                  items={stats.topChannelsByVoiceSeconds.map((row) => ({
-                    label: row.name,
-                    value: Math.round(row.seconds / 60),
-                  }))}
-                  empty="Nog geen spraakactiviteit in deze periode."
-                />
-              </PagePanel>
-            </div>
-
-            <PagePanel>
-              <h2 className="cardTitle">Meest actieve spraakgebruikers</h2>
-              <p className="cardHint">{voiceHint}</p>
-              <BarList
-                items={stats.topUsersByVoiceSeconds.map((row) => ({
-                  label: row.displayName,
-                  value: Math.round(row.seconds / 60),
-                }))}
-                empty="Nog geen afgesloten spraaksessies in deze periode."
-              />
-            </PagePanel>
-
-            <PagePanel>
-              <h2 className="cardTitle">Ledental in de tijd</h2>
-              <p className="cardHint">
-                Snapshots worden nu bij het opstarten van de bot genomen, dus de reeks is spaarzaam.
-              </p>
-              <BarList
-                items={stats.memberCountOverTime.map((row) => ({
-                  label: row.key,
-                  value: row.count,
-                }))}
-                empty="Nog geen ledental-snapshots in deze periode."
-              />
-            </PagePanel>
-
-            <PagePanel>
-              <h2 className="cardTitle">Botgebruik</h2>
-              <p className="cardHint">
-                Slash commands en knoppen in Discord. Berichtinhoud wordt niet bewaard.
-              </p>
-              <div className="adminStatGrid">
-                <StatCard label="Botacties" value={stats.botUsage.total} />
-                <StatCard label="Roosterdagen" value={stats.botUsage.timetableDayClicks} />
-                <StatCard label="F1-statistieken" value={stats.botUsage.f1StatsClicks} />
+            <AdminSection
+              title="Botgebruik"
+              hint="Slash commands en knoppen in Discord. Berichtinhoud wordt niet bewaard."
+            >
+              <div className="adminStatGrid adminStatGridSecondary">
+                <StatCard compact label="Botacties" value={stats.botUsage.total} />
+                <StatCard compact label="Roosterdagen" value={stats.botUsage.timetableDayClicks} />
+                <StatCard compact label="F1-statistieken" value={stats.botUsage.f1StatsClicks} />
               </div>
               <div className="adminSplit">
-                <div>
+                <PagePanel>
                   <h3 className="adminSubhead">Commands</h3>
-                  <BarList
-                    items={stats.botUsage.commands.map((row) => ({
-                      label: COMMAND_LABELS[row.key] ?? `/${row.key}`,
-                      value: row.count,
-                    }))}
+                  <DonutChart
+                    items={botCommandItems}
                     empty="Nog geen slash commands in deze periode."
+                    ariaLabel="Commands"
                   />
                   <h3 className="adminSubhead">Knoppen</h3>
                   <BarList
@@ -410,124 +455,125 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
                     }))}
                     empty="Nog geen knopacties in deze periode."
                   />
-                </div>
-                <div>
+                </PagePanel>
+                <PagePanel>
                   <h3 className="adminSubhead">Botacties in de tijd</h3>
-                  <BarList
+                  <AreaChart
                     items={stats.botUsage.overTime.map((row) => ({
                       label: row.key,
                       value: row.count,
                     }))}
                     empty="Nog geen botacties in deze periode."
+                    ariaLabel="Botacties per periode"
                   />
-                </div>
+                </PagePanel>
               </div>
-            </PagePanel>
+            </AdminSection>
 
-            <PagePanel>
-              <h2 className="cardTitle">Recente Discordactiviteit</h2>
-              <p className="cardHint">
-                Metadata van recente berichten, spraaksessies en botacties. Berichtinhoud wordt niet
-                getoond.
-              </p>
-              {stats.recent.length === 0 ? (
-                <p className="cardHint">Nog geen Discordactiviteit in deze periode.</p>
-              ) : (
-                <div className="adminTableWrap">
-                  <table className="adminTable">
-                    <thead>
-                      <tr>
-                        <th>Gebruiker</th>
-                        <th>Tijdstip</th>
-                        <th>Type</th>
-                        <th>Kanaal / detail</th>
-                        <th>Duur</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {stats.recent.map((row, index) => (
-                        <tr key={`${row.type}-${row.occurredAt}-${row.userId}-${index}`}>
-                          <td>{row.displayName}</td>
-                          <td>{formatDateTime(row.occurredAt, timezone)}</td>
-                          <td>{recentTypeLabel(row)}</td>
-                          <td>{recentChannelOrDetail(row)}</td>
-                          <td>
-                            {row.type === "voice"
-                              ? formatDuration(row.durationSeconds, row.open)
-                              : "—"}
-                          </td>
+            <AdminSection
+              title="Recente activiteit"
+              hint="Metadata van recente berichten, spraaksessies en botacties. Berichtinhoud wordt niet getoond."
+            >
+              <PagePanel>
+                {stats.recent.length === 0 ? (
+                  <p className="cardHint">Nog geen Discordactiviteit in deze periode.</p>
+                ) : (
+                  <div className="adminTableWrap">
+                    <table className="adminTable">
+                      <thead>
+                        <tr>
+                          <th>Gebruiker</th>
+                          <th>Tijdstip</th>
+                          <th>Type</th>
+                          <th>Kanaal / detail</th>
+                          <th>Duur</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </PagePanel>
+                      </thead>
+                      <tbody>
+                        {stats.recent.map((row, index) => (
+                          <tr key={`${row.type}-${row.occurredAt}-${row.userId}-${index}`}>
+                            <td>{row.displayName}</td>
+                            <td>{formatDateTime(row.occurredAt, timezone)}</td>
+                            <td>{recentTypeLabel(row)}</td>
+                            <td>{recentChannelOrDetail(row)}</td>
+                            <td>
+                              {row.type === "voice"
+                                ? formatDuration(row.durationSeconds, row.open)
+                                : "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </PagePanel>
+            </AdminSection>
 
-            <PagePanel>
-              <h2 className="cardTitle">Gebruikers</h2>
-              <p className="cardHint">
-                Leden met Discordactiviteit in de geselecteerde periode. Berichtinhoud wordt niet
-                bewaard of getoond.
-              </p>
-              <div className="adminUserToolbar">
-                <input
-                  className="formInput"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Zoek op naam…"
-                  aria-label="Gebruikers zoeken"
-                />
-                <label className="adminSort">
-                  Sorteren
-                  <select
-                    className="formInput formSelect"
-                    value={sortKey}
-                    onChange={(e) => setSortKey(e.target.value as typeof sortKey)}
-                  >
-                    <option value="messages">Berichten</option>
-                    <option value="voice">Spraaktijd</option>
-                    <option value="last">Laatste activiteit</option>
-                    <option value="name">Naam</option>
-                  </select>
-                </label>
-              </div>
-              {filteredUsers.length === 0 ? (
-                <p className="cardHint">Geen gebruikers met Discordactiviteit in deze periode.</p>
-              ) : (
-                <div className="adminTableWrap">
-                  <table className="adminTable">
-                    <thead>
-                      <tr>
-                        <th>Lid</th>
-                        <th>Berichten</th>
-                        <th>Spraaksessies</th>
-                        <th>Spraaktijd</th>
-                        <th>Laatste activiteit</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredUsers.map((row) => (
-                        <tr key={row.userId}>
-                          <td>
-                            <div className="adminUserCell">
-                              <strong>{row.displayName}</strong>
-                              {row.username && (
-                                <span className="adminMuted">@{row.username}</span>
-                              )}
-                            </div>
-                          </td>
-                          <td>{row.messageCount}</td>
-                          <td>{row.voiceSessionCount}</td>
-                          <td>{formatDuration(row.voiceSeconds)}</td>
-                          <td>{formatDateTime(row.lastActivityAt, timezone)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            <AdminSection
+              title="Gebruikers"
+              hint="Leden met Discordactiviteit in de geselecteerde periode."
+            >
+              <PagePanel>
+                <div className="adminUserToolbar">
+                  <input
+                    className="formInput"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Zoek op naam…"
+                    aria-label="Gebruikers zoeken"
+                  />
+                  <label className="adminSort">
+                    Sorteren
+                    <select
+                      className="formInput formSelect"
+                      value={sortKey}
+                      onChange={(e) => setSortKey(e.target.value as typeof sortKey)}
+                    >
+                      <option value="messages">Berichten</option>
+                      <option value="voice">Spraaktijd</option>
+                      <option value="last">Laatste activiteit</option>
+                      <option value="name">Naam</option>
+                    </select>
+                  </label>
                 </div>
-              )}
-            </PagePanel>
+                {filteredUsers.length === 0 ? (
+                  <p className="cardHint">Geen gebruikers met Discordactiviteit in deze periode.</p>
+                ) : (
+                  <div className="adminTableWrap">
+                    <table className="adminTable">
+                      <thead>
+                        <tr>
+                          <th>Lid</th>
+                          <th>Berichten</th>
+                          <th>Spraaksessies</th>
+                          <th>Spraaktijd</th>
+                          <th>Laatste activiteit</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredUsers.map((row) => (
+                          <tr key={row.userId}>
+                            <td>
+                              <div className="adminUserCell">
+                                <strong>{row.displayName}</strong>
+                                {row.username && (
+                                  <span className="adminMuted">@{row.username}</span>
+                                )}
+                              </div>
+                            </td>
+                            <td>{row.messageCount}</td>
+                            <td>{row.voiceSessionCount}</td>
+                            <td>{formatDuration(row.voiceSeconds)}</td>
+                            <td>{formatDateTime(row.lastActivityAt, timezone)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </PagePanel>
+            </AdminSection>
           </>
         )}
       </PageLayout>
