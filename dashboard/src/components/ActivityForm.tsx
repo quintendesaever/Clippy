@@ -145,7 +145,13 @@ export default function ActivityForm({
 
   return (
     <div className="eventPopupOverlay" onClick={onClose}>
-      <div className="eventPopup activityFormPopup" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="eventPopup activityFormPopup"
+        role="dialog"
+        aria-modal="true"
+        aria-label={mode === "edit" ? "Activiteit bewerken" : "Activiteit toevoegen"}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="eventPopupHeader">
           <h3 className="eventPopupTitle">
             {mode === "edit" ? "Activiteit bewerken" : "Activiteit toevoegen"}
@@ -156,7 +162,7 @@ export default function ActivityForm({
             onClick={onClose}
             aria-label="Sluiten"
           >
-            ×
+            <span aria-hidden="true">×</span>
           </button>
         </div>
 
