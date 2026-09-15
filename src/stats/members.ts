@@ -2,17 +2,20 @@ import type { Guild } from "discord.js";
 import { supabase } from "../supabase.js";
 
 const UPSERT_CHUNK = 80;
+const UPDATE_CHUNK = 80;
 
 export async function upsertMember(
   guildId: string,
   userId: string,
   avatarHash?: string | null,
-  profile?: { displayName?: string | null; username?: string | null }
+  profile?: { displayName?: string | null; username?: string | null; isBot?: boolean }
 ): Promise<void> {
   const row: {
     guild_id: string;
     user_id: string;
     updated_at: string;
+    left_guild_at: null;
+    is_bot?: boolean;
     avatar_hash?: string | null;
     display_name?: string | null;
     username?: string | null;
@@ -20,6 +23,7 @@ export async function upsertMember(
     guild_id: guildId,
     user_id: userId,
     updated_at: new Date().toISOString(),
+    left_guild_at: null,
   };
   if (avatarHash !== undefined) {
     row.avatar_hash = avatarHash;
@@ -30,6 +34,11 @@ export async function upsertMember(
   if (profile?.username !== undefined) {
     row.username = profile.username;
   }
+  if (profile?.isBot !== undefined) {
+    row.is_bot = profile.isBot;
+  } else {
+    row.is_bot = false;
+  }
 
   const { error } = await supabase.from("members").upsert(row, { onConflict: "guild_id,user_id" });
   if (error) {
@@ -37,8 +46,22 @@ export async function upsertMember(
   }
 }
 
+export async function markMemberLeft(guildId: string, userId: string): Promise<void> {
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from("members")
+    .update({ left_guild_at: now, updated_at: now })
+    .eq("guild_id", guildId)
+    .eq("user_id", userId)
+    .is("left_guild_at", null);
+  if (error) {
+    console.error("stats: mark member left:", error.message);
+  }
+}
+
 export type SyncGuildMembersResult = {
   count: number;
+  humanCount: number;
   error?: string;
 };
 
@@ -48,18 +71,24 @@ export async function syncGuildMembers(guild: Guild): Promise<SyncGuildMembersRe
     members = await guild.members.fetch();
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    return { count: 0, error: message };
+    return { count: 0, humanCount: 0, error: message };
   }
 
   const now = new Date().toISOString();
-  const rows = [...members.values()].map((member) => ({
-    guild_id: guild.id,
-    user_id: member.id,
-    avatar_hash: member.user.avatar,
-    display_name: member.displayName,
-    username: member.user.username,
-    updated_at: now,
-  }));
+  const presentIds = new Set<string>();
+  const rows = [...members.values()].map((member) => {
+    presentIds.add(member.id);
+    return {
+      guild_id: guild.id,
+      user_id: member.id,
+      avatar_hash: member.user.avatar,
+      display_name: member.displayName,
+      username: member.user.username,
+      is_bot: member.user.bot,
+      left_guild_at: null,
+      updated_at: now,
+    };
+  });
 
   for (let i = 0; i < rows.length; i += UPSERT_CHUNK) {
     const chunk = rows.slice(i, i + UPSERT_CHUNK);
@@ -68,11 +97,40 @@ export async function syncGuildMembers(guild: Guild): Promise<SyncGuildMembersRe
       .upsert(chunk, { onConflict: "guild_id,user_id" });
     if (error) {
       console.error("stats: sync guild members:", error.message);
-      return { count: i, error: error.message };
+      return { count: i, humanCount: 0, error: error.message };
     }
   }
 
-  return { count: rows.length };
+  const { data: existing, error: existingError } = await supabase
+    .from("members")
+    .select("user_id")
+    .eq("guild_id", guild.id)
+    .is("left_guild_at", null);
+  if (existingError) {
+    console.error("stats: list members for leave marking:", existingError.message);
+    return { count: rows.length, humanCount: rows.filter((row) => !row.is_bot).length, error: existingError.message };
+  }
+
+  const leftIds = (existing ?? [])
+    .map((row) => row.user_id as string)
+    .filter((userId) => !presentIds.has(userId));
+  for (let i = 0; i < leftIds.length; i += UPDATE_CHUNK) {
+    const chunk = leftIds.slice(i, i + UPDATE_CHUNK);
+    const { error } = await supabase
+      .from("members")
+      .update({ left_guild_at: now, updated_at: now })
+      .eq("guild_id", guild.id)
+      .in("user_id", chunk);
+    if (error) {
+      console.error("stats: mark departed members:", error.message);
+      return { count: rows.length, humanCount: rows.filter((row) => !row.is_bot).length, error: error.message };
+    }
+  }
+
+  return {
+    count: rows.length,
+    humanCount: rows.filter((row) => !row.is_bot).length,
+  };
 }
 
 export const DEFAULT_SHOW_TYPE_PREFIX = true;
@@ -169,7 +227,9 @@ export async function getMemberLocationPrivacy(guildId: string): Promise<{
   const { data, error } = await supabase
     .from("members")
     .select("user_id, share_location, last_country, last_region, last_city")
-    .eq("guild_id", guildId);
+    .eq("guild_id", guildId)
+    .is("left_guild_at", null)
+    .eq("is_bot", false);
   const shareLocationByUser = new Map<string, boolean>();
   const memberGeoByUser = new Map<string, MemberGeo>();
   if (error) {
