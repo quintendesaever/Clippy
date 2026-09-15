@@ -275,6 +275,85 @@ a:hover {
   margin-right: auto;
 }
 
+.settingsStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.settingsStack > .pagePanel {
+  margin-top: 0;
+}
+
+.settingsPrefBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.settingsPrefBlock .cardHint {
+  margin: 0;
+}
+
+.settingsPrefBlock .errorMsg {
+  margin-top: 0.15rem;
+}
+
+.settingsPanelHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.settingsPanelHead .cardTitle,
+.settingsPanelHead .cardHint {
+  margin-bottom: 0;
+}
+
+.settingsPanelHead .cardHint {
+  margin-top: 0.35rem;
+}
+
+.settingsStatusBadge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.settingsStatusLinked {
+  background: color-mix(in srgb, var(--color-success) 18%, transparent);
+  color: var(--color-success);
+}
+
+.settingsStatusEmpty {
+  background: color-mix(in srgb, var(--color-text-muted) 16%, transparent);
+  color: var(--color-text-muted);
+}
+
+.settingsStateLine {
+  margin: 0.75rem 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.settingsStateOn {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.settingsStateOff {
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
 /* Sidebar */
 .sidebar {
   width: var(--sidebar-width);
@@ -799,7 +878,7 @@ select.formSelect {
 
 .themePicker {
   width: 100%;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0;
 }
 
 .themePicker .topBarTab {

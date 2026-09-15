@@ -15,6 +15,43 @@ const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: "system", label: "Systeem" },
 ];
 
+function PreferenceToggle({
+  label,
+  hint,
+  checked,
+  disabled,
+  onChange,
+  error,
+}: {
+  label: string;
+  hint: string;
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (next: boolean) => void;
+  error?: string | null;
+}) {
+  return (
+    <div className="settingsPrefBlock">
+      <label className="formToggleRow">
+        <span>{label}</span>
+        <span className="toggleSwitch">
+          <input
+            type="checkbox"
+            checked={checked}
+            disabled={disabled}
+            onChange={(e) => onChange(e.target.checked)}
+          />
+          <span className="toggleTrack" aria-hidden="true">
+            <span className="toggleThumb" />
+          </span>
+        </span>
+      </label>
+      <p className="cardHint">{hint}</p>
+      {error && <p className="errorMsg">{error}</p>}
+    </div>
+  );
+}
+
 export default function Settings({ user }: { user: DiscordUser }) {
   const { preference, setPreference } = useTheme();
   const { showTypePrefix, setShowTypePrefix, shareLocation, setShareLocation } = usePreferences();
@@ -117,123 +154,130 @@ export default function Settings({ user }: { user: DiscordUser }) {
     }
   }
 
+  const calendarLinked = Boolean(existing?.ics_url);
+
   return (
     <AppShell user={user}>
-      <PageLayout title="Instellingen" subtitle="Weergave en kalender">
-        <PagePanel className="pagePanelNarrow">
-          <h2 className="cardTitle">Weergave</h2>
-          <p className="cardHint">Thema en weergave van het dashboard.</p>
-          <div className="topBarTabs themePicker" role="radiogroup" aria-label="Thema">
-            {THEME_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                role="radio"
-                aria-checked={preference === option.value}
-                className={`topBarTab ${preference === option.value ? "topBarTabActive" : ""}`}
-                onClick={() => setPreference(option.value)}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-          <label className="formToggleRow">
-            <span>Toon type in titel</span>
-            <span className="toggleSwitch">
-              <input
-                type="checkbox"
-                checked={showTypePrefix}
-                disabled={savingPrefix}
-                onChange={(e) => handleTypePrefixToggle(e.target.checked)}
-              />
-              <span className="toggleTrack" aria-hidden="true">
-                <span className="toggleThumb" />
-              </span>
-            </span>
-          </label>
-          <p className="cardHint">
-            Zet Hoorcollege, Project, … voor de vaknaam op het webrooster. Dit wordt bewaard in je
-            account, dus het geldt op elk apparaat. Discord blijft type als pill tonen.
-          </p>
-          {prefixError && <p className="errorMsg">{prefixError}</p>}
-          <h2 className="cardTitle" style={{ marginTop: "1.5rem" }}>
-            Locatie delen
-          </h2>
-          <p className="cardHint">
-            Als dit aan staat, kunnen andere leden je ICS-lokaal en je laatst gedetecteerde
-            dashboardlocatie (stad/regio, geen GPS) zien. Uitgeschakeld blijft persoonlijke locatie
-            verborgen. Activiteitslocaties die je zelf invult blijven zichtbaar.
-          </p>
-          <div className="topBarTabs themePicker" role="radiogroup" aria-label="Locatie delen">
-            <button
-              type="button"
-              role="radio"
-              aria-checked={shareLocation}
-              className={`topBarTab ${shareLocation ? "topBarTabActive" : ""}`}
-              disabled={savingShare}
-              onClick={() => handleShareLocation(true)}
-            >
-              Ingeschakeld
-            </button>
-            <button
-              type="button"
-              role="radio"
-              aria-checked={!shareLocation}
-              className={`topBarTab ${!shareLocation ? "topBarTabActive" : ""}`}
-              disabled={savingShare}
-              onClick={() => handleShareLocation(false)}
-            >
-              Uitgeschakeld
-            </button>
-          </div>
-          {shareError && <p className="errorMsg">{shareError}</p>}
-        </PagePanel>
-        {loading ? (
-          <p className="timetableLoading">Laden…</p>
-        ) : (
+      <PageLayout title="Instellingen" subtitle="Weergave, privacy en kalender">
+        <div className="settingsStack">
           <PagePanel className="pagePanelNarrow">
-            <h2 className="cardTitle">Mijn kalender</h2>
+            <h2 className="cardTitle">Weergave</h2>
             <p className="cardHint">
-              Koppel je ICS-kalender voor het gedeelde rooster. Bekijk het op{" "}
-              <Link to="/timetable">het rooster</Link> of via <code>/timetable</code> in Discord.
+              Thema voor dit apparaat. Wordt lokaal bewaard en niet gesynchroniseerd via je account.
             </p>
-            <form onSubmit={handleSave} className="form">
-              <label className="formLabel">
-                Naam
-                <input
-                  className="formInput"
-                  value={initials}
-                  onChange={(e) => setInitials(e.target.value)}
-                  placeholder="bv. Quinten"
-                  maxLength={32}
-                  required
-                />
-              </label>
-              <label className="formLabel">
-                ICS-URL
-                <input
-                  className="formInput"
-                  type="url"
-                  value={icsUrl}
-                  onChange={(e) => setIcsUrl(e.target.value)}
-                  placeholder="https://…/calendar.ics"
-                />
-              </label>
-              <div className="formActions">
-                <Button type="submit" disabled={saving}>
-                  {saving ? "Opslaan…" : "Opslaan"}
-                </Button>
-                {existing && (
-                  <Button variant="secondary" onClick={handleRemove} disabled={saving}>
-                    Verwijderen
-                  </Button>
-                )}
-              </div>
-            </form>
-            {message && <p className="successMsg">{message}</p>}
-            {error && <p className="errorMsg">{error}</p>}
+            <div className="topBarTabs themePicker" role="radiogroup" aria-label="Thema">
+              {THEME_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={preference === option.value}
+                  className={`topBarTab ${preference === option.value ? "topBarTabActive" : ""}`}
+                  onClick={() => setPreference(option.value)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </PagePanel>
-        )}
+
+          <PagePanel className="pagePanelNarrow">
+            <h2 className="cardTitle">Rooster</h2>
+            <p className="cardHint">Voorkeuren voor het webrooster. Worden in je account bewaard.</p>
+            <PreferenceToggle
+              label="Toon type in titel"
+              hint="Zet Hoorcollege, Project, … voor de vaknaam op het webrooster. Discord blijft type als pill tonen."
+              checked={showTypePrefix}
+              disabled={savingPrefix}
+              onChange={handleTypePrefixToggle}
+              error={prefixError}
+            />
+          </PagePanel>
+
+          <PagePanel className="pagePanelNarrow">
+            <h2 className="cardTitle">Privacy</h2>
+            <p className="cardHint">Wat andere leden van je mogen zien.</p>
+            <PreferenceToggle
+              label="Locatie delen"
+              hint="Als dit aan staat, kunnen andere leden je ICS-lokaal en je laatst gedetecteerde dashboardlocatie (stad/regio, geen GPS) zien. Activiteitslocaties die je zelf invult blijven zichtbaar."
+              checked={shareLocation}
+              disabled={savingShare}
+              onChange={handleShareLocation}
+              error={shareError}
+            />
+            <p className="settingsStateLine" aria-live="polite">
+              Status:{" "}
+              <span className={shareLocation ? "settingsStateOn" : "settingsStateOff"}>
+                {shareLocation ? "Ingeschakeld" : "Uitgeschakeld"}
+              </span>
+              {savingShare ? " · Opslaan…" : ""}
+            </p>
+          </PagePanel>
+
+          <PagePanel className="pagePanelNarrow">
+            <div className="settingsPanelHead">
+              <div>
+                <h2 className="cardTitle">Kalender</h2>
+                <p className="cardHint">
+                  Koppel je ICS-kalender voor het gedeelde rooster. Bekijk het op{" "}
+                  <Link to="/timetable">het rooster</Link> of via <code>/timetable</code> in Discord.
+                </p>
+              </div>
+              {!loading && (
+                <span
+                  className={`settingsStatusBadge ${
+                    calendarLinked ? "settingsStatusLinked" : "settingsStatusEmpty"
+                  }`}
+                >
+                  {calendarLinked ? "Gekoppeld" : existing ? "Zonder ICS-URL" : "Niet gekoppeld"}
+                </span>
+              )}
+            </div>
+
+            {loading ? (
+              <p className="timetableLoading">Kalender laden…</p>
+            ) : (
+              <form onSubmit={handleSave} className="form">
+                <label className="formLabel">
+                  Weergavenaam
+                  <input
+                    className="formInput"
+                    value={initials}
+                    onChange={(e) => setInitials(e.target.value)}
+                    placeholder="bv. Quinten"
+                    maxLength={32}
+                    required
+                  />
+                </label>
+                <label className="formLabel">
+                  ICS-URL
+                  <input
+                    className="formInput"
+                    type="url"
+                    value={icsUrl}
+                    onChange={(e) => setIcsUrl(e.target.value)}
+                    placeholder="https://…/calendar.ics"
+                  />
+                  <span className="formCheckHint">
+                    Optioneel. Zonder URL blijf je in het rooster staan maar zonder lessen.
+                  </span>
+                </label>
+                <div className="formActions">
+                  <Button type="submit" disabled={saving}>
+                    {saving ? "Opslaan…" : "Opslaan"}
+                  </Button>
+                  {existing && (
+                    <Button variant="secondary" onClick={handleRemove} disabled={saving}>
+                      Verwijderen
+                    </Button>
+                  )}
+                </div>
+                {message && <p className="successMsg">{message}</p>}
+                {error && <p className="errorMsg">{error}</p>}
+              </form>
+            )}
+          </PagePanel>
+        </div>
       </PageLayout>
     </AppShell>
   );
