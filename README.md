@@ -5,7 +5,7 @@ Discord bot with Supabase stats tracking and a web settings dashboard.
 ## Features
 
 - Live message, reaction, voice, and member-count stats to Supabase
-- Slash commands: `/ping`, `/stats set-timezone`, `/backfill-stats`, `/f1-reminder`
+- Slash commands: `/ping`, `/stats sync-*`, `/backfill-stats`, `/f1-reminder` (test/status); timezone & F1 config in dashboard Beheer → Bot
 - Settings dashboard at `https://dashboard.clippybot.be` (calendar management via Discord OAuth)
 - Admin dashboard at `/admin` (Discord Manage Server permission; web analytics and activity stats)
 - Single-server deployment (`GUILD_ID` required)
@@ -120,7 +120,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 | `DASHBOARD_URL` | dashboard | `https://dashboard.clippybot.be` in prod |
 | `DASHBOARD_PORT` | optional | Default `3000` |
 | `F1_REMINDER_TEST` | optional | `1` for short F1 reminder poll/timing intervals |
-| `F1_PREDICTION_URL` | optional | Fallback URL for the F1 **Make predictions** button. Prefer `/f1-reminder set-prediction-url` in Discord. If neither is set, the button is omitted. |
+| `F1_PREDICTION_URL` | optional | Fallback URL for the F1 **Make predictions** button. Prefer Beheer → Bot in the dashboard. If neither is set, the button is omitted. |
 
 Dashboard analytics stores country/region/city from Cloudflare visitor headers (`CF-IPCountry`, `CF-IPCity`, `CF-Region`) and never keeps raw IPs. Enable **Add visitor location headers** on the `dashboard.clippybot.be` zone for city/region; country works by default. No extra API key is required.
 
@@ -133,7 +133,9 @@ Dashboard analytics stores country/region/city from Cloudflare visitor headers (
 3. 1 hour before the race
 4. Race results after published classification and championship standings are available
 
-Configure channel, role, and prediction URL with `/f1-reminder set-channel`, `set-role`, and `set-prediction-url`. The guild timezone from `/stats set-timezone` is used for displayed times.
+Configure channel, role, prediction URL, and guild timezone in the dashboard under **Beheer → Bot**. Displayed F1 times use that guild timezone.
+
+Slash helpers still available in Discord: `/f1-reminder status`, `test-schedule`, and `test-send`. Channel/member sync: `/stats sync-channels` and `/stats sync-members`.
 
 ### Testing F1 reminders immediately
 

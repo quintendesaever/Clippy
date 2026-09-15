@@ -12,11 +12,14 @@ import { useShowTypePrefix } from "../hooks/usePreferences";
 import type { TimetableEventDto } from "../types";
 import type { WeekTimelineDay } from "./WeekTimelineGrid";
 import AvatarStack from "./AvatarStack";
+import { memberAccentStyle } from "../hooks/useMemberColors";
 
 type WeekAgendaListProps = {
   days: WeekTimelineDay[];
   timezone: string;
   avatarByUser: Map<string, string | null>;
+  colorByUser?: Map<string, string>;
+  showMemberColors?: boolean;
   onEventClick: (event: TimetableEventDto) => void;
 };
 
@@ -60,6 +63,8 @@ export default function WeekAgendaList({
   days,
   timezone,
   avatarByUser,
+  colorByUser,
+  showMemberColors = false,
   onEventClick,
 }: WeekAgendaListProps) {
   const today = dayKeyInTimezone(new Date(), timezone);
@@ -113,20 +118,32 @@ export default function WeekAgendaList({
             <p className="weekAgendaEmpty">Geen lessen of activiteiten</p>
           ) : (
             <div className="weekAgendaList">
-              {day.items.map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  className={`agendaCard${item.event.source === "activity" ? " agendaCardActivity" : ""}`}
-                  onClick={() => onEventClick(item.event)}
-                >
-                  <AvatarStack userIds={item.userIds} avatarByUser={avatarByUser} size="sm" />
-                  <span className="agendaCardText">
-                    <span className="agendaCardTitle">{item.title}</span>
-                    <span className="agendaCardTime">{item.timeLabel}</span>
-                  </span>
-                </button>
-              ))}
+              {day.items.map((item) => {
+                const colors =
+                  showMemberColors && colorByUser
+                    ? item.userIds
+                        .map((id) => colorByUser.get(id))
+                        .filter((c): c is string => Boolean(c))
+                    : [];
+                const accent = showMemberColors ? memberAccentStyle(colors) : undefined;
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    className={`agendaCard${item.event.source === "activity" ? " agendaCardActivity" : ""}${
+                      accent ? " agendaCardMemberColors" : ""
+                    }`}
+                    style={accent}
+                    onClick={() => onEventClick(item.event)}
+                  >
+                    <AvatarStack userIds={item.userIds} avatarByUser={avatarByUser} size="sm" />
+                    <span className="agendaCardText">
+                      <span className="agendaCardTitle">{item.title}</span>
+                      <span className="agendaCardTime">{item.timeLabel}</span>
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           )}
         </section>

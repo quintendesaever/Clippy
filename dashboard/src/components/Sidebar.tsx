@@ -228,7 +228,10 @@ export default function Sidebar({ user }: { user: DiscordUser }) {
             <UserIcon />
             <span className="sidebarLinkLabel">
               <span className="sidebarLabelFull">Mijn rooster</span>
-              <span className="sidebarLabelShort">Mijn</span>
+              <span className="sidebarLabelShort sidebarLabelStacked" aria-hidden="true">
+                <span>Mijn</span>
+                <span>rooster</span>
+              </span>
             </span>
           </Link>
           <Link to="/settings" className={navLinkClass(pathname, "/settings")}>

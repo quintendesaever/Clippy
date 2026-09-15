@@ -12,12 +12,14 @@ function PreferenceToggle({
   checked,
   disabled,
   onChange,
+  error,
 }: {
   label: string;
   hint?: string;
   checked: boolean;
   disabled?: boolean;
   onChange: (next: boolean) => void;
+  error?: string | null;
 }) {
   return (
     <div className="settingsPrefBlock">
@@ -36,15 +38,20 @@ function PreferenceToggle({
         </span>
       </label>
       {hint && <p className="cardHint">{hint}</p>}
+      {error && <p className="errorMsg">{error}</p>}
     </div>
   );
 }
 
 export default function BotSettings({ user }: { user: DiscordUser }) {
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [savingTimezone, setSavingTimezone] = useState(false);
+  const [savingF1, setSavingF1] = useState(false);
+  const [timezoneError, setTimezoneError] = useState<string | null>(null);
+  const [f1Error, setF1Error] = useState<string | null>(null);
+  const [timezoneMessage, setTimezoneMessage] = useState<string | null>(null);
+  const [f1Message, setF1Message] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [timezone, setTimezone] = useState("Europe/Brussels");
   const [enabled, setEnabled] = useState(false);
   const [channelId, setChannelId] = useState("");
@@ -66,7 +73,7 @@ export default function BotSettings({ user }: { user: DiscordUser }) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    setError(null);
+    setLoadError(null);
     getBotSettings()
       .then((payload) => {
         if (cancelled) return;
@@ -74,7 +81,7 @@ export default function BotSettings({ user }: { user: DiscordUser }) {
       })
       .catch((err) => {
         if (cancelled) return;
-        setError(err instanceof Error ? err.message : "Laden mislukt");
+        setLoadError(err instanceof Error ? err.message : "Laden mislukt");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -84,146 +91,183 @@ export default function BotSettings({ user }: { user: DiscordUser }) {
     };
   }, []);
 
-  async function handleSave() {
-    setSaving(true);
-    setError(null);
-    setMessage(null);
+  async function handleSaveTimezone() {
+    setSavingTimezone(true);
+    setTimezoneError(null);
+    setTimezoneMessage(null);
+    try {
+      const payload = await saveBotSettings({ timezone: timezone.trim() });
+      applyPayload(payload);
+      setTimezoneMessage("Opgeslagen.");
+    } catch (err) {
+      setTimezoneError(err instanceof Error ? err.message : "Opslaan mislukt");
+    } finally {
+      setSavingTimezone(false);
+    }
+  }
+
+  async function handleSaveF1(nextEnabled?: boolean) {
+    setSavingF1(true);
+    setF1Error(null);
+    setF1Message(null);
+    const enabledValue = nextEnabled ?? enabled;
+    if (nextEnabled !== undefined) setEnabled(nextEnabled);
     try {
       const payload = await saveBotSettings({
-        timezone: timezone.trim(),
         f1: {
-          enabled,
+          enabled: enabledValue,
           channelId: channelId || null,
           roleId: roleId || null,
           predictionUrl: predictionUrl.trim() || null,
         },
       });
       applyPayload(payload);
-      setMessage("Opgeslagen.");
+      setF1Message("Opgeslagen.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Opslaan mislukt");
+      if (nextEnabled !== undefined) setEnabled(!nextEnabled);
+      setF1Error(err instanceof Error ? err.message : "Opslaan mislukt");
     } finally {
-      setSaving(false);
+      setSavingF1(false);
     }
   }
 
   return (
     <AppShell user={user}>
-      <PageLayout
-        title="Bot"
-        subtitle="Serverinstellingen die je nu via Discord-slashcommands beheert."
-      >
-        {loading ? (
-          <PagePanel>
-            <p className="cardHint">Laden…</p>
-          </PagePanel>
-        ) : (
-          <>
+      <PageLayout title="Bot">
+        <div className="settingsStack">
+          {loading ? (
             <PagePanel>
-              <h2 className="cardTitle">Server</h2>
-              <p className="cardHint">
-                Tijdzone voor stats, rooster en F1-herinneringen (IANA, bv. Europe/Brussels).
-              </p>
-              <label className="settingsFieldLabel" htmlFor="bot-timezone">
-                Tijdzone
-              </label>
-              <input
-                id="bot-timezone"
-                className="formInput"
-                value={timezone}
-                onChange={(e) => setTimezone(e.target.value)}
-                placeholder="Europe/Brussels"
-                autoComplete="off"
-                spellCheck={false}
-              />
+              <p className="cardHint">Laden…</p>
             </PagePanel>
-
+          ) : loadError ? (
             <PagePanel>
-              <div className="settingsPanelHead">
-                <div>
-                  <h2 className="cardTitle">F1-herinneringen</h2>
-                  <p className="cardHint">
-                    Kanaal, rol en prediction-link. Testberichten blijven in Discord via{" "}
-                    <code>/f1-reminder test-send</code>.
-                  </p>
+              <p className="errorMsg">{loadError}</p>
+            </PagePanel>
+          ) : (
+            <>
+              <PagePanel>
+                <h2 className="cardTitle">Server</h2>
+                <p className="cardHint">
+                  Tijdzone voor stats, rooster en F1-herinneringen (IANA, bv. Europe/Brussels).
+                </p>
+                <label className="settingsFieldLabel" htmlFor="bot-timezone">
+                  Tijdzone
+                </label>
+                <input
+                  id="bot-timezone"
+                  className="formInput"
+                  value={timezone}
+                  onChange={(e) => setTimezone(e.target.value)}
+                  placeholder="Europe/Brussels"
+                  autoComplete="off"
+                  spellCheck={false}
+                  disabled={savingTimezone}
+                />
+                {timezoneError && <p className="errorMsg">{timezoneError}</p>}
+                {timezoneMessage && <p className="successMsg">{timezoneMessage}</p>}
+                <div className="settingsActions">
+                  <Button onClick={handleSaveTimezone} disabled={savingTimezone}>
+                    {savingTimezone ? "Opslaan…" : "Opslaan"}
+                  </Button>
                 </div>
-              </div>
+              </PagePanel>
 
-              <PreferenceToggle
-                label="Herinneringen ingeschakeld"
-                hint="Zet uit om geplande F1-berichten te pauzeren."
-                checked={enabled}
-                disabled={saving}
-                onChange={setEnabled}
-              />
+              <PagePanel>
+                <h2 className="cardTitle">F1-herinneringen</h2>
+                <p className="cardHint">
+                  Kanaal, rol en prediction-link. Testberichten blijven in Discord via{" "}
+                  <code>/f1-reminder test-send</code>.
+                </p>
 
-              <label className="settingsFieldLabel" htmlFor="bot-f1-channel">
-                Kanaal
-              </label>
-              <select
-                id="bot-f1-channel"
-                className="formInput formSelect"
-                value={channelId}
-                onChange={(e) => setChannelId(e.target.value)}
-                disabled={saving}
-              >
-                <option value="">— Kies een kanaal —</option>
-                {channels.map((channel) => (
-                  <option key={channel.id} value={channel.id}>
-                    #{channel.name}
-                  </option>
-                ))}
-              </select>
+                <PreferenceToggle
+                  label="Herinneringen ingeschakeld"
+                  hint="Zet uit om geplande F1-berichten te pauzeren."
+                  checked={enabled}
+                  disabled={savingF1}
+                  onChange={(next) => {
+                    void handleSaveF1(next);
+                  }}
+                />
 
-              <label className="settingsFieldLabel" htmlFor="bot-f1-role">
-                Rol
-              </label>
-              <select
-                id="bot-f1-role"
-                className="formInput formSelect"
-                value={roleId}
-                onChange={(e) => setRoleId(e.target.value)}
-                disabled={saving}
-              >
-                <option value="">— Kies een rol —</option>
-                {roles.map((role) => (
-                  <option key={role.id} value={role.id}>
-                    @{role.name}
-                  </option>
-                ))}
-              </select>
+                <label className="settingsFieldLabel" htmlFor="bot-f1-channel">
+                  Kanaal
+                </label>
+                <select
+                  id="bot-f1-channel"
+                  className="formInput formSelect"
+                  value={channelId}
+                  onChange={(e) => setChannelId(e.target.value)}
+                  disabled={savingF1}
+                >
+                  <option value="">— Kies een kanaal —</option>
+                  {channels.map((channel) => (
+                    <option key={channel.id} value={channel.id}>
+                      #{channel.name}
+                    </option>
+                  ))}
+                </select>
 
-              <label className="settingsFieldLabel" htmlFor="bot-f1-url">
-                Prediction-URL
-              </label>
-              <input
-                id="bot-f1-url"
-                className="formInput"
-                value={predictionUrl}
-                onChange={(e) => setPredictionUrl(e.target.value)}
-                placeholder="https://…"
-                autoComplete="off"
-                spellCheck={false}
-                disabled={saving}
-              />
-              <p className="cardHint">
-                Publieke https-URL zonder inloggegevens. Leeg laten verwijdert de knop.
-              </p>
-            </PagePanel>
+                <label className="settingsFieldLabel" htmlFor="bot-f1-role">
+                  Rol
+                </label>
+                <select
+                  id="bot-f1-role"
+                  className="formInput formSelect"
+                  value={roleId}
+                  onChange={(e) => setRoleId(e.target.value)}
+                  disabled={savingF1}
+                >
+                  <option value="">— Kies een rol —</option>
+                  {roles.map((role) => (
+                    <option key={role.id} value={role.id}>
+                      @{role.name}
+                    </option>
+                  ))}
+                </select>
 
-            <PagePanel>
-              {error && <p className="errorMsg">{error}</p>}
-              {message && <p className="successMsg">{message}</p>}
-              <Button onClick={handleSave} disabled={saving} block>
-                {saving ? "Opslaan…" : "Opslaan"}
-              </Button>
-              <p className="settingsStateLine">
-                Discord-commando’s zoals <code>/stats sync-members</code> blijven voorlopig
-                beschikbaar voor sync en tests.
-              </p>
-            </PagePanel>
-          </>
-        )}
+                <label className="settingsFieldLabel" htmlFor="bot-f1-url">
+                  Prediction-URL
+                </label>
+                <input
+                  id="bot-f1-url"
+                  className="formInput"
+                  value={predictionUrl}
+                  onChange={(e) => setPredictionUrl(e.target.value)}
+                  placeholder="https://…"
+                  autoComplete="off"
+                  spellCheck={false}
+                  disabled={savingF1}
+                />
+                <p className="cardHint">
+                  Publieke https-URL zonder inloggegevens. Leeg laten verwijdert de knop.
+                </p>
+
+                <p className="settingsStateLine" aria-live="polite">
+                  Status:{" "}
+                  <span className={enabled ? "settingsStateOn" : "settingsStateOff"}>
+                    {enabled ? "Ingeschakeld" : "Uitgeschakeld"}
+                  </span>
+                  {savingF1 ? " · Opslaan…" : ""}
+                </p>
+                {f1Error && <p className="errorMsg">{f1Error}</p>}
+                {f1Message && <p className="successMsg">{f1Message}</p>}
+                <div className="settingsActions">
+                  <Button onClick={() => void handleSaveF1()} disabled={savingF1}>
+                    {savingF1 ? "Opslaan…" : "Opslaan"}
+                  </Button>
+                </div>
+              </PagePanel>
+
+              <PagePanel>
+                <h2 className="cardTitle">Discord</h2>
+                <p className="cardHint">
+                  Sync en tests blijven via slashcommands:{" "}
+                  <code>/stats sync-members</code>, <code>/f1-reminder test-send</code>.
+                </p>
+              </PagePanel>
+            </>
+          )}
+        </div>
       </PageLayout>
     </AppShell>
   );

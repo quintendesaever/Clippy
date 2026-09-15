@@ -3,14 +3,12 @@ import {
   PermissionFlagsBits,
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
-  type GuildTextBasedChannel,
-  type Role,
 } from "discord.js";
 import type { Command } from "../types/command.js";
 import { getGuildTimezone, formatInTimezone } from "../stats/helpers.js";
 import { getF1Timing, isF1TestMode, TEST_F1_TIMING } from "../f1/config.js";
 import { resolvePredictionUrl } from "../f1/predictionUrl.js";
-import { getF1ReminderSettings, upsertF1ReminderSettings } from "../f1/reminderStorage.js";
+import { getF1ReminderSettings } from "../f1/reminderStorage.js";
 import { fetchSeasonMeetings, findActiveMeeting, usableQualifying, usableRace } from "../f1/schedule.js";
 import {
   buildStageSchedule,
@@ -50,6 +48,7 @@ async function handleStatus(interaction: ChatInputCommandInteraction) {
   parts.push(`Active message ID: ${settings?.active_message_id ?? "`none`"}`);
   parts.push(`Last stage sent: **${settings?.last_stage_sent ?? "none"}**`);
   parts.push(`Stored meeting id: ${settings?.current_meeting_id ?? "`none`"}`);
+  parts.push("_Configure channel/role/URL in the dashboard under Beheer → Bot._");
 
   if (meeting) {
     const schedule = buildStageSchedule(meeting, timing);
@@ -120,59 +119,11 @@ async function handleTestSchedule(interaction: ChatInputCommandInteraction) {
   await interaction.editReply({ content: parts.join("\n") });
 }
 
-async function saveSettingsOrError(
-  interaction: ChatInputCommandInteraction,
-  patch: Parameters<typeof upsertF1ReminderSettings>[0],
-  success: string
-): Promise<void> {
-  const saved = await upsertF1ReminderSettings(patch);
-  if (!saved) {
-    await interaction.editReply("Could not save F1 reminder settings. Try again later.");
-    return;
-  }
-  await interaction.editReply(success);
-}
-
 const f1Reminder: Command = {
   data: new SlashCommandBuilder()
     .setName("f1-reminder")
-    .setDescription("Configure F1 prediction reminders for this server.")
+    .setDescription("Inspect and test F1 prediction reminders (settings live in the dashboard).")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
-    .addSubcommand((sub) =>
-      sub.setName("enable").setDescription("Enable F1 prediction reminders for this server.")
-    )
-    .addSubcommand((sub) =>
-      sub.setName("disable").setDescription("Disable F1 prediction reminders for this server.")
-    )
-    .addSubcommand((sub) =>
-      sub
-        .setName("set-channel")
-        .setDescription("Set the channel where F1 reminders will be sent.")
-        .addChannelOption((opt) =>
-          opt
-            .setName("channel")
-            .setDescription("Channel for the reminders (defaults to current channel).")
-        )
-    )
-    .addSubcommand((sub) =>
-      sub
-        .setName("set-role")
-        .setDescription("Set the role that will be mentioned for F1 prediction reminders.")
-        .addRoleOption((opt) =>
-          opt.setName("role").setDescription("Role to mention for the reminders.").setRequired(true)
-        )
-    )
-    .addSubcommand((sub) =>
-      sub
-        .setName("set-prediction-url")
-        .setDescription("Set the destination for the Make predictions button.")
-        .addStringOption((opt) =>
-          opt
-            .setName("url")
-            .setDescription("https URL of the prediction page (or 'clear' to remove).")
-            .setRequired(true)
-        )
-    )
     .addSubcommand((sub) =>
       sub.setName("status").setDescription("Show F1 reminder settings and scheduler state.")
     )
@@ -235,7 +186,7 @@ const f1Reminder: Command = {
       });
       if (!result.ok) {
         const hints: Record<string, string> = {
-          channel_and_role_required: "Please set both a channel and a role first.",
+          channel_and_role_required: "Please set both a channel and a role first (Beheer → Bot).",
           no_meeting: "Couldn't find a Grand Prix to preview.",
         };
         await interaction.editReply(hints[result.reason] ?? `Could not send the test message (${result.reason}).`);
@@ -248,83 +199,9 @@ const f1Reminder: Command = {
       return;
     }
 
-    if (sub === "enable") {
-      await saveSettingsOrError(
-        interaction,
-        { guild_id: guildId, enabled: true },
-        "F1 prediction reminders have been **enabled**. Make sure a channel, role, and prediction URL are set."
-      );
-      return;
-    }
-
-    if (sub === "disable") {
-      await saveSettingsOrError(
-        interaction,
-        { guild_id: guildId, enabled: false },
-        "F1 prediction reminders have been **disabled** for this server."
-      );
-      return;
-    }
-
-    if (sub === "set-channel") {
-      const channelOption = interaction.options.getChannel("channel");
-      const channel =
-        (channelOption as GuildTextBasedChannel | null) ??
-        (interaction.channel as GuildTextBasedChannel | null);
-
-      if (!channel || !("guildId" in channel)) {
-        await interaction.editReply("Please choose a text channel in this server.");
-        return;
-      }
-
-      await saveSettingsOrError(
-        interaction,
-        { guild_id: guildId, channel_id: channel.id },
-        `F1 reminders will be sent in ${channel}.`
-      );
-      return;
-    }
-
-    if (sub === "set-role") {
-      const role = interaction.options.getRole("role") as Role | null;
-      if (!role || !interaction.guild.roles.cache.has(role.id)) {
-        await interaction.editReply("Please choose a valid role from this server.");
-        return;
-      }
-
-      await saveSettingsOrError(
-        interaction,
-        { guild_id: guildId, role_id: role.id },
-        `F1 reminders will mention ${role}.`
-      );
-      return;
-    }
-
-    if (sub === "set-prediction-url") {
-      const raw = interaction.options.getString("url", true).trim();
-      if (raw.toLowerCase() === "clear" || raw.toLowerCase() === "none") {
-        await saveSettingsOrError(
-          interaction,
-          { guild_id: guildId, prediction_url: null },
-          "Prediction URL cleared. The Make predictions button will be omitted until a URL is set."
-        );
-        return;
-      }
-
-      const url = resolvePredictionUrl(raw, null);
-      if (!url) {
-        await interaction.editReply(
-          "Please provide a public http(s) URL without credentials (localhost and private hosts cannot be used for Discord buttons)."
-        );
-        return;
-      }
-
-      await saveSettingsOrError(
-        interaction,
-        { guild_id: guildId, prediction_url: url },
-        `Prediction button will link to ${url}.`
-      );
-    }
+    await interaction.editReply(
+      "Unknown subcommand. Configure F1 settings in the dashboard (Beheer → Bot), then redeploy commands if options look stale."
+    );
   },
 };
 

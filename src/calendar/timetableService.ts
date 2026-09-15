@@ -6,7 +6,7 @@ import {
 } from "../../shared/timetable/dates.js";
 import { getGuildTimezone } from "../stats/helpers.js";
 import { getGuildActivitiesInRange } from "./activities.js";
-import { colorForInitials } from "./eventUtils.js";
+import { colorForUserId } from "./eventUtils.js";
 import { fetchIcsContent } from "./icsFetcher.js";
 import { parseIcsEvents } from "./icsParser.js";
 import { getGuildMemberCalendars } from "./memberCalendars.js";
@@ -54,7 +54,7 @@ function buildMembers(memberResults: MemberLoadResult[]): TimetableMember[] {
   return memberResults.map((result) => ({
     userId: result.userId,
     initials: result.initials,
-    color: colorForInitials(result.initials),
+    color: colorForUserId(result.userId),
     error: result.error,
   }));
 }

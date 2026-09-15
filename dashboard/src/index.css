@@ -108,7 +108,7 @@ a:hover {
 
 .timetablePage {
   --timeline-row-height: calc(64px * var(--tt-font-scale, 1));
-  --header-height: calc(32px * var(--tt-font-scale, 1));
+  --header-height: calc(40px * var(--tt-font-scale, 1));
   --week-grid-header-height: calc(52px * var(--tt-font-scale, 1));
   --timeline-day-gap: calc(16px * var(--tt-font-scale, 1));
   --timeline-day-padding-y: calc(6px * var(--tt-font-scale, 1));
@@ -209,19 +209,6 @@ a:hover {
   align-items: center;
   justify-content: flex-start;
   gap: 0.35rem;
-}
-
-.timetableWeekNow {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.05rem 0.35rem;
-  border-radius: var(--radius-sm);
-  background: var(--color-accent-soft);
-  color: var(--color-accent);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
 }
 
 .timetableWeekLabelLoading .timetableWeekRange {
@@ -600,6 +587,17 @@ a:hover {
 
 .sidebarLabelShort {
   display: none;
+}
+
+.sidebarLabelStacked {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.05;
+  font-size: 0.62rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  text-align: center;
 }
 
 .sidebarAdminMobile {
@@ -1402,6 +1400,48 @@ select.formSelect {
   filter: brightness(1.06);
 }
 
+.eventCardMemberColors {
+  position: relative;
+  background: color-mix(in srgb, var(--member-color) 16%, var(--color-card));
+  border-color: color-mix(in srgb, var(--member-color) 35%, var(--color-border));
+  padding-left: calc(0.65rem + 4px);
+}
+
+.eventCardMemberColors::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--member-stripe, var(--member-color));
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  pointer-events: none;
+}
+
+.agendaCardMemberColors {
+  position: relative;
+  background: color-mix(in srgb, var(--member-color) 14%, var(--color-card));
+  border-color: color-mix(in srgb, var(--member-color) 35%, var(--color-border));
+  padding-left: calc(0.75rem + 4px);
+}
+
+.agendaCardMemberColors::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--member-stripe, var(--member-color));
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  pointer-events: none;
+}
+
+.settingsActions {
+  margin-top: 0.85rem;
+}
+
 [data-theme="light"] .eventCard:hover {
   filter: brightness(0.97);
 }
@@ -1901,6 +1941,10 @@ select.formSelect {
     display: inline;
   }
 
+  .sidebarLabelShort.sidebarLabelStacked {
+    display: inline-flex;
+  }
+
   .sidebarAdminMobile {
     display: contents;
   }
@@ -2131,10 +2175,6 @@ select.formSelect {
     justify-content: center;
   }
 
-  .timetableWeekNow {
-    display: none;
-  }
-
   .timetableToolbar .timetableLayoutToggle {
     grid-area: toggle;
     order: unset;
@@ -2153,14 +2193,21 @@ select.formSelect {
   }
 
   .weekNavThisWeekShort {
-    display: inline;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.05rem;
+    line-height: 1.05;
+    font-size: 0.68rem;
+    font-weight: 650;
   }
 
   .weekNavThisWeek {
     min-width: 3.25rem;
     min-height: 44px;
     height: 44px;
-    padding: 0 0.45rem;
+    padding: 0 0.35rem;
   }
 
   .weekNavIconBtn {

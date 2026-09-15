@@ -120,9 +120,18 @@ export function parseActivitySummary(
 }
 
 export function colorForInitials(initials: string): string {
+  return colorForKey(initials);
+}
+
+/** Stable member accent keyed by Discord user id (dashboard + API share this). */
+export function colorForUserId(userId: string): string {
+  return colorForKey(userId);
+}
+
+function colorForKey(key: string): string {
   let hash = 0;
-  for (let i = 0; i < initials.length; i++) {
-    hash = (hash * 31 + initials.charCodeAt(i)) >>> 0;
+  for (let i = 0; i < key.length; i++) {
+    hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
   }
   return MEMBER_COLORS[hash % MEMBER_COLORS.length];
 }

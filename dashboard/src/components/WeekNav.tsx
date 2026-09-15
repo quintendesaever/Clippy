@@ -57,7 +57,10 @@ export default function WeekNav({
         aria-label="Deze week"
       >
         <span className="weekNavThisWeekFull">Deze week</span>
-        <span className="weekNavThisWeekShort">Deze</span>
+        <span className="weekNavThisWeekShort" aria-hidden="true">
+          <span>Deze</span>
+          <span>week</span>
+        </span>
       </button>
       <button
         type="button"
