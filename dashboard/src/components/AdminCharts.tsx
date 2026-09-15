@@ -149,7 +149,7 @@ export function HourChart({ hours }: { hours: { hour: number; count: number }[] 
                 }}
               />
               {item.hour % 3 === 0 && (
-                <span className="adminHourLabel">{String(item.hour).padStart(2, "0")}</span>
+                <span className="adminHourLabel">{String(item.hour).padStart(2, "0")}:00</span>
               )}
             </button>
           );
@@ -181,7 +181,12 @@ export function DayHeatmap({
 
   return (
     <div className="adminDayHeatmapWrap">
-      <div className="adminDayHeatmap" role="list" aria-label="Piekdagen">
+      <div
+        className="adminDayHeatmap"
+        role="list"
+        aria-label="Piekdagen"
+        onMouseLeave={() => setActiveDay(null)}
+      >
         {days.map((item) => {
           const intensity = item.count > 0 ? Math.max(0.15, item.count / max) : 0;
           const selected = activeDay === item.day;
@@ -194,11 +199,8 @@ export function DayHeatmap({
               aria-pressed={selected}
               aria-label={`${item.day}: ${formatCount(item.count)}`}
               onMouseEnter={() => setActiveDay(item.day)}
-              onMouseLeave={() => setActiveDay(null)}
               onFocus={() => setActiveDay(item.day)}
-              onClick={() =>
-                setActiveDay((current) => (current === item.day ? null : item.day))
-              }
+              onClick={() => setActiveDay(item.day)}
               style={{
                 background:
                   item.count > 0
@@ -294,22 +296,21 @@ export function AreaChart({
   }
 
   return (
-    <div className="adminAreaChart">
+    <div className="adminAreaChart" onMouseLeave={() => setActiveIndex(null)}>
       <svg
         ref={svgRef}
         className="adminAreaSvg"
         viewBox={`0 0 ${width} ${height}`}
         role="img"
         aria-label={ariaLabel}
-        onMouseMove={(event) => onPointer(event.clientX)}
-        onMouseLeave={() => setActiveIndex(null)}
-        onClick={(event) => {
-          const next = indexFromClientX(event.clientX);
-          setActiveIndex((current) => (current === next ? null : next));
+        onPointerDown={(event) => {
+          event.currentTarget.setPointerCapture?.(event.pointerId);
+          onPointer(event.clientX);
         }}
-        onTouchStart={(event) => {
-          const touch = event.changedTouches[0];
-          if (touch) onPointer(touch.clientX);
+        onPointerMove={(event) => {
+          if (event.pointerType === "mouse" || event.buttons > 0 || event.pressure > 0) {
+            onPointer(event.clientX);
+          }
         }}
       >
         {yTicks.map((tick) => {
@@ -415,7 +416,7 @@ export function DonutChart({
   const active = activeIndex == null ? null : items[activeIndex] ?? null;
 
   return (
-    <div className="adminDonutWrap">
+    <div className="adminDonutWrap" onMouseLeave={() => setActiveIndex(null)}>
       <svg
         className="adminDonutSvg"
         viewBox={`0 0 ${size} ${size}`}
@@ -451,10 +452,7 @@ export function DonutChart({
               transform={`rotate(-90 ${size / 2} ${size / 2})`}
               style={{ cursor: "pointer", opacity: activeIndex == null || selected ? 1 : 0.45 }}
               onMouseEnter={() => setActiveIndex(index)}
-              onMouseLeave={() => setActiveIndex(null)}
-              onClick={() =>
-                setActiveIndex((current) => (current === index ? null : index))
-              }
+              onClick={() => setActiveIndex(index)}
             >
               <title>
                 {item.label}: {formatCount(item.value)} (
@@ -484,10 +482,8 @@ export function DonutChart({
                 activeIndex === index ? " adminDonutLegendBtnActive" : ""
               }`}
               onMouseEnter={() => setActiveIndex(index)}
-              onMouseLeave={() => setActiveIndex(null)}
-              onClick={() =>
-                setActiveIndex((current) => (current === index ? null : index))
-              }
+              onFocus={() => setActiveIndex(index)}
+              onClick={() => setActiveIndex(index)}
             >
               <span
                 className="adminDonutSwatch"
