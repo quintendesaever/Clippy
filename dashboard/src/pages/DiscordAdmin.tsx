@@ -235,10 +235,7 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
         {error && <p className="errorMsg">{error}</p>}
         {!loading && stats && (
           <>
-            <AdminSection
-              title="Overzicht"
-              hint="Belangrijkste Discordcijfers voor de gekozen periode."
-            >
+            <AdminSection title="Overzicht">
               <div className="adminStatGrid adminStatGridPrimary">
                 <StatCard label="Berichten" value={stats.summary.messagesInRange} />
                 <StatCard label="Unieke auteurs" value={stats.summary.uniqueAuthors} />
@@ -258,12 +255,7 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
                   value={stats.summary.replyCount}
                   hint={`Antwoordpercentage ${formatPercent(stats.summary.replyRate)}`}
                 />
-                <StatCard
-                  compact
-                  label="Reacties"
-                  value={stats.summary.reactionsInRange}
-                  hint="Totaal aantal emoji-reacties"
-                />
+                <StatCard compact label="Reacties" value={stats.summary.reactionsInRange} />
                 <StatCard
                   compact
                   label="Verwijderd"
@@ -311,14 +303,7 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
               </div>
             </AdminSection>
 
-            <AdminSection
-              title="Berichten"
-              hint={
-                range === "all"
-                  ? `Trends per maand in ${stats.timezone}.`
-                  : `Trends per dag in ${stats.timezone}.`
-              }
-            >
+            <AdminSection title="Berichten">
               <PagePanel className="adminPanelFlush">
                 <h3 className="adminSubhead">Berichten in de tijd</h3>
                 <AreaChart
@@ -328,17 +313,16 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
                   }))}
                   empty="Nog geen Discord-berichten in deze periode."
                   ariaLabel="Berichten per periode"
+                  valueLabel="berichten"
                 />
               </PagePanel>
               <div className="adminSplit">
                 <PagePanel>
                   <h3 className="adminSubhead">Piekuren</h3>
-                  <p className="cardHint">Wanneer er berichten verstuurd worden.</p>
                   <HourChart hours={stats.peakHours} />
                 </PagePanel>
                 <PagePanel>
                   <h3 className="adminSubhead">Meest gebruikte emoji</h3>
-                  <p className="cardHint">Reacties op berichten in deze periode.</p>
                   <BarList
                     items={stats.topEmojis.map((row) => ({
                       label: row.key,
@@ -382,17 +366,16 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
                   }))}
                   empty="Nog geen afgesloten spraaksessies in deze periode."
                   ariaLabel="Spraakminuten per periode"
+                  valueLabel="spraakminuten"
                 />
               </PagePanel>
               <div className="adminSplit">
                 <PagePanel>
                   <h3 className="adminSubhead">Spraakpiekuren</h3>
-                  <p className="cardHint">Wanneer spraaksessies starten.</p>
                   <HourChart hours={stats.voicePeakHours} />
                 </PagePanel>
                 <PagePanel>
-                  <h3 className="adminSubhead">Spraak per kanaal</h3>
-                  <p className="cardHint">Minuten in afgesloten sessies.</p>
+                  <h3 className="adminSubhead">Spraakminuten per kanaal</h3>
                   <BarList
                     items={stats.topChannelsByVoiceSeconds.map((row) => ({
                       label: row.name,
@@ -416,7 +399,7 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
 
             <AdminSection
               title="Ledental"
-              hint="Snapshots worden bij het opstarten van de bot genomen, dus de reeks is spaarzaam."
+              hint="Snapshots bij botstart."
             >
               <PagePanel className="adminPanelFlush">
                 <AreaChart
@@ -426,13 +409,14 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
                   }))}
                   empty="Nog geen ledental-snapshots in deze periode."
                   ariaLabel="Ledental in de tijd"
+                  valueLabel="leden"
                 />
               </PagePanel>
             </AdminSection>
 
             <AdminSection
               title="Botgebruik"
-              hint="Slash commands en knoppen in Discord. Berichtinhoud wordt niet bewaard."
+              hint="Geen berichtinhoud."
             >
               <div className="adminStatGrid adminStatGridSecondary">
                 <StatCard compact label="Botacties" value={stats.botUsage.total} />
@@ -465,6 +449,7 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
                     }))}
                     empty="Nog geen botacties in deze periode."
                     ariaLabel="Botacties per periode"
+                    valueLabel="botacties"
                   />
                 </PagePanel>
               </div>
@@ -472,7 +457,7 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
 
             <AdminSection
               title="Recente activiteit"
-              hint="Metadata van recente berichten, spraaksessies en botacties. Berichtinhoud wordt niet getoond."
+              hint="Geen berichtinhoud."
             >
               <PagePanel>
                 {stats.recent.length === 0 ? (
@@ -510,10 +495,7 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
               </PagePanel>
             </AdminSection>
 
-            <AdminSection
-              title="Gebruikers"
-              hint="Leden met Discordactiviteit in de geselecteerde periode."
-            >
+            <AdminSection title="Gebruikers">
               <PagePanel>
                 <div className="adminUserToolbar">
                   <input

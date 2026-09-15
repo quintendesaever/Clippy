@@ -15,7 +15,7 @@ export default function AdminSection({
         <h2 className="adminSectionTitle">{title}</h2>
         {hint && <p className="adminSectionHint">{hint}</p>}
       </header>
-      {children}
+      <div className="adminSectionStack">{children}</div>
     </section>
   );
 }
