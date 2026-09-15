@@ -11,6 +11,7 @@ import {
   StatCard,
 } from "../components/AdminCharts";
 import AdminSection from "../components/AdminSection";
+import AdminSubnav from "../components/AdminSubnav";
 import AppShell from "../components/AppShell";
 import MemberFilter from "../components/MemberFilter";
 import PageLayout from "../components/PageLayout";
@@ -180,7 +181,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
   return (
     <AppShell user={user}>
       <PageLayout
-        title="Beheer"
+        title="Overzicht"
         subtitle="Dashboardstatistieken en leden"
         actions={
           <div className="topBarTabs" role="radiogroup" aria-label="Periode">
@@ -199,6 +200,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
           </div>
         }
       >
+        <AdminSubnav />
         {users.length > 0 && (
           <div className="adminMemberFilter">
             <MemberFilter
