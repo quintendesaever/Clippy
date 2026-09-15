@@ -21,6 +21,26 @@ function ChartIcon() {
   );
 }
 
+function StatusIcon() {
+  return (
+    <svg className="sidebarNavIcon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path
+        fillRule="evenodd"
+        d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
+function DiscordIcon() {
+  return (
+    <svg className="sidebarNavIcon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path d="M16.5 4.2c-1.3-.6-2.7-1-4.2-1.2-.2.3-.4.7-.5 1-1.5-.2-3.1-.2-4.6 0-.2-.3-.4-.7-.6-1-1.5.2-2.9.6-4.2 1.2C.8 7.5.3 10.7.5 13.8c1.7 1.3 3.4 2 5 2.4.4-.6.8-1.2 1.1-1.8-.6-.2-1.2-.5-1.7-.8.1-.1.3-.2.4-.3 3.4 1.6 7.1 1.6 10.4 0 .2.1.3.2.4.3-.6.3-1.1.6-1.7.8.3.6.7 1.2 1.1 1.8 1.7-.4 3.3-1.1 5-2.4.3-3.6-.5-6.8-2-9.6ZM6.9 12.3c-1 0-1.9-.9-1.9-2s.8-2 1.9-2 1.9 1 1.9 2-.8 2-1.9 2Zm6.2 0c-1 0-1.9-.9-1.9-2s.8-2 1.9-2 1.9 1 1.9 2-.9 2-1.9 2Z" />
+    </svg>
+  );
+}
+
 function SettingsIcon() {
   return (
     <svg className="sidebarNavIcon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -64,9 +84,8 @@ function LogoutIcon() {
   );
 }
 
-function navLinkClass(pathname: string, to: string, prefix = false) {
-  const active = prefix ? pathname === to || pathname.startsWith(`${to}/`) : pathname === to;
-  return `sidebarLink${active ? " sidebarLinkActive" : ""}`;
+function navLinkClass(pathname: string, to: string) {
+  return `sidebarLink${pathname === to ? " sidebarLinkActive" : ""}`;
 }
 
 export default function Sidebar({ user }: { user: DiscordUser }) {
@@ -107,9 +126,17 @@ export default function Sidebar({ user }: { user: DiscordUser }) {
         {isAdmin && (
           <div className="sidebarSection">
             <p className="sidebarSectionLabel">Beheer</p>
-            <Link to="/admin" className={navLinkClass(pathname, "/admin", true)}>
+            <Link to="/admin" className={navLinkClass(pathname, "/admin")}>
               <ChartIcon />
               <span className="sidebarLinkLabel">Beheer</span>
+            </Link>
+            <Link to="/admin/discord" className={navLinkClass(pathname, "/admin/discord")}>
+              <DiscordIcon />
+              <span className="sidebarLinkLabel">Discord</span>
+            </Link>
+            <Link to="/admin/status" className={navLinkClass(pathname, "/admin/status")}>
+              <StatusIcon />
+              <span className="sidebarLinkLabel">Status</span>
             </Link>
           </div>
         )}
