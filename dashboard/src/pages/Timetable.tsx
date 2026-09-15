@@ -12,6 +12,7 @@ import { useTimetableActivityUi } from "../hooks/useTimetableActivityUi";
 import { useTimetableFontScale } from "../hooks/useTimetableFontScale";
 import { useTimetableLayout } from "../hooks/useTimetableLayout";
 import { useWeekTimetable } from "../hooks/useWeekTimetable";
+import { useMemberColors, colorForUserId } from "../hooks/useMemberColors";
 import { DAY_LABELS, eventDayKey, getWeekMondayKey } from "../lib/dates";
 import type { CalendarMember, DiscordUser } from "../types";
 
@@ -37,6 +38,7 @@ export default function Timetable({ user }: { user: DiscordUser }) {
   const { isMobile, layout, setLayout, showToggle, useAgenda } = useTimetableLayout();
   const { scale, decrease, increase, canDecrease, canIncrease } = useTimetableFontScale();
   const activityUi = useTimetableActivityUi(activities);
+  const { showMemberColors } = useMemberColors();
 
   const [calendars, setCalendars] = useState<CalendarMember[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -60,6 +62,29 @@ export default function Timetable({ user }: { user: DiscordUser }) {
     }
     return map;
   }, [activities, calendars, user.avatar, user.id]);
+
+  const colorByUser = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const member of members) {
+      if (member.color) map.set(member.userId, member.color);
+    }
+    for (const calendar of calendars) {
+      if (!map.has(calendar.user_id)) {
+        map.set(calendar.user_id, colorForUserId(calendar.user_id));
+      }
+    }
+    for (const activity of activities) {
+      if (!map.has(activity.userId)) {
+        map.set(activity.userId, colorForUserId(activity.userId));
+      }
+      for (const participantId of activity.participantIds ?? []) {
+        if (!map.has(participantId)) {
+          map.set(participantId, colorForUserId(participantId));
+        }
+      }
+    }
+    return map;
+  }, [activities, calendars, members]);
 
   useEffect(() => {
     let cancelled = false;
@@ -317,6 +342,8 @@ export default function Timetable({ user }: { user: DiscordUser }) {
                   days={visibleWeekDays}
                   timezone={timezone}
                   avatarByUser={avatarByUser}
+                  colorByUser={colorByUser}
+                  showMemberColors={showMemberColors}
                   onEventClick={activityUi.setPopupEvent}
                 />
               ) : (
@@ -324,6 +351,8 @@ export default function Timetable({ user }: { user: DiscordUser }) {
                   days={visibleWeekDays}
                   timezone={timezone}
                   avatarByUser={avatarByUser}
+                  colorByUser={colorByUser}
+                  showMemberColors={showMemberColors}
                   onEventClick={activityUi.setPopupEvent}
                   scrollable={isMobile}
                 />

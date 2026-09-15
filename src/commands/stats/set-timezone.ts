@@ -2,25 +2,13 @@ import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
 import { supabase } from "../../supabase.js";
 import { ensureGuild } from "../../stats/helpers.js";
 import { syncGuildMembers } from "../../stats/members.js";
-import { isValidIanaTimeZone } from "../../../shared/timetable/dates.js";
 import type { Command } from "../../types/command.js";
 
 export const setTimezone: Command = {
   data: new SlashCommandBuilder()
     .setName("stats")
-    .setDescription("Stats-related settings for this server")
+    .setDescription("Sync Discord channels and members into the stats database")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
-    .addSubcommand((sub) =>
-      sub
-        .setName("set-timezone")
-        .setDescription("Set this server's timezone for stats (IANA, e.g. Europe/Brussels)")
-        .addStringOption((opt) =>
-          opt
-            .setName("timezone")
-            .setDescription("IANA timezone (e.g. Europe/Brussels, America/New_York)")
-            .setRequired(true)
-        )
-    )
     .addSubcommand((sub) =>
       sub
         .setName("sync-channels")
@@ -35,40 +23,6 @@ export const setTimezone: Command = {
     if (!interaction.isChatInputCommand() || !interaction.guildId || !interaction.guild) return;
 
     const sub = interaction.options.getSubcommand();
-
-    if (sub === "set-timezone") {
-      const timezone = interaction.options.getString("timezone", true).trim();
-      if (!isValidIanaTimeZone(timezone)) {
-        await interaction.reply({
-          content: `Invalid timezone \`${timezone}\`. Use an IANA name such as \`Europe/Brussels\`.`,
-          ephemeral: true,
-        });
-        return;
-      }
-
-      const { error } = await supabase.from("guilds").upsert(
-        {
-          guild_id: interaction.guildId,
-          timezone,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "guild_id" }
-      );
-
-      if (error) {
-        await interaction.reply({
-          content: `Failed to set timezone: ${error.message}`,
-          ephemeral: true,
-        });
-        return;
-      }
-
-      await interaction.reply({
-        content: `Server timezone for stats set to \`${timezone}\`.`,
-        ephemeral: true,
-      });
-      return;
-    }
 
     if (sub === "sync-channels") {
       await interaction.deferReply({ ephemeral: true });
@@ -106,7 +60,9 @@ export const setTimezone: Command = {
         .eq("guild_id", guildId);
 
       if (selectError) {
-        await interaction.editReply(`Synced ${rows.length} channels but failed to prune stale rows: ${selectError.message}`);
+        await interaction.editReply(
+          `Synced ${rows.length} channels but failed to prune stale rows: ${selectError.message}`
+        );
         return;
       }
 
@@ -165,7 +121,8 @@ export const setTimezone: Command = {
     }
 
     await interaction.reply({
-      content: "Unknown stats subcommand. Redeploy the bot if you recently added new options.",
+      content:
+        "Unknown stats subcommand. Set timezone in the dashboard (Beheer → Bot). Redeploy commands if options look stale.",
       ephemeral: true,
     });
   },

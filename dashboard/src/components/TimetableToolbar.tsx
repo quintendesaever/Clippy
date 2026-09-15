@@ -46,11 +46,6 @@ export default function TimetableToolbar({
         <span className={`timetableWeekLabel${loading ? " timetableWeekLabelLoading" : ""}`}>
           <span className="timetableWeekRange">
             {hasRange ? formatWeekRange(dayDates[0], dayDates[dayDates.length - 1]) : ""}
-            {isCurrentWeek && !loading && (
-              <span className="timetableWeekNow" aria-label="Huidige week">
-                Nu
-              </span>
-            )}
           </span>
           {loading && (
             <span className="timetableLoading" role="status">

@@ -27,6 +27,8 @@ type WeekTimelineGridProps = {
   days: WeekTimelineDay[];
   timezone: string;
   avatarByUser: Map<string, string | null>;
+  colorByUser?: Map<string, string>;
+  showMemberColors?: boolean;
   onEventClick: (event: TimetableEventDto) => void;
   scrollable?: boolean;
 };
@@ -95,6 +97,8 @@ export default function WeekTimelineGrid({
   days,
   timezone,
   avatarByUser,
+  colorByUser,
+  showMemberColors = false,
   onEventClick,
   scrollable = false,
 }: WeekTimelineGridProps) {
@@ -212,6 +216,8 @@ export default function WeekTimelineGrid({
                         timeLabel={formatCardTimeRange(card.start, card.end, timezone)}
                         userIds={card.userIds}
                         avatarByUser={avatarByUser}
+                        colorByUser={colorByUser}
+                        showMemberColors={showMemberColors}
                         leftPercent={pos.leftPercent}
                         widthPercent={pos.widthPercent}
                         isActivity={ev?.source === "activity" || card.source === "activity"}

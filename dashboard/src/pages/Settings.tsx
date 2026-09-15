@@ -6,6 +6,7 @@ import Button from "../components/Button";
 import PageLayout from "../components/PageLayout";
 import PagePanel from "../components/PagePanel";
 import { useTheme, type Appearance } from "../hooks/useTheme";
+import { useMemberColors } from "../hooks/useMemberColors";
 import { UserAvatar } from "../components/Avatar";
 import { usePreferences } from "../hooks/usePreferences";
 import type { CalendarEntry, DiscordUser } from "../types";
@@ -56,6 +57,7 @@ function PreferenceToggle({
 export default function Settings({ user }: { user: DiscordUser }) {
   const { appearance, setAppearance } = useTheme();
   const { showTypePrefix, setShowTypePrefix, shareLocation, setShareLocation } = usePreferences();
+  const { showMemberColors, setShowMemberColors } = useMemberColors();
   const displayName = user.nickname ?? user.username;
   const [initials, setInitials] = useState("");
   const [icsUrl, setIcsUrl] = useState("");
@@ -216,6 +218,12 @@ export default function Settings({ user }: { user: DiscordUser }) {
               disabled={savingPrefix}
               onChange={handleTypePrefixToggle}
               error={prefixError}
+            />
+            <PreferenceToggle
+              label="Lidkleuren in gedeeld rooster"
+              hint="Kleur per persoon. Activiteiten met meerdere leden tonen gestreepte accenten."
+              checked={showMemberColors}
+              onChange={setShowMemberColors}
             />
           </PagePanel>
 

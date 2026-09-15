@@ -16,16 +16,16 @@ export const HOUR_MAX = 24;
 /** Default visible window; expands when events fall outside. */
 export const DEFAULT_DISPLAY_HOUR_START = 8;
 export const DEFAULT_DISPLAY_HOUR_END = 18;
-export const HEADER_HEIGHT = 44;
+export const HEADER_HEIGHT = 52;
 export const ALL_DAY_ROW_HEIGHT = 52;
 export const ROW_HEIGHT = 132;
 export const ROW_GAP = 12;
 export const OUTER_PAD_X = 14;
-export const OUTER_PAD_TOP = 14;
+export const OUTER_PAD_TOP = 22;
 export const OUTER_PAD_BOTTOM = 12;
 /** Side pad so hour labels can be centered on the first/last tick. */
 export const GRID_INSET_X = 32;
-export const HEADER_BODY_GAP = 8;
+export const HEADER_BODY_GAP = 14;
 export const FONT = "Inter";
 
 export const CARD_RADIUS = 14;

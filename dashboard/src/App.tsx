@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { getMe } from "./api";
 import { PageviewTracker } from "./hooks/usePageviewAnalytics";
 import { PreferencesProvider } from "./hooks/usePreferences";
+import { MemberColorsProvider } from "./hooks/useMemberColors";
 import { ThemeProvider } from "./hooks/useTheme";
 import type { MeResponse } from "./types";
 import Admin from "./pages/Admin";
@@ -22,6 +23,7 @@ function AuthedRoutes({ me }: { me: MeResponse }) {
       initialShareLocation={me.share_location ?? false}
       isAdmin={me.is_admin === true}
     >
+      <MemberColorsProvider>
       <Routes>
         <Route path="/" element={<Navigate to="/timetable" replace />} />
         <Route path="/timetable" element={<Timetable user={me.user} />} />
@@ -47,6 +49,7 @@ function AuthedRoutes({ me }: { me: MeResponse }) {
         />
         <Route path="*" element={<Navigate to="/timetable" replace />} />
       </Routes>
+      </MemberColorsProvider>
     </PreferencesProvider>
   );
 }
