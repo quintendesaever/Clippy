@@ -32,7 +32,8 @@ export function useTimetableLayout() {
     isMobile,
     layout,
     setLayout,
-    showToggle: isMobile,
-    useAgenda: isMobile && layout === "agenda",
+    /** Toggle is always available so list vs calendar is intentional on every viewport. */
+    showToggle: true,
+    useAgenda: layout === "agenda",
   };
 }
