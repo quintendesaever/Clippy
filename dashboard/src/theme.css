@@ -86,7 +86,7 @@
   --shadow-panel: none;
 }
 
-/* Classic: previous Discord-integrated production colors + elevation (layout radii unchanged). */
+/* Classic / OG: colors from current production dashboard (dashboard.clippybot.be). */
 [data-palette="classic"] {
   --color-bg: #1c1d22;
   --color-bg-page: #16171b;
@@ -105,22 +105,4 @@
   --color-focus-ring: color-mix(in srgb, var(--color-accent) 55%, white 10%);
   --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.2);
   --shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-[data-palette="classic"][data-theme="light"] {
-  --color-bg: #ffffff;
-  --color-bg-page: #f2f3f5;
-  --color-bg-elevated: #ffffff;
-  --color-bg-sidebar: #ebedef;
-  --color-bg-hover: #e3e5e8;
-  --color-bg-active: #dfe1e5;
-  --color-card: #e8eaed;
-  --color-border: #d4d7dc;
-  --color-border-strong: #c4c7ce;
-  --color-text: #2e3338;
-  --color-text-muted: #5c5e66;
-  --color-accent-soft: color-mix(in srgb, var(--color-accent) 14%, transparent);
-  --color-focus-ring: var(--color-accent);
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.06);
 }

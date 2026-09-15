@@ -8,15 +8,18 @@
     <script>
       (function () {
         try {
-          var pref = localStorage.getItem("clippy.theme") || "dark";
-          var theme =
-            pref === "light" ||
-            (pref === "system" && matchMedia("(prefers-color-scheme: light)").matches)
-              ? "light"
-              : "dark";
-          var palette = localStorage.getItem("clippy.themePalette") || "modern";
-          var allowedPalettes = ["modern", "classic"];
-          if (allowedPalettes.indexOf(palette) < 0) palette = "modern";
+          var appearance = localStorage.getItem("clippy.appearance");
+          var allowed = ["modern", "classic", "light"];
+          if (allowed.indexOf(appearance) < 0) {
+            var legacyMode = localStorage.getItem("clippy.theme");
+            var legacyPalette = localStorage.getItem("clippy.themePalette");
+            if (allowed.indexOf(legacyMode) >= 0) appearance = legacyMode;
+            else if (legacyMode === "light") appearance = "light";
+            else if (legacyPalette === "classic") appearance = "classic";
+            else appearance = "modern";
+          }
+          var theme = appearance === "light" ? "light" : "dark";
+          var palette = appearance === "classic" ? "classic" : "modern";
           document.documentElement.dataset.theme = theme;
           document.documentElement.dataset.palette = palette;
           document.documentElement.style.colorScheme = theme;

@@ -329,7 +329,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
                       label: row.country,
                       value: row.count,
                     }))}
-                    empty="Nog geen locatiegegevens. Cloudflare visitor headers vullen land/stad."
+                    empty="Nog geen locatiegegevens."
                   />
                 </PagePanel>
                 <PagePanel>
@@ -498,7 +498,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
 
             <AdminSection
               title="Leden"
-              hint="Bezoekerslocatie is Cloudflare-data (alleen beheerders). Leslocaties delen is de roostervoorkeur."
+              hint="Bezoekerslocatie is alleen voor beheerders. Leslocaties delen is de roostervoorkeur."
             >
               <PagePanel>
                 <div className="adminUserToolbar">

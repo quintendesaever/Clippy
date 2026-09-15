@@ -8,106 +8,96 @@ import {
   type ReactNode,
 } from "react";
 
-export type ThemePreference = "dark" | "light" | "system";
+/** Single appearance control: modern dark, classic/OG dark, or light. */
+export type Appearance = "modern" | "classic" | "light";
 export type ResolvedTheme = "dark" | "light";
 export type ThemePalette = "modern" | "classic";
 
-const MODE_STORAGE_KEY = "clippy.theme";
-const PALETTE_STORAGE_KEY = "clippy.themePalette";
-const DEFAULT_PREFERENCE: ThemePreference = "dark";
-const DEFAULT_PALETTE: ThemePalette = "modern";
-const THEME_PALETTES: readonly ThemePalette[] = ["modern", "classic"];
+const APPEARANCE_KEY = "clippy.appearance";
+const LEGACY_MODE_KEY = "clippy.theme";
+const LEGACY_PALETTE_KEY = "clippy.themePalette";
+const DEFAULT_APPEARANCE: Appearance = "modern";
+const APPEARANCES: readonly Appearance[] = ["modern", "classic", "light"];
 
-function isThemePreference(value: string | null): value is ThemePreference {
-  return value === "dark" || value === "light" || value === "system";
+function isAppearance(value: string | null): value is Appearance {
+  return value != null && (APPEARANCES as readonly string[]).includes(value);
 }
 
-function isThemePalette(value: string | null): value is ThemePalette {
-  return value != null && (THEME_PALETTES as readonly string[]).includes(value);
+/** Map a preset to DOM theme + palette attributes. */
+export function appearanceToAttrs(appearance: Appearance): {
+  theme: ResolvedTheme;
+  palette: ThemePalette;
+} {
+  if (appearance === "light") return { theme: "light", palette: "modern" };
+  if (appearance === "classic") return { theme: "dark", palette: "classic" };
+  return { theme: "dark", palette: "modern" };
 }
 
-function readPreference(): ThemePreference {
+function migrateLegacyAppearance(): Appearance | null {
   try {
-    const stored = localStorage.getItem(MODE_STORAGE_KEY);
-    return isThemePreference(stored) ? stored : DEFAULT_PREFERENCE;
+    const legacyMode = localStorage.getItem(LEGACY_MODE_KEY);
+    const legacyPalette = localStorage.getItem(LEGACY_PALETTE_KEY);
+    if (isAppearance(legacyMode)) return legacyMode;
+    if (legacyMode === "light") return "light";
+    if (legacyPalette === "classic") return "classic";
+    if (legacyMode === "dark" || legacyMode === "system") return "modern";
   } catch {
-    return DEFAULT_PREFERENCE;
+    /* ignore */
   }
+  return null;
 }
 
-function readPalette(): ThemePalette {
+function readAppearance(): Appearance {
   try {
-    const stored = localStorage.getItem(PALETTE_STORAGE_KEY);
-    return isThemePalette(stored) ? stored : DEFAULT_PALETTE;
+    const stored = localStorage.getItem(APPEARANCE_KEY);
+    if (isAppearance(stored)) return stored;
+    const migrated = migrateLegacyAppearance();
+    if (migrated) return migrated;
   } catch {
-    return DEFAULT_PALETTE;
+    /* ignore */
   }
+  return DEFAULT_APPEARANCE;
 }
 
-function getSystemTheme(): ResolvedTheme {
-  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
-}
-
-export function resolveTheme(pref: ThemePreference): ResolvedTheme {
-  return pref === "system" ? getSystemTheme() : pref;
-}
-
-export function applyTheme(pref: ThemePreference, palette: ThemePalette = readPalette()) {
-  const resolved = resolveTheme(pref);
-  document.documentElement.dataset.theme = resolved;
+export function applyAppearance(appearance: Appearance) {
+  const { theme, palette } = appearanceToAttrs(appearance);
+  document.documentElement.dataset.theme = theme;
   document.documentElement.dataset.palette = palette;
-  document.documentElement.style.colorScheme = resolved;
+  document.documentElement.style.colorScheme = theme;
 }
 
 type ThemeContextValue = {
-  preference: ThemePreference;
+  appearance: Appearance;
   resolved: ResolvedTheme;
-  palette: ThemePalette;
-  setPreference: (next: ThemePreference) => void;
-  setPalette: (next: ThemePalette) => void;
+  setAppearance: (next: Appearance) => void;
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [preference, setPreferenceState] = useState<ThemePreference>(readPreference);
-  const [palette, setPaletteState] = useState<ThemePalette>(readPalette);
-  const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(getSystemTheme);
+  const [appearance, setAppearanceState] = useState<Appearance>(readAppearance);
 
   useEffect(() => {
-    applyTheme(preference, palette);
+    applyAppearance(appearance);
     try {
-      localStorage.setItem(MODE_STORAGE_KEY, preference);
-      localStorage.setItem(PALETTE_STORAGE_KEY, palette);
+      localStorage.setItem(APPEARANCE_KEY, appearance);
+      // Drop legacy keys so boot script and Settings stay in sync.
+      localStorage.removeItem(LEGACY_MODE_KEY);
+      localStorage.removeItem(LEGACY_PALETTE_KEY);
     } catch {
       /* ignore quota / private mode */
     }
-  }, [preference, palette]);
+  }, [appearance]);
 
-  useEffect(() => {
-    if (preference === "system") {
-      applyTheme("system", palette);
-    }
-  }, [preference, systemTheme, palette]);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-color-scheme: light)");
-    const onChange = () => setSystemTheme(mq.matches ? "light" : "dark");
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-
-  const resolved = preference === "system" ? systemTheme : preference;
+  const resolved = appearanceToAttrs(appearance).theme;
 
   const value = useMemo(
     () => ({
-      preference,
+      appearance,
       resolved,
-      palette,
-      setPreference: setPreferenceState,
-      setPalette: setPaletteState,
+      setAppearance: setAppearanceState,
     }),
-    [preference, resolved, palette],
+    [appearance, resolved]
   );
 
   return createElement(ThemeContext.Provider, { value }, children);

@@ -353,17 +353,41 @@ a:hover {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
+  width: 100%;
+  max-width: 32rem;
+  margin-inline: auto;
 }
 
 .settingsStack > .pagePanel {
   margin-top: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.settingsStack .cardTitle {
+  margin-top: 0;
+}
+
+.settingsStack .cardHint {
+  margin-top: 0.35rem;
+}
+
+.settingsStack .form,
+.settingsStack .settingsForm,
+.settingsStack .settingsPrefBlock,
+.settingsStack .themePicker,
+.settingsStack .settingsAccountRow,
+.settingsStack .settingsPanelHead,
+.settingsStack .settingsStateLine {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .settingsAccountRow {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .settingsAccountInfo {
@@ -597,10 +621,11 @@ a:hover {
 .sidebarProfileCard {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.45rem 0.55rem;
-  background: var(--color-bg-hover);
-  border-radius: var(--radius-sm);
+  gap: 0.65rem;
+  padding: 0.65rem 0.75rem;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   min-width: 0;
 }
 

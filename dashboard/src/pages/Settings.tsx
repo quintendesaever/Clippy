@@ -5,20 +5,15 @@ import AppShell from "../components/AppShell";
 import Button from "../components/Button";
 import PageLayout from "../components/PageLayout";
 import PagePanel from "../components/PagePanel";
-import { useTheme, type ThemePalette, type ThemePreference } from "../hooks/useTheme";
+import { useTheme, type Appearance } from "../hooks/useTheme";
 import { UserAvatar } from "../components/Avatar";
 import { usePreferences } from "../hooks/usePreferences";
 import type { CalendarEntry, DiscordUser } from "../types";
 
-const PALETTE_OPTIONS: { value: ThemePalette; label: string; hint: string }[] = [
-  { value: "modern", label: "Modern", hint: "Huidige dashboardkleuren" },
-  { value: "classic", label: "Classic", hint: "Discord-achtige kleuren van het vorige dashboard" },
-];
-
-const MODE_OPTIONS: { value: ThemePreference; label: string }[] = [
-  { value: "dark", label: "Donker" },
-  { value: "light", label: "Licht" },
-  { value: "system", label: "Systeem" },
+const APPEARANCE_OPTIONS: { value: Appearance; label: string; hint: string }[] = [
+  { value: "modern", label: "Modern", hint: "Huidige donkere dashboardstijl" },
+  { value: "classic", label: "Classic", hint: "Oudere productiekleuren" },
+  { value: "light", label: "Licht", hint: "Lichte modus" },
 ];
 
 function PreferenceToggle({
@@ -59,7 +54,7 @@ function PreferenceToggle({
 }
 
 export default function Settings({ user }: { user: DiscordUser }) {
-  const { preference, setPreference, palette, setPalette } = useTheme();
+  const { appearance, setAppearance } = useTheme();
   const { showTypePrefix, setShowTypePrefix, shareLocation, setShareLocation } = usePreferences();
   const displayName = user.nickname ?? user.username;
   const [initials, setInitials] = useState("");
@@ -178,7 +173,7 @@ export default function Settings({ user }: { user: DiscordUser }) {
     <AppShell user={user}>
       <PageLayout title="Instellingen">
         <div className="settingsStack">
-          <PagePanel className="pagePanelNarrow">
+          <PagePanel>
             <h2 className="cardTitle">Account</h2>
             <p className="cardHint">Ingelogd via Discord. Uitloggen is hier beschikbaar op elk apparaat.</p>
             <div className="settingsAccountRow">
@@ -193,47 +188,19 @@ export default function Settings({ user }: { user: DiscordUser }) {
             </div>
           </PagePanel>
 
-          <PagePanel className="pagePanelNarrow">
+          <PagePanel>
             <h2 className="cardTitle">Weergave</h2>
             <p className="cardHint">Lokaal op dit apparaat.</p>
-            <p className="settingsFieldLabel" id="theme-palette-label">
-              Thema
-            </p>
-            <div
-              className="topBarTabs themePicker"
-              role="radiogroup"
-              aria-labelledby="theme-palette-label"
-            >
-              {PALETTE_OPTIONS.map((option) => (
+            <div className="topBarTabs themePicker" role="radiogroup" aria-label="Thema">
+              {APPEARANCE_OPTIONS.map((option) => (
                 <button
                   key={option.value}
                   type="button"
                   role="radio"
-                  aria-checked={palette === option.value}
+                  aria-checked={appearance === option.value}
                   title={option.hint}
-                  className={`topBarTab ${palette === option.value ? "topBarTabActive" : ""}`}
-                  onClick={() => setPalette(option.value)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-            <p className="settingsFieldLabel" id="theme-mode-label">
-              Kleurmodus
-            </p>
-            <div
-              className="topBarTabs themePicker"
-              role="radiogroup"
-              aria-labelledby="theme-mode-label"
-            >
-              {MODE_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  role="radio"
-                  aria-checked={preference === option.value}
-                  className={`topBarTab ${preference === option.value ? "topBarTabActive" : ""}`}
-                  onClick={() => setPreference(option.value)}
+                  className={`topBarTab ${appearance === option.value ? "topBarTabActive" : ""}`}
+                  onClick={() => setAppearance(option.value)}
                 >
                   {option.label}
                 </button>
@@ -241,7 +208,7 @@ export default function Settings({ user }: { user: DiscordUser }) {
             </div>
           </PagePanel>
 
-          <PagePanel className="pagePanelNarrow">
+          <PagePanel>
             <h2 className="cardTitle">Rooster</h2>
             <PreferenceToggle
               label="Type in titel tonen"
@@ -252,7 +219,7 @@ export default function Settings({ user }: { user: DiscordUser }) {
             />
           </PagePanel>
 
-          <PagePanel className="pagePanelNarrow">
+          <PagePanel>
             <h2 className="cardTitle">Privacy</h2>
             <PreferenceToggle
               label="Leslocaties delen"
@@ -269,12 +236,12 @@ export default function Settings({ user }: { user: DiscordUser }) {
               {savingShare ? " · Opslaan…" : ""}
             </p>
             <p className="cardHint">
-              Uit: andere leden zien je les-/activiteitslocatie niet. Bezoekerslocatie via Cloudflare
-              blijft alleen voor beheerders.
+              Uit: andere leden zien je les-/activiteitslocatie niet. Bezoekerslocatie blijft alleen
+              voor beheerders.
             </p>
           </PagePanel>
 
-          <PagePanel className="pagePanelNarrow">
+          <PagePanel>
             <div className="settingsPanelHead">
               <div>
                 <h2 className="cardTitle">Kalender</h2>
@@ -296,7 +263,7 @@ export default function Settings({ user }: { user: DiscordUser }) {
             {loading ? (
               <p className="timetableLoading">Kalender laden…</p>
             ) : (
-              <form onSubmit={handleSave} className="form">
+              <form onSubmit={handleSave} className="form settingsForm">
                 <label className="formLabel">
                   Weergavenaam
                   <input
