@@ -24,7 +24,7 @@ function PreferenceToggle({
   error,
 }: {
   label: string;
-  hint: string;
+  hint?: string;
   checked: boolean;
   disabled?: boolean;
   onChange: (next: boolean) => void;
@@ -46,7 +46,7 @@ function PreferenceToggle({
           </span>
         </span>
       </label>
-      <p className="cardHint">{hint}</p>
+      {hint && <p className="cardHint">{hint}</p>}
       {error && <p className="errorMsg">{error}</p>}
     </div>
   );
@@ -158,13 +158,11 @@ export default function Settings({ user }: { user: DiscordUser }) {
 
   return (
     <AppShell user={user}>
-      <PageLayout title="Instellingen" subtitle="Weergave, privacy en kalender">
+      <PageLayout title="Instellingen">
         <div className="settingsStack">
           <PagePanel className="pagePanelNarrow">
             <h2 className="cardTitle">Weergave</h2>
-            <p className="cardHint">
-              Thema voor dit apparaat. Wordt lokaal bewaard en niet gesynchroniseerd via je account.
-            </p>
+            <p className="cardHint">Lokaal op dit apparaat.</p>
             <div className="topBarTabs themePicker" role="radiogroup" aria-label="Thema">
               {THEME_OPTIONS.map((option) => (
                 <button
@@ -183,10 +181,8 @@ export default function Settings({ user }: { user: DiscordUser }) {
 
           <PagePanel className="pagePanelNarrow">
             <h2 className="cardTitle">Rooster</h2>
-            <p className="cardHint">Voorkeuren voor het webrooster. Worden in je account bewaard.</p>
             <PreferenceToggle
-              label="Toon type in titel"
-              hint="Zet Hoorcollege, Project, … voor de vaknaam op het webrooster. Discord blijft type als pill tonen."
+              label="Type in titel tonen"
               checked={showTypePrefix}
               disabled={savingPrefix}
               onChange={handleTypePrefixToggle}
@@ -196,10 +192,9 @@ export default function Settings({ user }: { user: DiscordUser }) {
 
           <PagePanel className="pagePanelNarrow">
             <h2 className="cardTitle">Privacy</h2>
-            <p className="cardHint">Wat andere leden van je mogen zien.</p>
             <PreferenceToggle
-              label="Locatie delen"
-              hint="Als dit aan staat, kunnen andere leden je ICS-lokaal en je laatst gedetecteerde dashboardlocatie (stad/regio, geen GPS) zien. Activiteitslocaties die je zelf invult blijven zichtbaar."
+              label="Leslocaties delen"
+              hint="Stad/regio van dashboardbezoeken blijft alleen voor beheerders zichtbaar."
               checked={shareLocation}
               disabled={savingShare}
               onChange={handleShareLocation}
@@ -219,8 +214,7 @@ export default function Settings({ user }: { user: DiscordUser }) {
               <div>
                 <h2 className="cardTitle">Kalender</h2>
                 <p className="cardHint">
-                  Koppel je ICS-kalender voor het gedeelde rooster. Bekijk het op{" "}
-                  <Link to="/timetable">het rooster</Link> of via <code>/timetable</code> in Discord.
+                  Nodig voor het <Link to="/timetable">gedeelde rooster</Link>.
                 </p>
               </div>
               {!loading && (
@@ -258,9 +252,7 @@ export default function Settings({ user }: { user: DiscordUser }) {
                     onChange={(e) => setIcsUrl(e.target.value)}
                     placeholder="https://…/calendar.ics"
                   />
-                  <span className="formCheckHint">
-                    Optioneel. Zonder URL blijf je in het rooster staan maar zonder lessen.
-                  </span>
+                  <span className="formCheckHint">Zonder URL geen lessen in het gedeelde rooster.</span>
                 </label>
                 <div className="formActions">
                   <Button type="submit" disabled={saving}>
