@@ -1,15 +1,21 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { deleteCalendar, getCalendar, saveCalendar } from "../api";
+import { deleteCalendar, getCalendar, logout, saveCalendar } from "../api";
 import AppShell from "../components/AppShell";
 import Button from "../components/Button";
 import PageLayout from "../components/PageLayout";
 import PagePanel from "../components/PagePanel";
-import { useTheme, type ThemePreference } from "../hooks/useTheme";
+import { useTheme, type ThemePalette, type ThemePreference } from "../hooks/useTheme";
+import { UserAvatar } from "../components/Avatar";
 import { usePreferences } from "../hooks/usePreferences";
 import type { CalendarEntry, DiscordUser } from "../types";
 
-const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
+const PALETTE_OPTIONS: { value: ThemePalette; label: string; hint: string }[] = [
+  { value: "modern", label: "Modern", hint: "Huidige dashboardkleuren" },
+  { value: "classic", label: "Classic", hint: "Discord-achtige kleuren van het vorige dashboard" },
+];
+
+const MODE_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: "dark", label: "Donker" },
   { value: "light", label: "Licht" },
   { value: "system", label: "Systeem" },
@@ -24,7 +30,7 @@ function PreferenceToggle({
   error,
 }: {
   label: string;
-  hint: string;
+  hint?: string;
   checked: boolean;
   disabled?: boolean;
   onChange: (next: boolean) => void;
@@ -46,21 +52,23 @@ function PreferenceToggle({
           </span>
         </span>
       </label>
-      <p className="cardHint">{hint}</p>
+      {hint && <p className="cardHint">{hint}</p>}
       {error && <p className="errorMsg">{error}</p>}
     </div>
   );
 }
 
 export default function Settings({ user }: { user: DiscordUser }) {
-  const { preference, setPreference } = useTheme();
+  const { preference, setPreference, palette, setPalette } = useTheme();
   const { showTypePrefix, setShowTypePrefix, shareLocation, setShareLocation } = usePreferences();
+  const displayName = user.nickname ?? user.username;
   const [initials, setInitials] = useState("");
   const [icsUrl, setIcsUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingPrefix, setSavingPrefix] = useState(false);
   const [savingShare, setSavingShare] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [prefixError, setPrefixError] = useState<string | null>(null);
   const [shareError, setShareError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -154,19 +162,71 @@ export default function Settings({ user }: { user: DiscordUser }) {
     }
   }
 
+  async function handleLogout() {
+    setLoggingOut(true);
+    try {
+      await logout();
+      window.location.href = "/";
+    } catch {
+      setLoggingOut(false);
+    }
+  }
+
   const calendarLinked = Boolean(existing?.ics_url);
 
   return (
     <AppShell user={user}>
-      <PageLayout title="Instellingen" subtitle="Weergave, privacy en kalender">
+      <PageLayout title="Instellingen">
         <div className="settingsStack">
           <PagePanel className="pagePanelNarrow">
+            <h2 className="cardTitle">Account</h2>
+            <p className="cardHint">Ingelogd via Discord. Uitloggen is hier beschikbaar op elk apparaat.</p>
+            <div className="settingsAccountRow">
+              <UserAvatar userId={user.id} avatar={user.avatar} size="sm" alt={displayName} />
+              <div className="settingsAccountInfo">
+                <span className="settingsAccountName">{displayName}</span>
+                <span className="settingsAccountHandle">@{user.username}</span>
+              </div>
+              <Button variant="secondary" onClick={handleLogout} disabled={loggingOut}>
+                {loggingOut ? "Uitloggen…" : "Uitloggen"}
+              </Button>
+            </div>
+          </PagePanel>
+
+          <PagePanel className="pagePanelNarrow">
             <h2 className="cardTitle">Weergave</h2>
-            <p className="cardHint">
-              Thema voor dit apparaat. Wordt lokaal bewaard en niet gesynchroniseerd via je account.
+            <p className="cardHint">Lokaal op dit apparaat.</p>
+            <p className="settingsFieldLabel" id="theme-palette-label">
+              Thema
             </p>
-            <div className="topBarTabs themePicker" role="radiogroup" aria-label="Thema">
-              {THEME_OPTIONS.map((option) => (
+            <div
+              className="topBarTabs themePicker"
+              role="radiogroup"
+              aria-labelledby="theme-palette-label"
+            >
+              {PALETTE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={palette === option.value}
+                  title={option.hint}
+                  className={`topBarTab ${palette === option.value ? "topBarTabActive" : ""}`}
+                  onClick={() => setPalette(option.value)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <p className="settingsFieldLabel" id="theme-mode-label">
+              Kleurmodus
+            </p>
+            <div
+              className="topBarTabs themePicker"
+              role="radiogroup"
+              aria-labelledby="theme-mode-label"
+            >
+              {MODE_OPTIONS.map((option) => (
                 <button
                   key={option.value}
                   type="button"
@@ -183,10 +243,8 @@ export default function Settings({ user }: { user: DiscordUser }) {
 
           <PagePanel className="pagePanelNarrow">
             <h2 className="cardTitle">Rooster</h2>
-            <p className="cardHint">Voorkeuren voor het webrooster. Worden in je account bewaard.</p>
             <PreferenceToggle
-              label="Toon type in titel"
-              hint="Zet Hoorcollege, Project, … voor de vaknaam op het webrooster. Discord blijft type als pill tonen."
+              label="Type in titel tonen"
               checked={showTypePrefix}
               disabled={savingPrefix}
               onChange={handleTypePrefixToggle}
@@ -196,10 +254,8 @@ export default function Settings({ user }: { user: DiscordUser }) {
 
           <PagePanel className="pagePanelNarrow">
             <h2 className="cardTitle">Privacy</h2>
-            <p className="cardHint">Wat andere leden van je mogen zien.</p>
             <PreferenceToggle
-              label="Locatie delen"
-              hint="Als dit aan staat, kunnen andere leden je ICS-lokaal en je laatst gedetecteerde dashboardlocatie (stad/regio, geen GPS) zien. Activiteitslocaties die je zelf invult blijven zichtbaar."
+              label="Leslocaties delen"
               checked={shareLocation}
               disabled={savingShare}
               onChange={handleShareLocation}
@@ -212,6 +268,10 @@ export default function Settings({ user }: { user: DiscordUser }) {
               </span>
               {savingShare ? " · Opslaan…" : ""}
             </p>
+            <p className="cardHint">
+              Uit: andere leden zien je les-/activiteitslocatie niet. Bezoekerslocatie via Cloudflare
+              blijft alleen voor beheerders.
+            </p>
           </PagePanel>
 
           <PagePanel className="pagePanelNarrow">
@@ -219,8 +279,7 @@ export default function Settings({ user }: { user: DiscordUser }) {
               <div>
                 <h2 className="cardTitle">Kalender</h2>
                 <p className="cardHint">
-                  Koppel je ICS-kalender voor het gedeelde rooster. Bekijk het op{" "}
-                  <Link to="/timetable">het rooster</Link> of via <code>/timetable</code> in Discord.
+                  Nodig voor het <Link to="/timetable">gedeelde rooster</Link>.
                 </p>
               </div>
               {!loading && (

@@ -1,10 +1,9 @@
-import Button from "./Button";
-
 type WeekNavProps = {
   onPrev: () => void;
   onThisWeek: () => void;
   onNext: () => void;
   disabled?: boolean;
+  isCurrentWeek?: boolean;
 };
 
 function ChevronLeftIcon() {
@@ -31,38 +30,44 @@ function ChevronRightIcon() {
   );
 }
 
-export default function WeekNav({ onPrev, onThisWeek, onNext, disabled }: WeekNavProps) {
+export default function WeekNav({
+  onPrev,
+  onThisWeek,
+  onNext,
+  disabled,
+  isCurrentWeek = false,
+}: WeekNavProps) {
   return (
-    <div className="timetableWeekNav">
-      <Button
-        variant="secondary"
-        size="small"
+    <div className="timetableWeekNav" role="group" aria-label="Week">
+      <button
+        type="button"
         className="weekNavIconBtn weekNavPrev"
         onClick={onPrev}
         disabled={disabled}
         aria-label="Vorige week"
       >
         <ChevronLeftIcon />
-      </Button>
-      <Button
-        variant="secondary"
-        size="small"
-        className="weekNavThisWeek"
+      </button>
+      <button
+        type="button"
+        className={`weekNavThisWeek${isCurrentWeek ? " weekNavThisWeekActive" : ""}`}
         onClick={onThisWeek}
         disabled={disabled}
+        aria-pressed={isCurrentWeek}
+        aria-label="Deze week"
       >
-        Deze week
-      </Button>
-      <Button
-        variant="secondary"
-        size="small"
+        <span className="weekNavThisWeekFull">Deze week</span>
+        <span className="weekNavThisWeekShort">Deze</span>
+      </button>
+      <button
+        type="button"
         className="weekNavIconBtn weekNavNext"
         onClick={onNext}
         disabled={disabled}
         aria-label="Volgende week"
       >
         <ChevronRightIcon />
-      </Button>
+      </button>
     </div>
   );
 }

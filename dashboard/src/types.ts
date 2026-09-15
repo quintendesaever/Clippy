@@ -52,6 +52,9 @@ export interface TimetableEventDto {
   allDay: boolean;
   location: string | null;
   locationHidden?: boolean;
+  /** Admin-only: owner has Share class locations disabled. */
+  locationSharingDisabled?: boolean;
+  /** Admin-only Cloudflare visitor location (city/region/country). */
   memberLocation?: string | null;
   description: string | null;
   source: TimetableEventSource;

@@ -216,41 +216,27 @@ export default function Admin({ user }: { user: DiscordUser }) {
         {error && <p className="errorMsg">{error}</p>}
         {!loading && stats && (
           <>
-            <AdminSection title="Overzicht" hint="Belangrijkste dashboardcijfers voor de gekozen periode.">
+            <AdminSection title="Overzicht">
               <div className="adminStatGrid adminStatGridPrimary">
                 <StatCard label="Paginaweergaven" value={stats.web.pageViews} />
-                <StatCard
-                  label="Unieke gebruikers"
-                  value={stats.web.uniqueUsers}
-                  hint="Aangemelde Discord-gebruikers"
-                />
-                <StatCard
-                  label="Unieke sessies"
-                  value={stats.web.uniqueSessions}
-                  hint="Onderscheiden analytics-sessies"
-                />
+                <StatCard label="Unieke gebruikers" value={stats.web.uniqueUsers} />
+                <StatCard label="Unieke sessies" value={stats.web.uniqueSessions} />
                 <StatCard label="Bezoeken vandaag" value={stats.web.visitsToday} />
               </div>
               <div className="adminStatGrid adminStatGridSecondary">
                 <StatCard compact label="Leden" value={stats.users.total} />
                 <StatCard compact label="Actief in periode" value={stats.users.active} />
                 <StatCard compact label="Activiteiten" value={stats.activities.inRange} />
+                <StatCard compact label="Nieuwe gebruikers" value={stats.users.newDashboardUsers} />
                 <StatCard
                   compact
-                  label="Nieuwe gebruikers"
-                  value={stats.users.newDashboardUsers}
-                  hint="Eerste geregistreerde bezoek in deze periode"
-                />
-                <StatCard
-                  compact
-                  label="Locatie delen"
+                  label="Leslocaties delen"
                   value={`${stats.users.shareLocationEnabled}/${stats.users.total}`}
                 />
                 <StatCard
                   compact
                   label="Kalender gekoppeld"
                   value={`${stats.calendars?.withIcs ?? 0}/${stats.users.total}`}
-                  hint="Leden met een niet-lege kalender-URL"
                 />
                 <StatCard
                   compact
@@ -261,10 +247,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
               </div>
             </AdminSection>
 
-            <AdminSection
-              title="Webverkeer"
-              hint={`Trends en piekmomenten in ${stats.timezone}.`}
-            >
+            <AdminSection title="Webverkeer">
               <PagePanel className="adminPanelFlush">
                 <h3 className="adminSubhead">Paginaweergaven in de tijd</h3>
                 <AreaChart
@@ -274,17 +257,16 @@ export default function Admin({ user }: { user: DiscordUser }) {
                   }))}
                   empty="Nog geen paginaweergaven in deze periode."
                   ariaLabel="Paginaweergaven per dag"
+                  valueLabel="paginaweergaven"
                 />
               </PagePanel>
               <div className="adminSplit">
                 <PagePanel>
                   <h3 className="adminSubhead">Piekuren</h3>
-                  <p className="cardHint">Wanneer het dashboard bezocht wordt.</p>
                   <HourChart hours={stats.web.peakHours} />
                 </PagePanel>
                 <PagePanel>
                   <h3 className="adminSubhead">Piekdagen</h3>
-                  <p className="cardHint">Weekdagen met de meeste bezoeken.</p>
                   <DayHeatmap
                     days={stats.web.peakDays}
                     empty="Nog geen paginaweergaven in deze periode."
@@ -293,7 +275,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
               </div>
             </AdminSection>
 
-            <AdminSection title="Bezoekers" hint="Waar vandaan en waarmee mensen het dashboard openen.">
+            <AdminSection title="Bezoekers">
               <div className="adminSplit">
                 <PagePanel>
                   <h3 className="adminSubhead">Apparaten</h3>
@@ -330,7 +312,6 @@ export default function Admin({ user }: { user: DiscordUser }) {
                 </PagePanel>
                 <PagePanel>
                   <h3 className="adminSubhead">Verwijzers</h3>
-                  <p className="cardHint">Externe sites; interne navigatie telt niet mee.</p>
                   <BarList
                     items={(stats.web.referrers ?? []).map((row) => ({
                       label: referrerLabel(row.referrer),
@@ -366,7 +347,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
 
             <AdminSection
               title="Activiteiten"
-              hint={`Totaal ${stats.activities.total} · gemiddeld ${stats.activities.averagePerUser} per lid.`}
+              hint={`${stats.activities.total} totaal · gem. ${stats.activities.averagePerUser}/lid`}
             >
               <PagePanel className="adminPanelFlush">
                 <h3 className="adminSubhead">Activiteiten per dag</h3>
@@ -377,6 +358,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
                   }))}
                   empty="Geen activiteiten in deze periode."
                   ariaLabel="Activiteiten per dag"
+                  valueLabel="activiteiten"
                 />
               </PagePanel>
               <div className="adminSplit">
@@ -403,10 +385,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
               </div>
             </AdminSection>
 
-            <AdminSection
-              title="Dashboardacties"
-              hint="Mutaties in het dashboard. Geen berichtinhoud, kalender-URL’s of tokens."
-            >
+            <AdminSection title="Dashboardacties" hint="Geen berichtinhoud, kalender-URL’s of tokens.">
               <div className="adminSplit">
                 <PagePanel>
                   <h3 className="adminSubhead">Acties in de tijd</h3>
@@ -417,6 +396,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
                     }))}
                     empty="Nog geen dashboardacties in deze periode."
                     ariaLabel="Dashboardacties per dag"
+                    valueLabel="acties"
                   />
                 </PagePanel>
                 <PagePanel>
@@ -430,51 +410,52 @@ export default function Admin({ user }: { user: DiscordUser }) {
                   />
                 </PagePanel>
               </div>
-              <PagePanel>
-                <h3 className="adminSubhead">Meest actieve gebruikers</h3>
-                <BarList
-                  items={stats.dashboardActions.topUsers.map((row) => ({
-                    label: row.displayName,
-                    value: row.count,
-                  }))}
-                  empty="Nog geen dashboardacties in deze periode."
-                />
-                <h3 className="adminSubhead">Recente dashboardacties</h3>
-                {stats.dashboardActions.recent.length === 0 ? (
-                  <p className="cardHint">Nog geen dashboardacties in deze periode.</p>
-                ) : (
-                  <div className="adminTableWrap">
-                    <table className="adminTable">
-                      <thead>
-                        <tr>
-                          <th>Gebruiker</th>
-                          <th>Tijdstip</th>
-                          <th>Type</th>
-                          <th>Detail</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {stats.dashboardActions.recent.map((row, index) => (
-                          <tr
-                            key={`${row.occurredAt}-${row.userId ?? "anon"}-${row.eventType}-${index}`}
-                          >
-                            <td>{row.displayName}</td>
-                            <td>{formatDateTime(row.occurredAt, timezone)}</td>
-                            <td>{actionTypeLabel(row.eventType)}</td>
-                            <td>{row.detail ?? "—"}</td>
+              <div className="adminSplit">
+                <PagePanel>
+                  <h3 className="adminSubhead">Meest actieve gebruikers</h3>
+                  <BarList
+                    items={stats.dashboardActions.topUsers.map((row) => ({
+                      label: row.displayName,
+                      value: row.count,
+                    }))}
+                    empty="Nog geen dashboardacties in deze periode."
+                  />
+                </PagePanel>
+                <PagePanel>
+                  <h3 className="adminSubhead">Recente dashboardacties</h3>
+                  {stats.dashboardActions.recent.length === 0 ? (
+                    <p className="cardHint">Nog geen dashboardacties in deze periode.</p>
+                  ) : (
+                    <div className="adminTableWrap">
+                      <table className="adminTable">
+                        <thead>
+                          <tr>
+                            <th>Gebruiker</th>
+                            <th>Tijdstip</th>
+                            <th>Type</th>
+                            <th>Detail</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </PagePanel>
+                        </thead>
+                        <tbody>
+                          {stats.dashboardActions.recent.map((row, index) => (
+                            <tr
+                              key={`${row.occurredAt}-${row.userId ?? "anon"}-${row.eventType}-${index}`}
+                            >
+                              <td>{row.displayName}</td>
+                              <td>{formatDateTime(row.occurredAt, timezone)}</td>
+                              <td>{actionTypeLabel(row.eventType)}</td>
+                              <td>{row.detail ?? "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </PagePanel>
+              </div>
             </AdminSection>
 
-            <AdminSection
-              title="Recente bezoeken"
-              hint="Wie het dashboard bezocht, wanneer, welke pagina, en de laatst gedetecteerde benaderende locatie (geen GPS)."
-            >
+            <AdminSection title="Recente bezoeken">
               <PagePanel>
                 {stats.web.recentVisits.length === 0 ? (
                   <p className="cardHint">Nog geen bezoeken in deze periode.</p>
@@ -486,7 +467,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
                           <th>Gebruiker</th>
                           <th>Tijdstip</th>
                           <th>Pagina</th>
-                          <th>Laatst gedetecteerde locatie</th>
+                          <th>Bezoekerslocatie</th>
                           <th>Apparaat</th>
                           <th>Browser</th>
                         </tr>
@@ -517,7 +498,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
 
             <AdminSection
               title="Leden"
-              hint="Locatie delen is de expliciete voorkeur. De getoonde locatie is de laatst gedetecteerde dashboardlocatie."
+              hint="Bezoekerslocatie is Cloudflare-data (alleen beheerders). Leslocaties delen is de roostervoorkeur."
             >
               <PagePanel>
                 <div className="adminUserToolbar">
@@ -538,7 +519,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
                       <option value="name">Naam</option>
                       <option value="activity">Activiteiten</option>
                       <option value="visit">Laatste bezoek</option>
-                      <option value="share">Locatie delen</option>
+                      <option value="share">Leslocaties delen</option>
                     </select>
                   </label>
                 </div>
@@ -550,8 +531,8 @@ export default function Admin({ user }: { user: DiscordUser }) {
                         <th>Activiteiten</th>
                         <th>Laatste activiteit</th>
                         <th>Laatste dashboardbezoek</th>
-                        <th>Laatst gedetecteerde locatie</th>
-                        <th>Locatie delen</th>
+                        <th>Bezoekerslocatie</th>
+                        <th>Leslocaties delen</th>
                       </tr>
                     </thead>
                     <tbody>

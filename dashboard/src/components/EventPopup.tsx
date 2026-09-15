@@ -136,19 +136,27 @@ export default function EventPopup({
             </>
           )}
 
-          {(event.location || event.locationHidden) && (
+          {(event.location || event.locationHidden || event.locationSharingDisabled) && (
             <>
               <dt>Locatie</dt>
               <dd className={event.locationHidden ? "locationBlurred" : undefined}>
-                {event.locationHidden ? "Campus · lokaal" : event.location}
+                {event.locationHidden
+                  ? "Campus · lokaal"
+                  : event.location || (event.locationSharingDisabled ? "In beschrijving" : null)}
+                {event.locationSharingDisabled && !event.locationHidden && (
+                  <span className="eventPopupLocationNote"> · delen uit</span>
+                )}
               </dd>
             </>
           )}
 
           {event.memberLocation && (
             <>
-              <dt>Laatst gedetecteerde locatie</dt>
-              <dd>{event.memberLocation}</dd>
+              <dt>Bezoekerslocatie</dt>
+              <dd>
+                {event.memberLocation}
+                <span className="eventPopupLocationNote"> · alleen beheerders</span>
+              </dd>
             </>
           )}
         </dl>
