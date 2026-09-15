@@ -46,15 +46,32 @@ export function resolveSelectedDay(options: {
   weekKeys: readonly string[];
   previouslySelected?: string;
   preferToday: boolean;
+  /** Days that have events (any week). Used to skip empty days on auto-select. */
+  busyDayKeys?: readonly string[];
 }): string {
+  const autoDay = (): string => {
+    const busy = options.busyDayKeys ?? [];
+    if (busy.length === 0) return options.todayKey;
+    const nextBusy = busy.find((key) => key >= options.todayKey);
+    return nextBusy ?? options.todayKey;
+  };
+
   if (options.preferToday || !options.previouslySelected) {
-    return options.todayKey;
+    return autoDay();
   }
   if (!options.weekKeys.includes(options.previouslySelected)) {
-    return options.todayKey;
+    return autoDay();
   }
   if (options.previouslySelected < options.todayKey) {
-    return options.todayKey;
+    return autoDay();
   }
   return options.previouslySelected;
+}
+
+/** True when the loaded week has no events on or after today (may need next week). */
+export function needsNextWeekForActiveDay(
+  todayKey: string,
+  busyDayKeys: readonly string[]
+): boolean {
+  return !busyDayKeys.some((key) => key >= todayKey);
 }
