@@ -35,6 +35,14 @@ function StatusIcon() {
   );
 }
 
+function BotIcon() {
+  return (
+    <svg className="sidebarNavIcon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path d="M10 2a1 1 0 0 1 1 1v1.07A7.002 7.002 0 0 1 17 11v1a1 1 0 0 1-1 1h-1v2a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-2H4a1 1 0 0 1-1-1v-1a7.002 7.002 0 0 1 6-6.93V3a1 1 0 0 1 1-1Zm-3 9a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm6 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z" />
+    </svg>
+  );
+}
+
 function DiscordIcon() {
   return (
     <svg className="sidebarNavIcon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -188,6 +196,14 @@ export default function Sidebar({ user }: { user: DiscordUser }) {
                 <StatusIcon />
                 <span className="sidebarLinkLabel">Status</span>
               </Link>
+              <Link
+                to="/admin/bot"
+                className={navLinkClass(pathname, "/admin/bot")}
+                onClick={() => setAdminMenuOpen(false)}
+              >
+                <BotIcon />
+                <span className="sidebarLinkLabel">Bot</span>
+              </Link>
             </div>
           </div>,
           document.body
@@ -239,6 +255,10 @@ export default function Sidebar({ user }: { user: DiscordUser }) {
               <Link to="/admin/status" className={navLinkClass(pathname, "/admin/status")}>
                 <StatusIcon />
                 <span className="sidebarLinkLabel">Status</span>
+              </Link>
+              <Link to="/admin/bot" className={navLinkClass(pathname, "/admin/bot")}>
+                <BotIcon />
+                <span className="sidebarLinkLabel">Bot</span>
               </Link>
             </div>
 

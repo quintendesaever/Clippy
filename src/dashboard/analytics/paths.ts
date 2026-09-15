@@ -5,6 +5,7 @@ export const ALLOWED_ANALYTICS_PATHS = [
   "/settings",
   "/admin",
   "/admin/discord",
+  "/admin/bot",
 ] as const;
 
 export type AllowedAnalyticsPath = (typeof ALLOWED_ANALYTICS_PATHS)[number];

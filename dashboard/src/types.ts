@@ -320,3 +320,30 @@ export interface AdminStatusReport extends StatusReport {
   };
   runtime?: StatusRuntime;
 }
+
+export interface BotSettingsOption {
+  id: string;
+  name: string;
+}
+
+export interface BotSettingsPayload {
+  timezone: string;
+  f1: {
+    enabled: boolean;
+    channelId: string | null;
+    roleId: string | null;
+    predictionUrl: string | null;
+  };
+  channels: BotSettingsOption[];
+  roles: BotSettingsOption[];
+}
+
+export interface BotSettingsPatch {
+  timezone?: string;
+  f1?: {
+    enabled?: boolean;
+    channelId?: string | null;
+    roleId?: string | null;
+    predictionUrl?: string | null;
+  };
+}

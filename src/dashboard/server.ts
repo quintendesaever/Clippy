@@ -28,6 +28,7 @@ import { recordAnalyticsEvent } from "./analytics/events.js";
 import { createRequireAdmin, userIsGuildAdmin } from "./adminAuth.js";
 import { loadAdminStatsPayload, loadAdminUsersPayload, parseAdminRangePreset, parseStatsUserIds } from "./adminStats.js";
 import { loadDiscordStatsPayload } from "./discordStats.js";
+import { applyBotSettingsPatch, loadBotSettingsPayload } from "./botSettings.js";
 import {
   filterPersonalTimetablePayload,
   parseTimetableScope,
@@ -897,6 +898,50 @@ export function createDashboardApp(): express.Express {
       res.json(payload);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to load Discord stats";
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.get("/api/admin/bot-settings", requireSession, requireAdmin, async (_req: Request, res: Response) => {
+    try {
+      const payload = await loadBotSettingsPayload(getGuildId(), discordClient);
+      res.json(payload);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load bot settings";
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.patch("/api/admin/bot-settings", requireSession, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const body = req.body ?? {};
+      const patch = {
+        ...(typeof body.timezone === "string" ? { timezone: body.timezone } : {}),
+        ...(body.f1 && typeof body.f1 === "object"
+          ? {
+              f1: {
+                ...(typeof body.f1.enabled === "boolean" ? { enabled: body.f1.enabled } : {}),
+                ...(body.f1.channelId === null || typeof body.f1.channelId === "string"
+                  ? { channelId: body.f1.channelId }
+                  : {}),
+                ...(body.f1.roleId === null || typeof body.f1.roleId === "string"
+                  ? { roleId: body.f1.roleId }
+                  : {}),
+                ...(body.f1.predictionUrl === null || typeof body.f1.predictionUrl === "string"
+                  ? { predictionUrl: body.f1.predictionUrl }
+                  : {}),
+              },
+            }
+          : {}),
+      };
+      const result = await applyBotSettingsPatch(getGuildId(), discordClient, patch);
+      if (!result.ok) {
+        res.status(result.status).json({ error: result.error });
+        return;
+      }
+      res.json(result.settings);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to save bot settings";
       res.status(500).json({ error: message });
     }
   });
