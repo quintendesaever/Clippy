@@ -86,7 +86,7 @@
   --shadow-panel: none;
 }
 
-/* Classic: previous Discord-integrated production palette (colors only). */
+/* Classic: previous Discord-integrated production colors + elevation (layout radii unchanged). */
 [data-palette="classic"] {
   --color-bg: #1c1d22;
   --color-bg-page: #16171b;
@@ -103,9 +103,6 @@
   --color-accent-hover: #4752c4;
   --color-accent-soft: color-mix(in srgb, var(--color-accent) 22%, transparent);
   --color-focus-ring: color-mix(in srgb, var(--color-accent) 55%, white 10%);
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
   --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.2);
   --shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.15);
 }

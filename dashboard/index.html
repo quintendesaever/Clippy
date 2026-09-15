@@ -15,7 +15,8 @@
               ? "light"
               : "dark";
           var palette = localStorage.getItem("clippy.themePalette") || "modern";
-          if (palette !== "classic") palette = "modern";
+          var allowedPalettes = ["modern", "classic"];
+          if (allowedPalettes.indexOf(palette) < 0) palette = "modern";
           document.documentElement.dataset.theme = theme;
           document.documentElement.dataset.palette = palette;
           document.documentElement.style.colorScheme = theme;

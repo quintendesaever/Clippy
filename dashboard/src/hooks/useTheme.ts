@@ -16,13 +16,14 @@ const MODE_STORAGE_KEY = "clippy.theme";
 const PALETTE_STORAGE_KEY = "clippy.themePalette";
 const DEFAULT_PREFERENCE: ThemePreference = "dark";
 const DEFAULT_PALETTE: ThemePalette = "modern";
+const THEME_PALETTES: readonly ThemePalette[] = ["modern", "classic"];
 
 function isThemePreference(value: string | null): value is ThemePreference {
   return value === "dark" || value === "light" || value === "system";
 }
 
 function isThemePalette(value: string | null): value is ThemePalette {
-  return value === "modern" || value === "classic";
+  return value != null && (THEME_PALETTES as readonly string[]).includes(value);
 }
 
 function readPreference(): ThemePreference {
