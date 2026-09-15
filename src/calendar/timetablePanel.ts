@@ -6,9 +6,10 @@ import {
   type Message,
   type SendableChannels,
 } from "discord.js";
-import { dayKeyInTimezone, getWeekMondayKey } from "../../shared/timetable/dates.js";
+import { dayKeyInTimezone, getWeekDayKeys, getWeekMondayKey } from "../../shared/timetable/dates.js";
 import { getGuildId } from "../config.js";
 import { getGuildTimezone } from "../stats/helpers.js";
+import { needsNextWeekForActiveDay, resolveSelectedDay } from "./timetableHash.js";
 import {
   deleteTimetablePanel,
   getTimetablePanel,
@@ -16,7 +17,11 @@ import {
   type TimetablePanel,
 } from "./timetablePanelStorage.js";
 import { assembleTimetableView, toTimetableReply, type TimetableView } from "./timetableViews.js";
-import { TIMETABLE_VALIDATE_INTERVAL_MS, type WeekCacheEntry } from "./timetableWeekCache.js";
+import {
+  daysWithEvents,
+  TIMETABLE_VALIDATE_INTERVAL_MS,
+  type WeekCacheEntry,
+} from "./timetableWeekCache.js";
 import { timetableWeekCache } from "./timetableWeekCacheLive.js";
 import type { PanelRecord } from "./timetablePanelReconcile.js";
 
@@ -297,7 +302,7 @@ export async function applyTimetablePanelTick(
   const todayKey = dayKeyInTimezone(new Date(now), timezone);
   const weekMonday = getWeekMondayKey(new Date(now), timezone);
 
-  const weekChanged = !cache || cache.weekMonday !== weekMonday;
+  const weekChanged = !cache || cache.weekMonday < weekMonday;
   const dayChanged = !cache || cache.calendarDayKey !== todayKey;
   const needsValidation = !cache || now - cache.validatedAt >= TIMETABLE_VALIDATE_INTERVAL_MS;
 
@@ -307,16 +312,28 @@ export async function applyTimetablePanelTick(
 
   await withGuildPanelLock(guildId, async () => {
     if (!weekChanged && dayChanged && cache && !needsValidation) {
+      const busyDayKeys = daysWithEvents(cache.timetable);
+      if (needsNextWeekForActiveDay(todayKey, busyDayKeys)) {
+        await applyStoredPanelUpdate(client, { preferToday: true });
+        return;
+      }
+
       const message = await fetchStoredPanelMessage(client, stored);
       if (!message) {
         await deleteTimetablePanel(guildId);
         console.log("[Timetable] Stored panel message missing; waiting for /timetable");
         return;
       }
+      const selectedDayKey = resolveSelectedDay({
+        todayKey,
+        weekKeys: getWeekDayKeys(cache.weekMonday),
+        preferToday: true,
+        busyDayKeys,
+      });
       cache.calendarDayKey = todayKey;
-      cache.selectedDayKey = todayKey;
+      cache.selectedDayKey = selectedDayKey;
       try {
-        await message.edit(toTimetableReply(viewFromCacheEntry(cache, todayKey)));
+        await message.edit(toTimetableReply(viewFromCacheEntry(cache, selectedDayKey)));
       } catch (err) {
         if (isMissingDiscordResource(err)) {
           await deleteTimetablePanel(guildId);
@@ -325,7 +342,7 @@ export async function applyTimetablePanelTick(
         }
         throw err;
       }
-      console.log(`[Timetable] Day rollover for guild ${guildId}`);
+      console.log(`[Timetable] Day rollover for guild ${guildId} → ${selectedDayKey}`);
       return;
     }
 
