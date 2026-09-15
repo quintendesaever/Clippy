@@ -10,6 +10,7 @@ import {
   HourChart,
   StatCard,
 } from "../components/AdminCharts";
+import AdminSection from "../components/AdminSection";
 import AppShell from "../components/AppShell";
 import MemberFilter from "../components/MemberFilter";
 import PageLayout from "../components/PageLayout";
@@ -85,26 +86,6 @@ function formatDateTime(iso: string | null, timezone: string): string {
   const hh = String(zoned.getHours()).padStart(2, "0");
   const mm = String(zoned.getMinutes()).padStart(2, "0");
   return `${d}/${m} ${hh}:${mm}`;
-}
-
-function AdminSection({
-  title,
-  hint,
-  children,
-}: {
-  title: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="adminSection">
-      <header className="adminSectionHead">
-        <h2 className="adminSectionTitle">{title}</h2>
-        {hint && <p className="adminSectionHint">{hint}</p>}
-      </header>
-      {children}
-    </section>
-  );
 }
 
 export default function Admin({ user }: { user: DiscordUser }) {
