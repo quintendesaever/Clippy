@@ -1978,19 +1978,19 @@ select.formSelect {
 
   .weekNavThisWeek {
     min-width: 3.25rem;
-    min-height: 2.5rem;
-    height: 2.5rem;
+    min-height: 44px;
+    height: 44px;
     padding: 0 0.45rem;
   }
 
   .weekNavIconBtn {
-    width: 2.5rem;
-    min-width: 2.5rem;
-    height: 2.5rem;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
   }
 
   .timetableLayoutBtn {
-    min-height: 2.5rem;
+    min-height: 44px;
     padding: 0 0.65rem;
   }
 
