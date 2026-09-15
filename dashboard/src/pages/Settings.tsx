@@ -256,7 +256,6 @@ export default function Settings({ user }: { user: DiscordUser }) {
             <h2 className="cardTitle">Privacy</h2>
             <PreferenceToggle
               label="Leslocaties delen"
-              hint="Aan: andere leden zien je ICS-lokalen en je dashboard stad/regio. Uit: alleen jij en beheerders. Activiteitslocaties blijven zichtbaar."
               checked={shareLocation}
               disabled={savingShare}
               onChange={handleShareLocation}
@@ -268,6 +267,10 @@ export default function Settings({ user }: { user: DiscordUser }) {
                 {shareLocation ? "Ingeschakeld" : "Uitgeschakeld"}
               </span>
               {savingShare ? " · Opslaan…" : ""}
+            </p>
+            <p className="cardHint">
+              Uit: andere leden zien je les-/activiteitslocatie niet. Bezoekerslocatie via Cloudflare
+              blijft alleen voor beheerders.
             </p>
           </PagePanel>
 

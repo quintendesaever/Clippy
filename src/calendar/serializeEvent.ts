@@ -13,9 +13,14 @@ export type MemberGeo = {
 export type SerializeEventOptions = {
   viewerUserId?: string;
   viewerIsAdmin?: boolean;
+  /** Opt-in for sharing class/activity locations with other members. Default off. */
   shareLocationByUser?: Map<string, boolean>;
   /** @deprecated Use shareLocationByUser; kept as an alias for ICS opt-in maps. */
   showLocationByUser?: Map<string, boolean>;
+  /**
+   * Cloudflare-derived visitor location (city/region/country).
+   * Only exposed to admins — never gated by the class-location share preference.
+   */
   memberGeoByUser?: Map<string, MemberGeo>;
 };
 
@@ -36,20 +41,20 @@ function formatMemberLocation(geo: MemberGeo | undefined): string | null {
 
 export function serializeEventForApi(event: TimetableEvent, options?: SerializeEventOptions) {
   const source = event.source ?? "ics";
-  const isActivity = source === "activity";
   const hasLocationField = Boolean(event.location?.trim());
   const hasLocationInDescription = descriptionContainsLocation(event.description);
   const hasLocation = hasLocationField || hasLocationInDescription;
   const privacyUserId = event.createdBy ?? event.userId;
   const isPrivacyOwner = options?.viewerUserId != null && options.viewerUserId === privacyUserId;
   const shareMap = options?.shareLocationByUser ?? options?.showLocationByUser;
-  const ownerAllowsLocation = shareMap?.get(privacyUserId) === true;
+  const ownerSharesClassLocation = shareMap?.get(privacyUserId) === true;
   const viewerIsAdmin = options?.viewerIsAdmin === true;
-  const personalLocationVisible = isPrivacyOwner || ownerAllowsLocation || viewerIsAdmin;
-  // Shared activity venues stay public; ICS rooms follow the member preference.
-  const locationVisible = isActivity || personalLocationVisible;
-  const memberLocation =
-    personalLocationVisible ? formatMemberLocation(options?.memberGeoByUser?.get(privacyUserId)) : null;
+
+  // Class/activity locations (ICS rooms + activity venues) follow Share class locations.
+  const classLocationVisible = isPrivacyOwner || ownerSharesClassLocation || viewerIsAdmin;
+  // Visitor location is admin-only monitoring data — never a peer preference.
+  const visitorLocation =
+    viewerIsAdmin ? formatMemberLocation(options?.memberGeoByUser?.get(privacyUserId)) : null;
 
   return {
     userId: event.userId,
@@ -60,10 +65,11 @@ export function serializeEventForApi(event: TimetableEvent, options?: SerializeE
     start: event.start.toISOString(),
     end: event.end.toISOString(),
     allDay: event.allDay,
-    location: locationVisible ? (event.location ?? null) : null,
-    locationHidden: hasLocation && !locationVisible,
-    ...(memberLocation ? { memberLocation } : {}),
-    description: locationVisible
+    location: classLocationVisible ? (event.location ?? null) : null,
+    locationHidden: hasLocation && !classLocationVisible,
+    locationSharingDisabled: viewerIsAdmin && !ownerSharesClassLocation && hasLocation,
+    ...(visitorLocation ? { memberLocation: visitorLocation } : {}),
+    description: classLocationVisible
       ? (event.description ?? null)
       : (redactLocationFromDescription(event.description) ?? null),
     source,

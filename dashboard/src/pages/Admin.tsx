@@ -230,7 +230,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
                 <StatCard compact label="Nieuwe gebruikers" value={stats.users.newDashboardUsers} />
                 <StatCard
                   compact
-                  label="Locatie delen"
+                  label="Leslocaties delen"
                   value={`${stats.users.shareLocationEnabled}/${stats.users.total}`}
                 />
                 <StatCard
@@ -467,7 +467,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
                           <th>Gebruiker</th>
                           <th>Tijdstip</th>
                           <th>Pagina</th>
-                          <th>Laatst gedetecteerde locatie</th>
+                          <th>Bezoekerslocatie</th>
                           <th>Apparaat</th>
                           <th>Browser</th>
                         </tr>
@@ -498,6 +498,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
 
             <AdminSection
               title="Leden"
+              hint="Bezoekerslocatie is Cloudflare-data (alleen beheerders). Leslocaties delen is de roostervoorkeur."
             >
               <PagePanel>
                 <div className="adminUserToolbar">
@@ -518,7 +519,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
                       <option value="name">Naam</option>
                       <option value="activity">Activiteiten</option>
                       <option value="visit">Laatste bezoek</option>
-                      <option value="share">Locatie delen</option>
+                      <option value="share">Leslocaties delen</option>
                     </select>
                   </label>
                 </div>
@@ -530,8 +531,8 @@ export default function Admin({ user }: { user: DiscordUser }) {
                         <th>Activiteiten</th>
                         <th>Laatste activiteit</th>
                         <th>Laatste dashboardbezoek</th>
-                        <th>Laatst gedetecteerde locatie</th>
-                        <th>Locatie delen</th>
+                        <th>Bezoekerslocatie</th>
+                        <th>Leslocaties delen</th>
                       </tr>
                     </thead>
                     <tbody>

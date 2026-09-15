@@ -222,6 +222,11 @@ export default function WeekGrid({
                 const locationLine = ev.locationHidden
                   ? "Campus · lokaal"
                   : shortLocation(ev.location);
+                const showSharingOffNote = Boolean(
+                  ev.locationSharingDisabled && !ev.locationHidden
+                );
+                const locationMeta =
+                  locationLine || (showSharingOffNote ? "In beschrijving" : undefined);
                 const memberLocationLine = ev.memberLocation
                   ? shortLocation(ev.memberLocation)
                   : undefined;
@@ -262,15 +267,18 @@ export default function WeekGrid({
                           {formatTime(ev.start, timezone)}–{formatTime(ev.end, timezone)}
                         </span>
                       )}
-                      {showLocation && locationLine && (
+                      {showLocation && locationMeta && (
                         <span
                           className={`weekGridEventMeta${ev.locationHidden ? " locationBlurred" : ""}`}
                         >
-                          {locationLine}
+                          {locationMeta}
+                          {showSharingOffNote ? " · delen uit" : ""}
                         </span>
                       )}
                       {showLocation && memberLocationLine && (
-                        <span className="weekGridEventMeta">{memberLocationLine}</span>
+                        <span className="weekGridEventMeta" title="Bezoekerslocatie (beheerder)">
+                          {memberLocationLine}
+                        </span>
                       )}
                       {showDescription && descriptionLine && (
                         <span className="weekGridEventMeta">{descriptionLine}</span>
