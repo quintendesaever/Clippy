@@ -71,6 +71,8 @@ const COMMAND_LABELS: Record<string, string> = {
 
 const ACTION_TYPE_LABELS: Record<string, string> = {
   "timetable.day": "Roosterdag",
+  "timetable.full": "Volledig rooster",
+  "timetable.settings": "Instellingen",
   "f1.stats": "F1-statistieken",
 };
 
@@ -421,6 +423,8 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
               <div className="adminStatGrid adminStatGridSecondary">
                 <StatCard compact label="Botacties" value={stats.botUsage.total} />
                 <StatCard compact label="Roosterdagen" value={stats.botUsage.timetableDayClicks} />
+                <StatCard compact label="Volledig rooster" value={stats.botUsage.timetableFullClicks} />
+                <StatCard compact label="Instellingen" value={stats.botUsage.timetableSettingsClicks} />
                 <StatCard compact label="F1-statistieken" value={stats.botUsage.f1StatsClicks} />
               </div>
               <div className="adminSplit">

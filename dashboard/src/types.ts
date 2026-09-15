@@ -232,6 +232,8 @@ export interface DiscordAdminStatsResponse {
     commands: { key: string; count: number }[];
     actions: { key: string; count: number }[];
     timetableDayClicks: number;
+    timetableFullClicks: number;
+    timetableSettingsClicks: number;
     f1StatsClicks: number;
     overTime: { key: string; count: number }[];
     recent: AdminRecentAction[];

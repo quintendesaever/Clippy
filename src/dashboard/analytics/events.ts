@@ -17,6 +17,8 @@ export const ANALYTICS_EVENT_TYPES = [
   "command.stats",
   "command.backfill-stats",
   "timetable.day",
+  "timetable.full",
+  "timetable.settings",
   "f1.stats",
 ] as const;
 
@@ -38,6 +40,8 @@ const METADATA_KEYS_BY_TYPE: Record<AnalyticsEventType, readonly string[]> = {
   "command.stats": ["command", "subcommand"],
   "command.backfill-stats": ["command", "subcommand"],
   "timetable.day": ["dayKey"],
+  "timetable.full": [],
+  "timetable.settings": [],
   "f1.stats": ["preview", "meetingKey"],
 };
 

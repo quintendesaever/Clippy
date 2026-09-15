@@ -355,6 +355,8 @@ export function aggregateDiscordStats(options: {
   const commandCounts = new Map<string, number>();
   const actionCounts = new Map<string, number>();
   let timetableDayClicks = 0;
+  let timetableFullClicks = 0;
+  let timetableSettingsClicks = 0;
   let f1StatsClicks = 0;
   for (const row of eventsInRange) {
     increment(eventsByDay, bucketKey(row.occurred_at, timezone, preset));
@@ -363,6 +365,8 @@ export function aggregateDiscordStats(options: {
     } else {
       increment(actionCounts, row.event_type);
       if (row.event_type === "timetable.day") timetableDayClicks += 1;
+      else if (row.event_type === "timetable.full") timetableFullClicks += 1;
+      else if (row.event_type === "timetable.settings") timetableSettingsClicks += 1;
       else if (row.event_type === "f1.stats") f1StatsClicks += 1;
     }
   }
@@ -417,6 +421,8 @@ export function aggregateDiscordStats(options: {
       commands: topEntries(commandCounts),
       actions: topEntries(actionCounts),
       timetableDayClicks,
+      timetableFullClicks,
+      timetableSettingsClicks,
       f1StatsClicks,
       overTime: fillSeries(eventsByDay, preset, fromDayKey, toDayKey, [...eventsByDay.keys()]),
       recent: recentAnalyticsEvents(eventsInRange),

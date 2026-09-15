@@ -13,6 +13,8 @@ describe("isAllowedEventType", () => {
     assert.equal(isAllowedEventType("calendar.save"), true);
     assert.equal(isAllowedEventType("command.timetable"), true);
     assert.equal(isAllowedEventType("timetable.day"), true);
+    assert.equal(isAllowedEventType("timetable.full"), true);
+    assert.equal(isAllowedEventType("timetable.settings"), true);
     assert.equal(isAllowedEventType("f1.stats"), true);
   });
 
