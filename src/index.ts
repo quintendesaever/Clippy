@@ -81,14 +81,28 @@ client.on("interactionCreate", async (interaction) => {
     try {
       const handledTimetable = await handleTimetableButton(interaction);
       if (handledTimetable) {
-        const dayKey = interaction.customId.slice("timetable:day:".length);
-        if (/^\d{4}-\d{2}-\d{2}$/.test(dayKey)) {
+        if (interaction.customId === "timetable:full") {
           recordDiscordAnalyticsEvent({
             guildId: interaction.guildId,
             user: interaction.user,
-            eventType: "timetable.day",
-            metadata: { dayKey },
+            eventType: "timetable.full",
           });
+        } else if (interaction.customId === "timetable:settings") {
+          recordDiscordAnalyticsEvent({
+            guildId: interaction.guildId,
+            user: interaction.user,
+            eventType: "timetable.settings",
+          });
+        } else {
+          const dayKey = interaction.customId.slice("timetable:day:".length);
+          if (/^\d{4}-\d{2}-\d{2}$/.test(dayKey)) {
+            recordDiscordAnalyticsEvent({
+              guildId: interaction.guildId,
+              user: interaction.user,
+              eventType: "timetable.day",
+              metadata: { dayKey },
+            });
+          }
         }
         return;
       }

@@ -367,6 +367,8 @@ describe("aggregateDiscordStats", () => {
     });
     assert.equal(stats.botUsage.total, 4);
     assert.equal(stats.botUsage.timetableDayClicks, 1);
+    assert.equal(stats.botUsage.timetableFullClicks, 0);
+    assert.equal(stats.botUsage.timetableSettingsClicks, 0);
     assert.equal(stats.botUsage.f1StatsClicks, 1);
     assert.equal(stats.botUsage.commands.find((row) => row.key === "timetable")?.count, 1);
     assert.equal(stats.botUsage.actions.find((row) => row.key === "timetable.day")?.count, 1);
