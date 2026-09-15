@@ -61,6 +61,8 @@ function buildMembers(memberResults: MemberLoadResult[]): TimetableMember[] {
 
 export type GuildTimetableOptions = {
   skipIcsCache?: boolean;
+  /** When set, load this ISO Monday week instead of the current calendar week. */
+  weekMonday?: string;
 };
 
 async function loadMemberEvents(
@@ -114,7 +116,7 @@ export async function getGuildTimetable(
   options?: GuildTimetableOptions
 ): Promise<GuildTimetable> {
   const guildTimezone = await getGuildTimezone(guildId);
-  const mondayKey = getWeekMondayKey(new Date(), guildTimezone);
+  const mondayKey = options?.weekMonday ?? getWeekMondayKey(new Date(), guildTimezone);
   const dayKeys = calendarWeekDayKeys(mondayKey);
   const sundayKey = dayKeys[6]!;
   return getGuildTimetableForDates(guildId, mondayKey, sundayKey, options);

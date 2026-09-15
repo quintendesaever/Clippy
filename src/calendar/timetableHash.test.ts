@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { hashGuildTimetable, resolveSelectedDay } from "./timetableHash.js";
+import { hashGuildTimetable, needsNextWeekForActiveDay, resolveSelectedDay } from "./timetableHash.js";
 import { makeEvent, makeTimetable } from "./timetableTestFixtures.js";
 
 describe("hashGuildTimetable", () => {
@@ -57,6 +57,30 @@ describe("resolveSelectedDay", () => {
     );
   });
 
+  it("skips empty days and selects the next busy day on or after today", () => {
+    assert.equal(
+      resolveSelectedDay({
+        todayKey: "2026-08-22",
+        weekKeys,
+        preferToday: true,
+        busyDayKeys: ["2026-08-17", "2026-08-18", "2026-08-24"],
+      }),
+      "2026-08-24"
+    );
+  });
+
+  it("keeps today when today itself has events", () => {
+    assert.equal(
+      resolveSelectedDay({
+        todayKey: "2026-08-18",
+        weekKeys,
+        preferToday: true,
+        busyDayKeys: ["2026-08-17", "2026-08-18", "2026-08-19"],
+      }),
+      "2026-08-18"
+    );
+  });
+
   it("moves off a past selected day even without preferToday", () => {
     assert.equal(
       resolveSelectedDay({
@@ -64,6 +88,7 @@ describe("resolveSelectedDay", () => {
         weekKeys,
         previouslySelected: "2026-08-17",
         preferToday: false,
+        busyDayKeys: ["2026-08-18", "2026-08-20"],
       }),
       "2026-08-18"
     );
@@ -91,5 +116,12 @@ describe("resolveSelectedDay", () => {
       }),
       "2026-08-24"
     );
+  });
+});
+
+describe("needsNextWeekForActiveDay", () => {
+  it("is true when no busy day remains on or after today", () => {
+    assert.equal(needsNextWeekForActiveDay("2026-08-22", ["2026-08-17", "2026-08-18"]), true);
+    assert.equal(needsNextWeekForActiveDay("2026-08-18", ["2026-08-17", "2026-08-18"]), false);
   });
 });

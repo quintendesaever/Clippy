@@ -1,11 +1,17 @@
-import { dayKeyInTimezone, getWeekDayKeys, getWeekMondayKey } from "../../shared/timetable/dates.js";
-import { hashGuildTimetable, resolveSelectedDay } from "./timetableHash.js";
+import {
+  addCalendarDays,
+  dayKeyInTimezone,
+  getWeekDayKeys,
+  getWeekMondayKey,
+} from "../../shared/timetable/dates.js";
+import { hashGuildTimetable, needsNextWeekForActiveDay, resolveSelectedDay } from "./timetableHash.js";
 import type { GuildTimetable } from "./types.js";
 
 export const TIMETABLE_VALIDATE_INTERVAL_MS = 20 * 60 * 1000;
 
 export type FetchTimetableOptions = {
   skipIcsCache?: boolean;
+  weekMonday?: string;
 };
 
 export type WeekCacheEntry = {
@@ -40,10 +46,27 @@ export type RefreshCacheOptions = {
   selectedDayKey?: string;
 };
 
-function daysWithEvents(timetable: GuildTimetable): string[] {
+export function daysWithEvents(timetable: GuildTimetable): string[] {
   return [...timetable.eventsByDay.entries()]
     .filter(([, events]) => events.length > 0)
-    .map(([dayKey]) => dayKey);
+    .map(([dayKey]) => dayKey)
+    .sort((a, b) => a.localeCompare(b));
+}
+
+function applyAutoSelectedDay(
+  entry: WeekCacheEntry,
+  todayKey: string,
+  preferToday: boolean,
+  previouslySelected?: string
+): void {
+  entry.calendarDayKey = todayKey;
+  entry.selectedDayKey = resolveSelectedDay({
+    todayKey,
+    weekKeys: getWeekDayKeys(entry.weekMonday),
+    previouslySelected,
+    preferToday,
+    busyDayKeys: daysWithEvents(entry.timetable),
+  });
 }
 
 export function createTimetableWeekCache(deps: TimetableWeekCacheDeps) {
@@ -72,18 +95,36 @@ export function createTimetableWeekCache(deps: TimetableWeekCacheDeps) {
     previous: WeekCacheEntry | undefined,
     options: RefreshCacheOptions
   ): Promise<WeekCacheEntry> {
-    const timetable = await deps.fetchTimetable(guildId, {
-      skipIcsCache: options.skipIcsCache,
-    });
-    const weekMonday = getWeekMondayKey(timetable.rangeStart, timetable.guildTimezone);
-    const weekKeys = getWeekDayKeys(weekMonday);
+    const fetchOpts = { skipIcsCache: options.skipIcsCache };
+    let timetable = await deps.fetchTimetable(guildId, fetchOpts);
+    let weekMonday = getWeekMondayKey(timetable.rangeStart, timetable.guildTimezone);
     const todayKey = dayKeyInTimezone(new Date(deps.now()), timetable.guildTimezone);
+    const autoSelect = options.preferToday || !options.selectedDayKey;
+
+    let busyDayKeys = daysWithEvents(timetable);
+    if (autoSelect && needsNextWeekForActiveDay(todayKey, busyDayKeys)) {
+      const nextMonday = addCalendarDays(weekMonday, 7);
+      const nextWeek = await deps.fetchTimetable(guildId, {
+        ...fetchOpts,
+        weekMonday: nextMonday,
+      });
+      const nextBusy = daysWithEvents(nextWeek);
+      if (!needsNextWeekForActiveDay(todayKey, nextBusy)) {
+        timetable = nextWeek;
+        weekMonday = getWeekMondayKey(nextWeek.rangeStart, nextWeek.guildTimezone);
+        busyDayKeys = nextBusy;
+        log(`[Timetable] Skipping empty remainder of week; loading ${weekMonday} for guild ${guildId}`);
+      }
+    }
+
+    const weekKeys = getWeekDayKeys(weekMonday);
     const dataHash = hashGuildTimetable(timetable, deps.rendererVersion);
     const selectedDayKey = resolveSelectedDay({
       todayKey,
       weekKeys,
       previouslySelected: options.selectedDayKey ?? previous?.selectedDayKey,
       preferToday: options.preferToday ?? false,
+      busyDayKeys,
     });
 
     if (previous && previous.weekMonday === weekMonday && previous.dataHash === dataHash) {
@@ -143,37 +184,40 @@ export function createTimetableWeekCache(deps: TimetableWeekCacheDeps) {
 
   function isFreshForCurrentWeek(entry: WeekCacheEntry): boolean {
     const weekMonday = getWeekMondayKey(new Date(deps.now()), entry.timetable.guildTimezone);
-    if (entry.weekMonday !== weekMonday) return false;
+    // Cache may intentionally hold next week when current week is empty from today onward.
+    if (entry.weekMonday !== weekMonday && entry.weekMonday !== addCalendarDays(weekMonday, 7)) {
+      return false;
+    }
     return deps.now() - entry.validatedAt < deps.validateIntervalMs;
   }
 
   async function refresh(guildId: string, options: RefreshCacheOptions = {}): Promise<WeekCacheEntry> {
+    function tryHotPath(entry: WeekCacheEntry): WeekCacheEntry | null {
+      if (options.force || options.skipIcsCache || !isFreshForCurrentWeek(entry)) return null;
+      if (options.preferToday) {
+        const todayKey = dayKeyInTimezone(new Date(deps.now()), entry.timetable.guildTimezone);
+        if (needsNextWeekForActiveDay(todayKey, daysWithEvents(entry.timetable))) return null;
+        applyAutoSelectedDay(entry, todayKey, true);
+        return entry;
+      }
+      if (options.selectedDayKey) {
+        selectDay(guildId, options.selectedDayKey);
+        return entry;
+      }
+      return entry;
+    }
+
     const pending = inflight.get(guildId);
     if (pending) {
       const inFlightEntry = await pending;
-      if (!options.force && !options.skipIcsCache && isFreshForCurrentWeek(inFlightEntry)) {
-        if (options.preferToday) {
-          inFlightEntry.selectedDayKey = dayKeyInTimezone(
-            new Date(deps.now()),
-            inFlightEntry.timetable.guildTimezone
-          );
-          inFlightEntry.calendarDayKey = inFlightEntry.selectedDayKey;
-        } else if (options.selectedDayKey) {
-          selectDay(guildId, options.selectedDayKey);
-        }
-        return inFlightEntry;
-      }
+      const hot = tryHotPath(inFlightEntry);
+      if (hot) return hot;
     }
 
     const existing = entries.get(guildId);
-    if (!options.force && !options.skipIcsCache && existing && isFreshForCurrentWeek(existing)) {
-      if (options.preferToday) {
-        existing.selectedDayKey = dayKeyInTimezone(new Date(deps.now()), existing.timetable.guildTimezone);
-        existing.calendarDayKey = existing.selectedDayKey;
-      } else if (options.selectedDayKey) {
-        existing.selectedDayKey = options.selectedDayKey;
-      }
-      return existing;
+    if (existing) {
+      const hot = tryHotPath(existing);
+      if (hot) return hot;
     }
 
     const promise = rebuild(guildId, existing, options);

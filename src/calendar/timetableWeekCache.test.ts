@@ -180,4 +180,53 @@ describe("timetable week cache", () => {
     assert.equal(fetches, 1);
     assert.equal(a.dataHash, b.dataHash);
   });
+
+  it("jumps to next week when the rest of this week has no events", async () => {
+    const thisWeek = makeTimetable(
+      [
+        makeEvent({
+          start: new Date("2026-08-17T08:00:00.000Z"),
+          end: new Date("2026-08-17T10:00:00.000Z"),
+        }),
+      ],
+      {
+        rangeStart: new Date("2026-08-17T00:00:00.000Z"),
+        rangeEnd: new Date("2026-08-23T23:59:59.999Z"),
+      }
+    );
+    const nextWeek = makeTimetable(
+      [
+        makeEvent({
+          start: new Date("2026-08-24T08:00:00.000Z"),
+          end: new Date("2026-08-24T10:00:00.000Z"),
+        }),
+      ],
+      {
+        rangeStart: new Date("2026-08-24T00:00:00.000Z"),
+        rangeEnd: new Date("2026-08-30T23:59:59.999Z"),
+      }
+    );
+
+    const saturday = Date.parse("2026-08-22T12:00:00.000Z");
+    let fetches = 0;
+    const cache = createTimetableWeekCache({
+      fetchTimetable: async (_guildId, options) => {
+        fetches += 1;
+        if (options?.weekMonday === "2026-08-24") return nextWeek;
+        return thisWeek;
+      },
+      renderDay: async (_timetable, dayKey) => Buffer.from(dayKey),
+      loadAvatars: async () => new Map(),
+      now: () => saturday,
+      validateIntervalMs: VALIDATE_MS,
+      rendererVersion: 1,
+      log: () => undefined,
+    });
+
+    const entry = await cache.refresh("g1", { preferToday: true });
+    assert.equal(fetches, 2);
+    assert.equal(entry.weekMonday, "2026-08-24");
+    assert.equal(entry.selectedDayKey, "2026-08-24");
+    assert.equal(entry.calendarDayKey, "2026-08-22");
+  });
 });
