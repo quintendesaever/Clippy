@@ -84,10 +84,15 @@ function LogoutIcon() {
   );
 }
 
+function navLinkClass(pathname: string, to: string) {
+  return `sidebarLink${pathname === to ? " sidebarLinkActive" : ""}`;
+}
+
 export default function Sidebar({ user }: { user: DiscordUser }) {
   const location = useLocation();
   const { isAdmin } = usePreferences();
   const displayName = user.nickname ?? user.username;
+  const { pathname } = location;
 
   async function handleLogout() {
     await logout();
@@ -101,53 +106,39 @@ export default function Sidebar({ user }: { user: DiscordUser }) {
         <span>Clippy</span>
       </div>
 
-      <nav className="sidebarNav">
-        <p className="sidebarSectionLabel">Algemeen</p>
-        <Link
-          to="/timetable"
-          className={`sidebarLink ${location.pathname === "/timetable" ? "sidebarLinkActive" : ""}`}
-        >
-          <CalendarIcon />
-          <span className="sidebarLinkLabel">Rooster</span>
-        </Link>
-        <Link
-          to="/my-timetable"
-          className={`sidebarLink ${location.pathname === "/my-timetable" ? "sidebarLinkActive" : ""}`}
-        >
-          <UserIcon />
-          <span className="sidebarLinkLabel">Mijn rooster</span>
-        </Link>
-        <Link
-          to="/settings"
-          className={`sidebarLink ${location.pathname === "/settings" ? "sidebarLinkActive" : ""}`}
-        >
-          <SettingsIcon />
-          <span className="sidebarLinkLabel">Instellingen</span>
-        </Link>
+      <nav className="sidebarNav" aria-label="Hoofdnavigatie">
+        <div className="sidebarSection">
+          <p className="sidebarSectionLabel">Algemeen</p>
+          <Link to="/timetable" className={navLinkClass(pathname, "/timetable")}>
+            <CalendarIcon />
+            <span className="sidebarLinkLabel">Rooster</span>
+          </Link>
+          <Link to="/my-timetable" className={navLinkClass(pathname, "/my-timetable")}>
+            <UserIcon />
+            <span className="sidebarLinkLabel">Mijn rooster</span>
+          </Link>
+          <Link to="/settings" className={navLinkClass(pathname, "/settings")}>
+            <SettingsIcon />
+            <span className="sidebarLinkLabel">Instellingen</span>
+          </Link>
+        </div>
+
         {isAdmin && (
-          <>
-            <Link
-              to="/admin"
-              className={`sidebarLink ${location.pathname === "/admin" ? "sidebarLinkActive" : ""}`}
-            >
+          <div className="sidebarSection">
+            <p className="sidebarSectionLabel">Beheer</p>
+            <Link to="/admin" className={navLinkClass(pathname, "/admin")}>
               <ChartIcon />
               <span className="sidebarLinkLabel">Beheer</span>
             </Link>
-            <Link
-              to="/admin/discord"
-              className={`sidebarLink ${location.pathname === "/admin/discord" ? "sidebarLinkActive" : ""}`}
-            >
+            <Link to="/admin/discord" className={navLinkClass(pathname, "/admin/discord")}>
               <DiscordIcon />
               <span className="sidebarLinkLabel">Discord</span>
             </Link>
-            <Link
-              to="/admin/status"
-              className={`sidebarLink ${location.pathname === "/admin/status" ? "sidebarLinkActive" : ""}`}
-            >
+            <Link to="/admin/status" className={navLinkClass(pathname, "/admin/status")}>
               <StatusIcon />
               <span className="sidebarLinkLabel">Status</span>
             </Link>
-          </>
+          </div>
         )}
       </nav>
 
