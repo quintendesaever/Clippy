@@ -4,7 +4,7 @@ import { ensureGuild } from "../../stats/helpers.js";
 import { syncGuildMembers } from "../../stats/members.js";
 import type { Command } from "../../types/command.js";
 
-export const setTimezone: Command = {
+export const syncStats: Command = {
   data: new SlashCommandBuilder()
     .setName("stats")
     .setDescription("Sync Discord channels and members into the stats database")
@@ -128,4 +128,4 @@ export const setTimezone: Command = {
   },
 };
 
-export default setTimezone;
+export default syncStats;

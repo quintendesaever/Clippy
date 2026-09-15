@@ -55,7 +55,7 @@ export function useMemberColors(): MemberColorsContextValue {
 
 /** Single member: solid accent. Multiple: equal vertical stripes (activities/groups). */
 export function memberAccentStyle(colors: string[]): Record<string, string> | undefined {
-  const unique = [...new Set(colors.filter(Boolean))];
+  const unique = [...new Set(colors.filter(isCssHexColor))];
   if (unique.length === 0) return undefined;
   if (unique.length === 1) {
     return {
@@ -71,6 +71,12 @@ export function memberAccentStyle(colors: string[]): Record<string, string> | un
     "--member-color": unique[0]!,
     "--member-stripe": `linear-gradient(180deg, ${stops})`,
   };
+}
+
+const HEX_COLOR_RE = /^#[0-9a-f]{6}$/i;
+
+function isCssHexColor(value: string): boolean {
+  return HEX_COLOR_RE.test(value);
 }
 
 const FALLBACK_COLORS = [

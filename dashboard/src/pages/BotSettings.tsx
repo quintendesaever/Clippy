@@ -187,7 +187,6 @@ export default function BotSettings({ user }: { user: DiscordUser }) {
                   onChange={(next) => {
                     void handleSaveF1(next);
                   }}
-                  error={null}
                 />
 
                 <label className="settingsFieldLabel" htmlFor="bot-f1-channel">

@@ -211,19 +211,6 @@ a:hover {
   gap: 0.35rem;
 }
 
-.timetableWeekNow {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.05rem 0.35rem;
-  border-radius: var(--radius-sm);
-  background: var(--color-accent-soft);
-  color: var(--color-accent);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-}
-
 .timetableWeekLabelLoading .timetableWeekRange {
   visibility: hidden;
 }
@@ -1409,6 +1396,10 @@ select.formSelect {
   min-width: 48px;
 }
 
+.eventCard:hover {
+  filter: brightness(1.06);
+}
+
 .eventCardMemberColors {
   position: relative;
   background: color-mix(in srgb, var(--member-color) 16%, var(--color-card));
@@ -2182,10 +2173,6 @@ select.formSelect {
 
   .timetableWeekLabel .timetableLoading {
     justify-content: center;
-  }
-
-  .timetableWeekNow {
-    display: none;
   }
 
   .timetableToolbar .timetableLayoutToggle {
