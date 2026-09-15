@@ -120,7 +120,7 @@ export function HourChart({ hours }: { hours: { hour: number; count: number }[] 
       </div>
       <div
         className="adminHourChart"
-        role="list"
+        role="group"
         aria-label="Piekuren"
         onMouseLeave={() => setActiveHour(null)}
       >
@@ -131,7 +131,6 @@ export function HourChart({ hours }: { hours: { hour: number; count: number }[] 
             <button
               key={item.hour}
               type="button"
-              role="listitem"
               className={`adminHourCol${selected ? " adminHourColActive" : ""}`}
               aria-label={`${String(item.hour).padStart(2, "0")}:00, ${formatCount(item.count)}`}
               aria-pressed={selected}
@@ -181,7 +180,7 @@ export function DayHeatmap({
     <div className="adminDayHeatmapWrap">
       <div
         className="adminDayHeatmap"
-        role="list"
+        role="group"
         aria-label="Piekdagen"
         onMouseLeave={() => setActiveDay(null)}
       >
@@ -192,7 +191,6 @@ export function DayHeatmap({
             <button
               key={item.day}
               type="button"
-              role="listitem"
               className={`adminDayHeatCell${selected ? " adminDayHeatCellActive" : ""}`}
               aria-pressed={selected}
               aria-label={`${item.day}: ${formatCount(item.count)}`}
