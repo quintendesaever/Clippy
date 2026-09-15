@@ -1,4 +1,6 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { toZonedTime } from "date-fns-tz";
+import { dayKeyInTimezone } from "@shared/timetable/dates";
 import {
   calculateDayLayout,
   clipEventToGrid,
@@ -47,6 +49,7 @@ function toLayoutEvents(events: TimetableEventDto[]): LayoutEvent[] {
     end: new Date(ev.end),
     title: ev.title,
     userId: ev.userId,
+    participantIds: ev.participantIds,
     allDay: ev.allDay,
     source: eventSource(ev),
     typeBadges: ev.typeBadges,
@@ -103,7 +106,13 @@ export default function WeekTimelineGrid({
   scrollable = false,
 }: WeekTimelineGridProps) {
   const showTypePrefix = useShowTypePrefix();
+  const [now, setNow] = useState(() => new Date());
   const allEvents = useMemo(() => days.flatMap((d) => d.events), [days]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const layout = useMemo(
     () =>
@@ -120,6 +129,13 @@ export default function WeekTimelineGrid({
     () => Array.from({ length: layout.hourCount + 1 }, (_, i) => layout.hourStart + i),
     [layout]
   );
+  const todayKey = dayKeyInTimezone(now, timezone);
+  const zonedNow = toZonedTime(now, timezone);
+  const nowMinutes = zonedNow.getHours() * 60 + zonedNow.getMinutes();
+  const currentTimePercent =
+    nowMinutes >= layout.hourStart * 60 && nowMinutes <= layout.hourEnd * 60
+      ? timeToPercent(Math.floor(nowMinutes / 60), nowMinutes % 60, layout)
+      : null;
 
   const dayRows = useMemo(
     () =>
@@ -199,6 +215,13 @@ export default function WeekTimelineGrid({
                   />
                 ))}
               </div>
+              {day.dayKey === todayKey && currentTimePercent !== null && (
+                <div
+                  className="weekTimelineNowLine"
+                  style={{ left: `${currentTimePercent}%` }}
+                  aria-hidden="true"
+                />
+              )}
               {day.packedRows.map((row, rowIndex) => (
                 <div
                   key={rowIndex}

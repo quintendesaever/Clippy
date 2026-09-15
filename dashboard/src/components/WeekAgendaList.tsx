@@ -41,6 +41,7 @@ function toLayoutEvents(events: TimetableEventDto[]): LayoutEvent[] {
     end: new Date(ev.end),
     title: ev.title,
     userId: ev.userId,
+    participantIds: ev.participantIds,
     allDay: ev.allDay,
     source: eventSource(ev),
     typeBadges: ev.typeBadges,

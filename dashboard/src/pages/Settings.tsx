@@ -221,7 +221,7 @@ export default function Settings({ user }: { user: DiscordUser }) {
             />
             <PreferenceToggle
               label="Lidkleuren in gedeeld rooster"
-              hint="Kleur per persoon. Activiteiten met meerdere leden tonen gestreepte accenten."
+              hint="Kleur per persoon. Activiteiten met meerdere leden krijgen een meerkleurige bovenrand."
               checked={showMemberColors}
               onChange={setShowMemberColors}
             />

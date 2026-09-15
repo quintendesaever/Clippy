@@ -20,6 +20,7 @@ function event(partial: Partial<LayoutEvent> & Pick<LayoutEvent, "title" | "user
     source: partial.source ?? "ics",
     typeBadges: partial.typeBadges ?? [],
     id: partial.id,
+    participantIds: partial.participantIds,
     title: partial.title,
     userId: partial.userId,
   };
@@ -45,6 +46,20 @@ describe("groupDayEvents", () => {
     assert.equal(cards.length, 2);
     assert.equal(eventMergeKey(cards[0]!), "activity|act-1");
     assert.equal(eventMergeKey(cards[1]!), "activity|act-2");
+  });
+
+  it("keeps all activity participants on the rendered card", () => {
+    const cards = groupDayEvents([
+      event({
+        title: "Etentje",
+        userId: "owner",
+        participantIds: ["member-a", "member-b", "owner"],
+        source: "activity",
+        id: "act-1",
+      }),
+    ]);
+
+    assert.deepEqual(cards[0]?.userIds, ["owner", "member-a", "member-b"]);
   });
 
   it("skips all-day events", () => {

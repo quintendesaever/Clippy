@@ -108,7 +108,7 @@ a:hover {
 
 .timetablePage {
   --timeline-row-height: calc(64px * var(--tt-font-scale, 1));
-  --header-height: calc(40px * var(--tt-font-scale, 1));
+  --header-height: calc(52px * var(--tt-font-scale, 1));
   --week-grid-header-height: calc(52px * var(--tt-font-scale, 1));
   --timeline-day-gap: calc(16px * var(--tt-font-scale, 1));
   --timeline-day-padding-y: calc(6px * var(--tt-font-scale, 1));
@@ -237,7 +237,7 @@ a:hover {
   gap: 0;
   padding: 0.15rem;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: 999px;
   background: var(--color-bg-elevated);
 }
 
@@ -260,14 +260,14 @@ a:hover {
   min-width: 2rem;
   height: 1.85rem;
   padding: 0;
-  border-radius: calc(var(--radius-md) - 2px);
+  border-radius: 999px;
 }
 
 .weekNavThisWeek {
   min-width: 4.5rem;
   height: 1.85rem;
   padding: 0 0.55rem;
-  border-radius: calc(var(--radius-md) - 2px);
+  border-radius: 999px;
   font-size: var(--font-size-xs);
   font-weight: 600;
   line-height: 1;
@@ -327,13 +327,35 @@ a:hover {
   margin-right: auto;
 }
 
+.timetableGateOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--color-bg) 68%, transparent);
+  backdrop-filter: blur(6px);
+}
+
 .timetableGate {
-  margin-top: 1.5rem;
+  width: min(100%, 30rem);
+  padding: 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-elevated);
+  box-shadow: var(--shadow-panel);
   text-align: left;
 }
 
-.timetableGate .formActions {
+.timetableGateForm {
+  display: grid;
+  gap: 0.9rem;
   margin-top: 1rem;
+}
+
+.timetableGateForm .formActions {
+  margin-top: 0.2rem;
 }
 
 .settingsStack {
@@ -587,17 +609,6 @@ a:hover {
 
 .sidebarLabelShort {
   display: none;
-}
-
-.sidebarLabelStacked {
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  line-height: 1.05;
-  font-size: 0.62rem;
-  font-weight: 650;
-  letter-spacing: 0.01em;
-  text-align: center;
 }
 
 .sidebarAdminMobile {
@@ -1032,7 +1043,7 @@ select.formSelect {
   gap: 0;
   padding: 0.15rem;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: 999px;
   background: var(--color-bg-elevated);
 }
 
@@ -1045,7 +1056,7 @@ select.formSelect {
   margin: 0;
   padding: 0 0.7rem;
   border: none;
-  border-radius: calc(var(--radius-md) - 2px);
+  border-radius: 999px;
   background: transparent;
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
@@ -1101,6 +1112,39 @@ select.formSelect {
   align-items: center;
   gap: 0.35rem;
   margin-bottom: 0;
+}
+
+.memberFilterActions {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 0.2rem;
+  padding: 0.15rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg-elevated);
+}
+
+.memberFilterAction {
+  min-height: 1.8rem;
+  padding: 0 0.55rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.memberFilterAction:hover:not(:disabled) {
+  color: var(--color-text);
+  background: var(--color-bg-hover);
+}
+
+.memberFilterAction:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 .memberChip {
@@ -1283,6 +1327,31 @@ select.formSelect {
   z-index: 0;
 }
 
+.weekTimelineNowLine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 3;
+  width: 2px;
+  transform: translateX(-1px);
+  border-radius: 999px;
+  background: var(--color-danger, #ed4245);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-bg) 55%, transparent);
+  pointer-events: none;
+}
+
+.weekTimelineNowLine::before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: inherit;
+}
+
 .weekTimelineDaySection::before {
   content: "";
   position: absolute;
@@ -1401,21 +1470,20 @@ select.formSelect {
 }
 
 .eventCardMemberColors {
-  position: relative;
   background: color-mix(in srgb, var(--member-color) 16%, var(--color-card));
   border-color: color-mix(in srgb, var(--member-color) 35%, var(--color-border));
-  padding-left: calc(0.65rem + 4px);
+  padding-top: 4px;
 }
 
 .eventCardMemberColors::before {
   content: "";
   position: absolute;
   left: 0;
+  right: 0;
   top: 0;
-  bottom: 0;
-  width: 4px;
-  background: var(--member-stripe, var(--member-color));
-  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  height: 4px;
+  background: var(--member-strip, var(--member-color));
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
   pointer-events: none;
 }
 
@@ -1423,23 +1491,59 @@ select.formSelect {
   position: relative;
   background: color-mix(in srgb, var(--member-color) 14%, var(--color-card));
   border-color: color-mix(in srgb, var(--member-color) 35%, var(--color-border));
-  padding-left: calc(0.75rem + 4px);
+  padding-top: calc(0.65rem + 4px);
 }
 
 .agendaCardMemberColors::before {
   content: "";
   position: absolute;
   left: 0;
+  right: 0;
   top: 0;
-  bottom: 0;
-  width: 4px;
-  background: var(--member-stripe, var(--member-color));
-  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  height: 4px;
+  background: var(--member-strip, var(--member-color));
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
   pointer-events: none;
 }
 
 .settingsActions {
   margin-top: 0.85rem;
+}
+
+.botSettingsFields {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.botSettingsGrid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.botSettingsField {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 650;
+}
+
+.botSettingsFieldWide {
+  grid-column: 1 / -1;
+}
+
+.botSettingsField .formInput {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.botSettingsField small {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+  line-height: 1.4;
 }
 
 [data-theme="light"] .eventCard:hover {
@@ -1911,6 +2015,14 @@ select.formSelect {
 
 /* Mobile shell + roster */
 @media (max-width: 767px) {
+  .botSettingsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .botSettingsFieldWide {
+    grid-column: auto;
+  }
+
   .appShell {
     display: grid;
     grid-template:
@@ -1939,10 +2051,6 @@ select.formSelect {
 
   .sidebarLabelShort {
     display: inline;
-  }
-
-  .sidebarLabelShort.sidebarLabelStacked {
-    display: inline-flex;
   }
 
   .sidebarAdminMobile {
@@ -2021,6 +2129,10 @@ select.formSelect {
     overflow: visible;
     text-overflow: clip;
     max-width: none;
+  }
+
+  .sidebarLabelShort {
+    font-size: 0.68rem;
   }
 
   .sidebarNavIcon {
@@ -2114,12 +2226,12 @@ select.formSelect {
   }
 
   .timetableFontSizeControls {
-    bottom: calc(var(--mobile-tabbar-height) + env(safe-area-inset-bottom, 0px) + 0.75rem);
+    bottom: calc(var(--mobile-tabbar-height) + env(safe-area-inset-bottom, 0px) + 1.5rem);
   }
 
   .timetableAddActivityControls {
     left: max(0.75rem, env(safe-area-inset-left, 0px));
-    bottom: calc(var(--mobile-tabbar-height) + env(safe-area-inset-bottom, 0px) + 0.75rem);
+    bottom: calc(var(--mobile-tabbar-height) + env(safe-area-inset-bottom, 0px) + 1.5rem);
   }
 
   .topBarActions {
@@ -2138,7 +2250,7 @@ select.formSelect {
     display: flex;
     flex-direction: column;
     gap: 0.45rem;
-    margin-bottom: 0.65rem;
+    margin-bottom: 1rem;
   }
 
   .timetableToolbarPrimary {
