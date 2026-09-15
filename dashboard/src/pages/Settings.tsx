@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { deleteCalendar, getCalendar, saveCalendar } from "../api";
+import { deleteCalendar, getCalendar, logout, saveCalendar } from "../api";
 import AppShell from "../components/AppShell";
 import Button from "../components/Button";
 import PageLayout from "../components/PageLayout";
 import PagePanel from "../components/PagePanel";
+import { UserAvatar } from "../components/Avatar";
 import { useTheme, type ThemePreference } from "../hooks/useTheme";
 import { usePreferences } from "../hooks/usePreferences";
 import type { CalendarEntry, DiscordUser } from "../types";
@@ -55,12 +56,14 @@ function PreferenceToggle({
 export default function Settings({ user }: { user: DiscordUser }) {
   const { preference, setPreference } = useTheme();
   const { showTypePrefix, setShowTypePrefix, shareLocation, setShareLocation } = usePreferences();
+  const displayName = user.nickname ?? user.username;
   const [initials, setInitials] = useState("");
   const [icsUrl, setIcsUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingPrefix, setSavingPrefix] = useState(false);
   const [savingShare, setSavingShare] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [prefixError, setPrefixError] = useState<string | null>(null);
   const [shareError, setShareError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -154,12 +157,37 @@ export default function Settings({ user }: { user: DiscordUser }) {
     }
   }
 
+  async function handleLogout() {
+    setLoggingOut(true);
+    try {
+      await logout();
+      window.location.href = "/";
+    } catch {
+      setLoggingOut(false);
+    }
+  }
+
   const calendarLinked = Boolean(existing?.ics_url);
 
   return (
     <AppShell user={user}>
       <PageLayout title="Instellingen" subtitle="Weergave, privacy en kalender">
         <div className="settingsStack">
+          <PagePanel className="pagePanelNarrow">
+            <h2 className="cardTitle">Account</h2>
+            <p className="cardHint">Ingelogd via Discord. Uitloggen is hier beschikbaar op elk apparaat.</p>
+            <div className="settingsAccountRow">
+              <UserAvatar userId={user.id} avatar={user.avatar} size="sm" alt={displayName} />
+              <div className="settingsAccountInfo">
+                <span className="settingsAccountName">{displayName}</span>
+                <span className="settingsAccountHandle">@{user.username}</span>
+              </div>
+              <Button variant="secondary" onClick={handleLogout} disabled={loggingOut}>
+                {loggingOut ? "Uitloggen…" : "Uitloggen"}
+              </Button>
+            </div>
+          </PagePanel>
+
           <PagePanel className="pagePanelNarrow">
             <h2 className="cardTitle">Weergave</h2>
             <p className="cardHint">
