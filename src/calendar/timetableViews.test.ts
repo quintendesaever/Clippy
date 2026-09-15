@@ -57,6 +57,23 @@ describe("serializeEventForApi location privacy", () => {
     assert.equal(adminDto.locationHidden, false);
   });
 
+  it("flags sharing-off for admins when location is only in the description", () => {
+    const descriptionOnly = makeEvent({
+      userId: "owner",
+      location: undefined,
+      description: "Locatie: B22.0.10\nBring laptop",
+    });
+    const adminDto = serializeEventForApi(descriptionOnly, {
+      viewerUserId: "other",
+      viewerIsAdmin: true,
+      shareLocationByUser: new Map([["owner", false]]),
+    });
+    assert.equal(adminDto.location, null);
+    assert.equal(adminDto.locationHidden, false);
+    assert.equal(adminDto.locationSharingDisabled, true);
+    assert.match(adminDto.description ?? "", /B22\.0\.10/);
+  });
+
   it("hides activity venues from peers when sharing is off", () => {
     const activity = makeEvent({
       userId: "owner",

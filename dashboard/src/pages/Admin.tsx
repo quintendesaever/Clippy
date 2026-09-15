@@ -486,7 +486,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
                           <th>Gebruiker</th>
                           <th>Tijdstip</th>
                           <th>Pagina</th>
-                          <th>Laatst gedetecteerde locatie</th>
+                          <th>Bezoekerslocatie</th>
                           <th>Apparaat</th>
                           <th>Browser</th>
                         </tr>
