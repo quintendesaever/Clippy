@@ -10,6 +10,7 @@ import {
   StatCard,
 } from "../components/AdminCharts";
 import AdminSection from "../components/AdminSection";
+import AdminSubnav from "../components/AdminSubnav";
 import AppShell from "../components/AppShell";
 import MemberFilter from "../components/MemberFilter";
 import PageLayout from "../components/PageLayout";
@@ -200,7 +201,7 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
     <AppShell user={user}>
       <PageLayout
         title="Discord"
-        subtitle="Discordstatistieken"
+        subtitle="Serveractiviteit en botgebruik"
         actions={
           <div className="topBarTabs" role="radiogroup" aria-label="Periode">
             {RANGE_OPTIONS.map((option) => (
@@ -218,6 +219,7 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
           </div>
         }
       >
+        <AdminSubnav />
         {chipMembers.length > 0 && (
           <div className="adminMemberFilter">
             <MemberFilter

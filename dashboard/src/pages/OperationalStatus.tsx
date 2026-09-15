@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { toZonedTime } from "date-fns-tz";
 import { getAdminStatus } from "../api";
 import { StatCard } from "../components/AdminCharts";
+import AdminSection from "../components/AdminSection";
+import AdminSubnav from "../components/AdminSubnav";
 import AppShell from "../components/AppShell";
 import Button from "../components/Button";
 import PageLayout from "../components/PageLayout";
@@ -129,7 +131,7 @@ export default function OperationalStatus({ user }: { user: DiscordUser }) {
     <AppShell user={user}>
       <PageLayout
         title="Status"
-        subtitle="Operationele status van Clippy"
+        subtitle="Operationele gezondheid van Clippy"
         actions={
           <Button
             variant="secondary"
@@ -141,38 +143,38 @@ export default function OperationalStatus({ user }: { user: DiscordUser }) {
           </Button>
         }
       >
+        <AdminSubnav />
         {loading && !report && <p className="timetableLoading">Laden…</p>}
         {error && <p className="errorMsg">{error}</p>}
         {report && (
           <>
-            <section
-              className={`statusHero statusHero-${overall}`}
-              aria-live="polite"
+            <AdminSection
+              title="Algemene status"
+              hint={`Gecontroleerd ${formatDateTime(report.checkedAt)} · automatische verversing elke 30s`}
             >
-              <div>
-                <p className="statusHeroLabel">Algemene status</p>
-                <p className="statusHeroValue">{statusLabel(overall)}</p>
-                <p className="statusHeroMeta">
-                  Gecontroleerd {formatDateTime(report.checkedAt)} · automatische verversing
-                  elke 30s
-                </p>
+              <section
+                className={`statusHero statusHero-${overall}`}
+                aria-live="polite"
+              >
+                <div>
+                  <p className="statusHeroLabel">Clippy</p>
+                  <p className="statusHeroValue">{statusLabel(overall)}</p>
+                </div>
+                <StatusBadge status={overall} />
+              </section>
+              <div className="adminStatGrid adminStatGridSecondary">
+                <StatCard compact label="OK" value={summary.ok} />
+                <StatCard compact label="Verminderd" value={summary.degraded} />
+                <StatCard compact label="Onbeschikbaar" value={summary.unavailable} />
+                <StatCard compact label="Uitgeschakeld" value={summary.disabled} />
               </div>
-              <StatusBadge status={overall} />
-            </section>
+            </AdminSection>
 
-            <div className="adminStatGrid">
-              <StatCard label="OK" value={summary.ok} />
-              <StatCard label="Verminderd" value={summary.degraded} />
-              <StatCard label="Onbeschikbaar" value={summary.unavailable} />
-              <StatCard label="Uitgeschakeld" value={summary.disabled} />
-            </div>
-
-            <div className="statusStack">
+            <AdminSection
+              title="Onderdelen"
+              hint="Huidige health-probes. Latency wordt alleen voor Supabase getoond."
+            >
               <PagePanel>
-                <h2 className="cardTitle">Onderdelen</h2>
-                <p className="cardHint">
-                  Huidige health-probes. Latency wordt alleen voor Supabase getoond.
-                </p>
                 <div className="statusComponentGrid">
                   {COMPONENT_KEYS.map((key) => {
                     const component = report.components?.[key];
@@ -200,10 +202,12 @@ export default function OperationalStatus({ user }: { user: DiscordUser }) {
                   <p className="cardHint">Geen onderdelen gerapporteerd.</p>
                 )}
               </PagePanel>
+            </AdminSection>
 
+            <AdminSection title="Runtime en configuratie">
               <div className="adminSplit">
                 <PagePanel>
-                  <h2 className="cardTitle">Runtime</h2>
+                  <h3 className="adminSubhead">Runtime</h3>
                   <p className="cardHint">Procesmetadata zonder secrets of hostnamen.</p>
                   <dl className="statusMetaList">
                     <div>
@@ -229,7 +233,7 @@ export default function OperationalStatus({ user }: { user: DiscordUser }) {
                   </dl>
                 </PagePanel>
                 <PagePanel>
-                  <h2 className="cardTitle">F1-herinneringen</h2>
+                  <h3 className="adminSubhead">F1-herinneringen</h3>
                   <p className="cardHint">Veilige configuratievlaggen, zonder kanaal- of rol-ID’s.</p>
                   {f1 ? (
                     <ul className="statusFlagList">
@@ -251,12 +255,13 @@ export default function OperationalStatus({ user }: { user: DiscordUser }) {
                   )}
                 </PagePanel>
               </div>
+            </AdminSection>
 
+            <AdminSection
+              title="Recente geschiedenis"
+              hint="Eerdere snapshots, nieuwste eerst. Zonder runtime of admin-velden."
+            >
               <PagePanel>
-                <h2 className="cardTitle">Recente geschiedenis</h2>
-                <p className="cardHint">
-                  Eerdere snapshots, nieuwste eerst. Zonder runtime of admin-velden.
-                </p>
                 {history.length === 0 ? (
                   <p className="cardHint">Nog geen eerdere metingen.</p>
                 ) : (
@@ -281,7 +286,7 @@ export default function OperationalStatus({ user }: { user: DiscordUser }) {
                   </ol>
                 )}
               </PagePanel>
-            </div>
+            </AdminSection>
           </>
         )}
       </PageLayout>
