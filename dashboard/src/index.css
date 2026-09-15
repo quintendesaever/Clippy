@@ -1588,6 +1588,12 @@ select.formSelect {
   pointer-events: none;
 }
 
+.eventPopupLocationNote {
+  color: var(--color-text-muted);
+  font-weight: 500;
+  font-size: var(--font-size-xs);
+}
+
 .eventPopupType {
   text-transform: capitalize;
 }

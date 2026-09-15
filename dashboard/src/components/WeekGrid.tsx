@@ -267,10 +267,13 @@ export default function WeekGrid({
                           className={`weekGridEventMeta${ev.locationHidden ? " locationBlurred" : ""}`}
                         >
                           {locationLine}
+                          {ev.locationSharingDisabled && !ev.locationHidden ? " · delen uit" : ""}
                         </span>
                       )}
                       {showLocation && memberLocationLine && (
-                        <span className="weekGridEventMeta">{memberLocationLine}</span>
+                        <span className="weekGridEventMeta" title="Bezoekerslocatie (beheerder)">
+                          {memberLocationLine}
+                        </span>
                       )}
                       {showDescription && descriptionLine && (
                         <span className="weekGridEventMeta">{descriptionLine}</span>

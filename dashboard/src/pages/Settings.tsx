@@ -24,7 +24,7 @@ function PreferenceToggle({
   error,
 }: {
   label: string;
-  hint: string;
+  hint?: string;
   checked: boolean;
   disabled?: boolean;
   onChange: (next: boolean) => void;
@@ -46,7 +46,7 @@ function PreferenceToggle({
           </span>
         </span>
       </label>
-      <p className="cardHint">{hint}</p>
+      {hint && <p className="cardHint">{hint}</p>}
       {error && <p className="errorMsg">{error}</p>}
     </div>
   );
@@ -198,8 +198,7 @@ export default function Settings({ user }: { user: DiscordUser }) {
             <h2 className="cardTitle">Privacy</h2>
             <p className="cardHint">Wat andere leden van je mogen zien.</p>
             <PreferenceToggle
-              label="Locatie delen"
-              hint="Als dit aan staat, kunnen andere leden je ICS-lokaal en je laatst gedetecteerde dashboardlocatie (stad/regio, geen GPS) zien. Activiteitslocaties die je zelf invult blijven zichtbaar."
+              label="Leslocaties delen"
               checked={shareLocation}
               disabled={savingShare}
               onChange={handleShareLocation}
@@ -211,6 +210,10 @@ export default function Settings({ user }: { user: DiscordUser }) {
                 {shareLocation ? "Ingeschakeld" : "Uitgeschakeld"}
               </span>
               {savingShare ? " · Opslaan…" : ""}
+            </p>
+            <p className="cardHint">
+              Uit: andere leden zien je les-/activiteitslocatie niet. Bezoekerslocatie via Cloudflare
+              blijft alleen voor beheerders.
             </p>
           </PagePanel>
 
