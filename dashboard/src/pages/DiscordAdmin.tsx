@@ -313,6 +313,7 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
                   }))}
                   empty="Nog geen Discord-berichten in deze periode."
                   ariaLabel="Berichten per periode"
+                  valueLabel="berichten"
                 />
               </PagePanel>
               <div className="adminSplit">
@@ -365,6 +366,7 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
                   }))}
                   empty="Nog geen afgesloten spraaksessies in deze periode."
                   ariaLabel="Spraakminuten per periode"
+                  valueLabel="spraakminuten"
                 />
               </PagePanel>
               <div className="adminSplit">
@@ -407,6 +409,7 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
                   }))}
                   empty="Nog geen ledental-snapshots in deze periode."
                   ariaLabel="Ledental in de tijd"
+                  valueLabel="leden"
                 />
               </PagePanel>
             </AdminSection>
@@ -446,6 +449,7 @@ export default function DiscordAdmin({ user }: { user: DiscordUser }) {
                     }))}
                     empty="Nog geen botacties in deze periode."
                     ariaLabel="Botacties per periode"
+                    valueLabel="botacties"
                   />
                 </PagePanel>
               </div>

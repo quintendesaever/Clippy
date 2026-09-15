@@ -257,6 +257,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
                   }))}
                   empty="Nog geen paginaweergaven in deze periode."
                   ariaLabel="Paginaweergaven per dag"
+                  valueLabel="paginaweergaven"
                 />
               </PagePanel>
               <div className="adminSplit">
@@ -357,6 +358,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
                   }))}
                   empty="Geen activiteiten in deze periode."
                   ariaLabel="Activiteiten per dag"
+                  valueLabel="activiteiten"
                 />
               </PagePanel>
               <div className="adminSplit">
@@ -394,6 +396,7 @@ export default function Admin({ user }: { user: DiscordUser }) {
                     }))}
                     empty="Nog geen dashboardacties in deze periode."
                     ariaLabel="Dashboardacties per dag"
+                    valueLabel="acties"
                   />
                 </PagePanel>
                 <PagePanel>
@@ -407,45 +410,49 @@ export default function Admin({ user }: { user: DiscordUser }) {
                   />
                 </PagePanel>
               </div>
-              <PagePanel>
-                <h3 className="adminSubhead">Meest actieve gebruikers</h3>
-                <BarList
-                  items={stats.dashboardActions.topUsers.map((row) => ({
-                    label: row.displayName,
-                    value: row.count,
-                  }))}
-                  empty="Nog geen dashboardacties in deze periode."
-                />
-                <h3 className="adminSubhead">Recente dashboardacties</h3>
-                {stats.dashboardActions.recent.length === 0 ? (
-                  <p className="cardHint">Nog geen dashboardacties in deze periode.</p>
-                ) : (
-                  <div className="adminTableWrap">
-                    <table className="adminTable">
-                      <thead>
-                        <tr>
-                          <th>Gebruiker</th>
-                          <th>Tijdstip</th>
-                          <th>Type</th>
-                          <th>Detail</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {stats.dashboardActions.recent.map((row, index) => (
-                          <tr
-                            key={`${row.occurredAt}-${row.userId ?? "anon"}-${row.eventType}-${index}`}
-                          >
-                            <td>{row.displayName}</td>
-                            <td>{formatDateTime(row.occurredAt, timezone)}</td>
-                            <td>{actionTypeLabel(row.eventType)}</td>
-                            <td>{row.detail ?? "—"}</td>
+              <div className="adminSplit">
+                <PagePanel>
+                  <h3 className="adminSubhead">Meest actieve gebruikers</h3>
+                  <BarList
+                    items={stats.dashboardActions.topUsers.map((row) => ({
+                      label: row.displayName,
+                      value: row.count,
+                    }))}
+                    empty="Nog geen dashboardacties in deze periode."
+                  />
+                </PagePanel>
+                <PagePanel>
+                  <h3 className="adminSubhead">Recente dashboardacties</h3>
+                  {stats.dashboardActions.recent.length === 0 ? (
+                    <p className="cardHint">Nog geen dashboardacties in deze periode.</p>
+                  ) : (
+                    <div className="adminTableWrap">
+                      <table className="adminTable">
+                        <thead>
+                          <tr>
+                            <th>Gebruiker</th>
+                            <th>Tijdstip</th>
+                            <th>Type</th>
+                            <th>Detail</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </PagePanel>
+                        </thead>
+                        <tbody>
+                          {stats.dashboardActions.recent.map((row, index) => (
+                            <tr
+                              key={`${row.occurredAt}-${row.userId ?? "anon"}-${row.eventType}-${index}`}
+                            >
+                              <td>{row.displayName}</td>
+                              <td>{formatDateTime(row.occurredAt, timezone)}</td>
+                              <td>{actionTypeLabel(row.eventType)}</td>
+                              <td>{row.detail ?? "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </PagePanel>
+              </div>
             </AdminSection>
 
             <AdminSection title="Recente bezoeken">

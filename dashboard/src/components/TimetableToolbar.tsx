@@ -35,34 +35,37 @@ export default function TimetableToolbar({
 
   return (
     <div className="timetableToolbar">
-      <WeekNav
-        onPrev={onPrev}
-        onThisWeek={onThisWeek}
-        onNext={onNext}
-        disabled={loading}
-      />
-      {showToggle && layout && onLayoutChange && (
-        <TimetableLayoutToggle
-          value={layout}
-          onChange={onLayoutChange}
-          timelineLabel={timelineLabel}
+      <div className="timetableToolbarPrimary">
+        <WeekNav
+          onPrev={onPrev}
+          onThisWeek={onThisWeek}
+          onNext={onNext}
+          disabled={loading}
+          isCurrentWeek={isCurrentWeek}
         />
-      )}
-      <span className={`timetableWeekLabel${loading ? " timetableWeekLabelLoading" : ""}`}>
-        <span className="timetableWeekRange">
-          {hasRange ? formatWeekRange(dayDates[0], dayDates[dayDates.length - 1]) : ""}
-          {isCurrentWeek && !loading && (
-            <span className="timetableWeekNow" aria-label="Huidige week">
-              Nu
+        <span className={`timetableWeekLabel${loading ? " timetableWeekLabelLoading" : ""}`}>
+          <span className="timetableWeekRange">
+            {hasRange ? formatWeekRange(dayDates[0], dayDates[dayDates.length - 1]) : ""}
+            {isCurrentWeek && !loading && (
+              <span className="timetableWeekNow" aria-label="Huidige week">
+                Nu
+              </span>
+            )}
+          </span>
+          {loading && (
+            <span className="timetableLoading" role="status">
+              Rooster laden…
             </span>
           )}
         </span>
-        {loading && (
-          <span className="timetableLoading" role="status">
-            Rooster laden…
-          </span>
+        {showToggle && layout && onLayoutChange && (
+          <TimetableLayoutToggle
+            value={layout}
+            onChange={onLayoutChange}
+            timelineLabel={timelineLabel}
+          />
         )}
-      </span>
+      </div>
       {filter}
     </div>
   );
