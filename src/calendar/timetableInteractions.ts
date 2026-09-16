@@ -1,11 +1,5 @@
-import {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  type ButtonInteraction,
-} from "discord.js";
+import type { ButtonInteraction } from "discord.js";
 import { getWeekDayKeys } from "../../shared/timetable/dates.js";
-import { getPublicDashboardUrl } from "../config.js";
 import { assembleTimetableView, toTimetableReply } from "./timetableViews.js";
 import { getTimetablePanel, upsertTimetablePanel } from "./timetablePanelStorage.js";
 import { applyStoredPanelUpdate, withGuildPanelLock } from "./timetablePanel.js";
@@ -13,9 +7,6 @@ import { canRollStaleTimetableMessage, TIMETABLE_RECENT_MESSAGE_LIMIT } from "./
 import { timetableWeekCache } from "./timetableWeekCacheLive.js";
 
 const STALE_TIMETABLE_MESSAGE = "Dit rooster is verouderd — gebruik /timetable";
-
-const TIMETABLE_FULL_ID = "timetable:full";
-const TIMETABLE_SETTINGS_ID = "timetable:settings";
 
 async function isMessageInRecentChannelHistory(
   interaction: ButtonInteraction,
@@ -33,39 +24,7 @@ async function isMessageInRecentChannelHistory(
   }
 }
 
-async function replyDashboardLink(
-  interaction: ButtonInteraction,
-  options: { label: string; path: string; content: string }
-): Promise<void> {
-  const url = `${getPublicDashboardUrl()}${options.path}`;
-  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder().setLabel(options.label).setStyle(ButtonStyle.Link).setURL(url)
-  );
-  await interaction.reply({
-    content: options.content,
-    components: [row],
-    ephemeral: true,
-  });
-}
-
 export async function handleTimetableButton(interaction: ButtonInteraction): Promise<boolean> {
-  if (interaction.customId === TIMETABLE_FULL_ID) {
-    await replyDashboardLink(interaction, {
-      label: "Open rooster",
-      path: "/timetable",
-      content: "Open het volledige rooster in het dashboard:",
-    });
-    return true;
-  }
-  if (interaction.customId === TIMETABLE_SETTINGS_ID) {
-    await replyDashboardLink(interaction, {
-      label: "Open instellingen",
-      path: "/settings",
-      content: "Open de instellingen in het dashboard:",
-    });
-    return true;
-  }
-
   if (!interaction.customId.startsWith("timetable:day:")) return false;
   if (!interaction.guildId) {
     await interaction.reply({ content: "Alleen bruikbaar in een server.", ephemeral: true });

@@ -156,7 +156,7 @@ export default function EventPopup({
             </>
           )}
 
-          {event.memberLocation && (
+          {!isActivity && event.memberLocation && (
             <>
               <dt>Bezoekerslocatie</dt>
               <dd>

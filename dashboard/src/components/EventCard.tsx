@@ -46,7 +46,12 @@ export default function EventCard({
       onClick={onClick}
       title={`${title} (${timeLabel})`}
     >
-      <AvatarStack userIds={userIds} avatarByUser={avatarByUser} size="md" />
+      <AvatarStack
+        userIds={userIds}
+        avatarByUser={avatarByUser}
+        accentByUser={showMemberColors ? colorByUser : undefined}
+        size="md"
+      />
       <span className="eventCardText">
         <span className="eventCardTitle">{title}</span>
         <span className="eventCardTime">{timeLabel}</span>

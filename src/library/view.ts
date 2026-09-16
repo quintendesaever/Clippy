@@ -4,9 +4,9 @@ import {
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
+  LabelBuilder,
   ModalBuilder,
-  TextInputBuilder,
-  TextInputStyle,
+  StringSelectMenuBuilder,
 } from "discord.js";
 import { formatTimeInTimezone } from "../../shared/timetable/dates.js";
 import { resolveMemberDisplayName } from "../../shared/memberName.js";
@@ -14,9 +14,11 @@ import type { MemberLabel } from "../dashboard/memberLabels.js";
 import { formatMinutesAsHhmm } from "./time.js";
 import {
   LIBRARY_CLEAR_BUTTON_ID,
-  LIBRARY_END_FIELD,
+  LIBRARY_END_HOUR_FIELD,
+  LIBRARY_END_MINUTE_FIELD,
   LIBRARY_PLAN_BUTTON_ID,
-  LIBRARY_START_FIELD,
+  LIBRARY_START_HOUR_FIELD,
+  LIBRARY_START_MINUTE_FIELD,
   LIBRARY_VISIT_MODAL_ID,
   type LibraryVisit,
 } from "./types.js";
@@ -152,28 +154,36 @@ export function isLibraryModalId(customId: string): boolean {
 }
 
 export function buildVisitModal(): ModalBuilder {
-  const start = new TextInputBuilder()
-    .setCustomId(LIBRARY_START_FIELD)
-    .setLabel("Start (HH:mm)")
-    .setStyle(TextInputStyle.Short)
-    .setPlaceholder("09:00")
-    .setRequired(true)
-    .setMinLength(5)
-    .setMaxLength(5);
-  const end = new TextInputBuilder()
-    .setCustomId(LIBRARY_END_FIELD)
-    .setLabel("End (HH:mm)")
-    .setStyle(TextInputStyle.Short)
-    .setPlaceholder("12:00")
-    .setRequired(true)
-    .setMinLength(5)
-    .setMaxLength(5);
+  const options = (count: number, step = 1) =>
+    Array.from({ length: count }, (_, index) => {
+      const value = String(index * step).padStart(2, "0");
+      return { label: value, value };
+    });
+  const select = (customId: string, placeholder: string, values: { label: string; value: string }[]) =>
+    new StringSelectMenuBuilder()
+      .setCustomId(customId)
+      .setPlaceholder(placeholder)
+      .setMinValues(1)
+      .setMaxValues(1)
+      .addOptions(values);
+  const hours = options(24);
+  const minutes = options(12, 5);
 
   return new ModalBuilder()
     .setCustomId(LIBRARY_VISIT_MODAL_ID)
     .setTitle("Plan library visit")
-    .addComponents(
-      new ActionRowBuilder<TextInputBuilder>().addComponents(start),
-      new ActionRowBuilder<TextInputBuilder>().addComponents(end)
+    .addLabelComponents(
+      new LabelBuilder()
+        .setLabel("Start hour")
+        .setStringSelectMenuComponent(select(LIBRARY_START_HOUR_FIELD, "Hour", hours)),
+      new LabelBuilder()
+        .setLabel("Start minute")
+        .setStringSelectMenuComponent(select(LIBRARY_START_MINUTE_FIELD, "Minute", minutes)),
+      new LabelBuilder()
+        .setLabel("End hour")
+        .setStringSelectMenuComponent(select(LIBRARY_END_HOUR_FIELD, "Hour", hours)),
+      new LabelBuilder()
+        .setLabel("End minute")
+        .setStringSelectMenuComponent(select(LIBRARY_END_MINUTE_FIELD, "Minute", minutes))
     );
 }

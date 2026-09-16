@@ -22,6 +22,8 @@ export default function MemberFilter({
   onDeselectAll,
 }: MemberFilterProps) {
   if (members.length === 0) return null;
+  const allSelected = selected.size === members.length;
+  const noneSelected = selected.size === 0;
 
   return (
     <div className="memberFilter">
@@ -29,17 +31,17 @@ export default function MemberFilter({
         <div className="memberFilterActions" role="group" aria-label="Ledenselectie">
           <button
             type="button"
-            className="memberFilterAction"
+            className={`memberFilterAction${allSelected ? " memberFilterActionSelected" : ""}`}
             onClick={onSelectAll}
-            disabled={selected.size === members.length}
+            aria-pressed={allSelected}
           >
             Alles
           </button>
           <button
             type="button"
-            className="memberFilterAction"
+            className={`memberFilterAction${noneSelected ? " memberFilterActionSelected" : ""}`}
             onClick={onDeselectAll}
-            disabled={selected.size === 0}
+            aria-pressed={noneSelected}
           >
             Geen
           </button>
@@ -51,6 +53,7 @@ export default function MemberFilter({
           type="button"
           className={`memberChip ${selected.has(member.userId) ? "memberChipSelected" : ""}`}
           onClick={() => onToggle(member.userId)}
+          aria-pressed={selected.has(member.userId)}
         >
           <Avatar userId={member.userId} avatarHash={member.avatarHash} alt={member.label} />
           {member.label}
