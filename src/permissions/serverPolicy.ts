@@ -56,6 +56,21 @@ export function classifyRole(
   return "human";
 }
 
+export function roleKindLabel(kind: RoleKind): string {
+  switch (kind) {
+    case "everyone":
+      return "@everyone";
+    case "staff":
+      return "staff";
+    case "managed":
+      return "managed integration/bot";
+    case "decorative":
+      return "decorative";
+    default:
+      return "human (unmanaged, non-staff)";
+  }
+}
+
 export function isHumanNonStaffRole(
   role: RoleSnapshot,
   guildId: string,

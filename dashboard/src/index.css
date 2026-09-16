@@ -3162,3 +3162,102 @@ select.formSelect {
   font-size: 0.875rem;
   font-weight: 600;
 }
+
+.permissionsBanner {
+  margin: 0 0 0.85rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.permissionsBannerWarn {
+  background: color-mix(in srgb, #f0b232 16%, transparent);
+  border-color: color-mix(in srgb, #f0b232 40%, var(--color-border));
+}
+
+.permissionsBannerInfo {
+  background: color-mix(in srgb, var(--color-accent, #3b82f6) 12%, transparent);
+}
+
+.permissionsGroupHead {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.permissionsGroupHead h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.permissionsFindingList,
+.permissionsOverrideList,
+.permissionsBitList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.permissionsFinding {
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.permissionsFindingHead {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.35rem;
+}
+
+.permissionsFinding p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.permissionsPanelTitle {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+}
+
+.permissionsBasePanel {
+  border-left: 3px solid color-mix(in srgb, var(--color-accent, #3b82f6) 70%, transparent);
+}
+
+.permissionsOverridePanel {
+  border-left: 3px solid color-mix(in srgb, #f0b232 70%, transparent);
+}
+
+.permissionsBitOn {
+  color: var(--color-success);
+}
+
+.permissionsBitOff {
+  color: var(--color-error);
+}
+
+.permissionsBitList li,
+.permissionsOverrideList li {
+  display: flex;
+  gap: 0.45rem;
+  align-items: baseline;
+  font-size: 0.9rem;
+}
+
+.adminSection .formLabel,
+.adminSection .formInput {
+  margin-top: 0.55rem;
+}
+
+.adminSection .formLabel:first-child {
+  margin-top: 0;
+}

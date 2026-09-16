@@ -13,6 +13,7 @@ import Forbidden from "./pages/Forbidden";
 import Login from "./pages/Login";
 import MyTimetable from "./pages/MyTimetable";
 import OperationalStatus from "./pages/OperationalStatus";
+import Permissions from "./pages/Permissions";
 import Settings from "./pages/Settings";
 import Timetable from "./pages/Timetable";
 
@@ -46,6 +47,10 @@ function AuthedRoutes({ me }: { me: MeResponse }) {
         <Route
           path="/admin/bot"
           element={me.is_admin ? <BotSettings user={me.user} /> : <Forbidden user={me.user} />}
+        />
+        <Route
+          path="/admin/permissions"
+          element={me.is_admin ? <Permissions user={me.user} /> : <Forbidden user={me.user} />}
         />
         <Route path="*" element={<Navigate to="/timetable" replace />} />
       </Routes>

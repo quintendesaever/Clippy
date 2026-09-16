@@ -29,6 +29,7 @@ import { createRequireAdmin, userIsGuildAdmin } from "./adminAuth.js";
 import { loadAdminStatsPayload, loadAdminUsersPayload, parseAdminRangePreset, parseStatsUserIds } from "./adminStats.js";
 import { loadDiscordStatsPayload } from "./discordStats.js";
 import { applyBotSettingsPatch, loadBotSettingsPayload } from "./botSettings.js";
+import { createPermissionsRouter } from "./permissionsApi.js";
 import {
   filterPersonalTimetablePayload,
   parseTimetableScope,
@@ -901,6 +902,16 @@ export function createDashboardApp(): express.Express {
       res.status(500).json({ error: message });
     }
   });
+
+  app.use(
+    "/api/admin/permissions",
+    requireSession,
+    requireAdmin,
+    createPermissionsRouter({
+      getClient: () => discordClient,
+      getGuildId,
+    })
+  );
 
   app.get("/api/admin/bot-settings", requireSession, requireAdmin, async (_req: Request, res: Response) => {
     try {

@@ -1,5 +1,6 @@
 import { EmbedBuilder } from "discord.js";
 import { formatBitList, listedBits, permissionLabel, RELEVANT_PERMISSIONS } from "./flags.js";
+import { roleKindLabel } from "./serverPolicy.js";
 import type {
   AuditResult,
   ChannelInspection,
@@ -124,21 +125,6 @@ export function formatAuditEmbeds(guildName: string, guildId: string, result: Au
   return embeds.slice(0, DISCORD_MAX_EMBEDS);
 }
 
-function kindLabel(kind: RoleInspection["kind"]): string {
-  switch (kind) {
-    case "everyone":
-      return "@everyone";
-    case "staff":
-      return "staff";
-    case "managed":
-      return "managed integration/bot";
-    case "decorative":
-      return "decorative";
-    default:
-      return "human (unmanaged, non-staff)";
-  }
-}
-
 function highRiskStatus(inspection: RoleInspection): string {
   if (inspection.highRiskGranted.length === 0) return "✅ no high-risk bits explicitly granted";
   if (inspection.kind === "staff") {
@@ -192,7 +178,7 @@ export function formatRoleEmbeds(inspection: RoleInspection): EmbedBuilder[] {
             `Managed: ${inspection.role.managed ? "yes" : "no"}`,
             `Mentionable: ${inspection.role.mentionable ? "yes" : "no"}`,
             `Hierarchy position: ${inspection.role.position}`,
-            `Classification: ${kindLabel(inspection.kind)}`,
+            `Classification: ${roleKindLabel(inspection.kind)}`,
           ].join("\n")
         ),
       },

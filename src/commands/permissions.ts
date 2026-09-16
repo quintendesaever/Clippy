@@ -1,15 +1,8 @@
 import {
-  ChannelType,
   MessageFlags,
-  OverwriteType,
   PermissionFlagsBits,
   SlashCommandBuilder,
-  type CategoryChannel,
   type ChatInputCommandInteraction,
-  type Guild,
-  type GuildBasedChannel,
-  type GuildChannel,
-  type ThreadChannel,
 } from "discord.js";
 import type { Command } from "../types/command.js";
 import {
@@ -29,220 +22,16 @@ import {
   formatUserEmbeds,
 } from "../permissions/format.js";
 import { inspectChannel, inspectRole, withBotChannelPermissions } from "../permissions/inspect.js";
-import { RELEVANT_PERMISSIONS } from "../permissions/flags.js";
-import type { ChannelKind, ChannelSnapshot, GuildSnapshot, OverwriteSnapshot, RoleSnapshot, UserInspection } from "../permissions/types.js";
-
-const INSPECTABLE_CHANNEL_TYPES = [
-  ChannelType.GuildText,
-  ChannelType.GuildAnnouncement,
-  ChannelType.GuildCategory,
-] as const;
-
-const THREAD_CHANNEL_TYPES = [
-  ChannelType.PublicThread,
-  ChannelType.PrivateThread,
-  ChannelType.AnnouncementThread,
-] as const;
+import {
+  botEffectiveOn,
+  buildGuildSnapshot,
+  inspectGuildMember,
+  resolveInspectableChannel,
+  THREAD_CHANNEL_TYPES,
+  INSPECTABLE_CHANNEL_TYPES,
+} from "../permissions/snapshot.js";
 
 const CHANNEL_OPTION_TYPES = [...INSPECTABLE_CHANNEL_TYPES, ...THREAD_CHANNEL_TYPES] as const;
-
-const UNSUPPORTED_CHANNEL_REPLY =
-  "This inspector supports server text, announcement, and category channels. Threads are resolved to their parent.";
-
-function channelKind(type: ChannelType): ChannelKind | null {
-  if (type === ChannelType.GuildText) return "text";
-  if (type === ChannelType.GuildAnnouncement) return "announcement";
-  if (type === ChannelType.GuildCategory) return "category";
-  return null;
-}
-
-function isThreadType(type: ChannelType): boolean {
-  return (
-    type === ChannelType.PublicThread ||
-    type === ChannelType.PrivateThread ||
-    type === ChannelType.AnnouncementThread
-  );
-}
-
-function snapshotOverwrites(channel: GuildChannel | CategoryChannel): OverwriteSnapshot[] {
-  return [...channel.permissionOverwrites.cache.values()].map((overwrite) => ({
-    id: overwrite.id,
-    type: overwrite.type === OverwriteType.Member ? "member" : "role",
-    allow: overwrite.allow.bitfield,
-    deny: overwrite.deny.bitfield,
-  }));
-}
-
-function snapshotChannel(channel: GuildChannel | CategoryChannel): ChannelSnapshot | null {
-  const kind = channelKind(channel.type);
-  if (!kind) return null;
-  return {
-    id: channel.id,
-    name: channel.name,
-    kind,
-    parentId: channel.parentId,
-    permissionsLocked: channel.permissionsLocked,
-    overwrites: snapshotOverwrites(channel),
-  };
-}
-
-async function buildGuildSnapshot(guild: Guild): Promise<GuildSnapshot> {
-  let rolesFetchIncomplete = false;
-  let channelsFetchIncomplete = false;
-
-  try {
-    await guild.roles.fetch();
-  } catch {
-    rolesFetchIncomplete = true;
-  }
-  try {
-    await guild.channels.fetch();
-  } catch {
-    channelsFetchIncomplete = true;
-  }
-
-  let me = guild.members.me ?? null;
-  let resolved = true;
-  if (!me) {
-    try {
-      me = await guild.members.fetchMe();
-    } catch {
-      resolved = false;
-      me = null;
-    }
-  }
-
-  const roles: RoleSnapshot[] = [...guild.roles.cache.values()].map((role) => ({
-    id: role.id,
-    name: role.name,
-    position: role.position,
-    permissions: role.permissions.bitfield,
-    managed: role.managed,
-    mentionable: role.mentionable,
-    editable: resolved ? role.editable : null,
-  }));
-
-  const channels: ChannelSnapshot[] = [];
-  for (const channel of guild.channels.cache.values()) {
-    if (!("permissionOverwrites" in channel)) continue;
-    const snapshot = snapshotChannel(channel as GuildChannel | CategoryChannel);
-    if (snapshot) channels.push(snapshot);
-  }
-
-  return {
-    id: guild.id,
-    name: guild.name,
-    roles,
-    channels,
-    bot: {
-      memberId: me?.id ?? null,
-      highestRolePosition: me?.roles.highest.position ?? null,
-      resolved,
-    },
-    rolesFetchIncomplete,
-    channelsFetchIncomplete,
-  };
-}
-
-async function resolveGuildChannel(
-  guild: Guild,
-  channelId: string
-): Promise<GuildBasedChannel | null> {
-  const cached = guild.channels.cache.get(channelId);
-  if (cached) return cached;
-  return guild.channels.fetch(channelId).catch(() => null);
-}
-
-function threadParentId(channel: GuildBasedChannel): string | null {
-  if ("parentId" in channel && isThreadType(channel.type)) {
-    return (channel as ThreadChannel).parentId;
-  }
-  return null;
-}
-
-async function resolveInspectableChannel(
-  guild: Guild,
-  channelId: string
-): Promise<{ ok: true; channel: GuildChannel | CategoryChannel } | { ok: false; message: string }> {
-  const resolved = await resolveGuildChannel(guild, channelId);
-  if (!resolved) {
-    return { ok: false, message: "I could not find that channel in this server." };
-  }
-  if (isThreadType(resolved.type)) {
-    const parentId = threadParentId(resolved);
-    if (!parentId) {
-      return {
-        ok: false,
-        message: "This thread has no parent channel with permission overwrites.",
-      };
-    }
-    const parent = await resolveGuildChannel(guild, parentId);
-    if (!parent) {
-      return {
-        ok: false,
-        message: "This thread's parent channel is not available to inspect.",
-      };
-    }
-    if (!channelKind(parent.type) || !("permissionOverwrites" in parent)) {
-      return { ok: false, message: UNSUPPORTED_CHANNEL_REPLY };
-    }
-    return { ok: true, channel: parent as GuildChannel | CategoryChannel };
-  }
-  if (!channelKind(resolved.type) || !("permissionOverwrites" in resolved)) {
-    return { ok: false, message: UNSUPPORTED_CHANNEL_REPLY };
-  }
-  return { ok: true, channel: resolved as GuildChannel | CategoryChannel };
-}
-
-function botEffectiveOn(channel: GuildChannel | CategoryChannel, guild: Guild) {
-  const me = guild.members.me;
-  if (!me) return { botEffective: null, botCanView: null as boolean | null };
-  const perms = channel.permissionsFor(me);
-  if (!perms) return { botEffective: null, botCanView: null as boolean | null };
-  return {
-    botEffective: RELEVANT_PERMISSIONS.map((bit) => ({ bit, allowed: perms.has(bit) })),
-    botCanView: perms.has(PermissionFlagsBits.ViewChannel),
-  };
-}
-
-async function inspectUser(
-  guild: Guild,
-  userId: string,
-  channel: GuildChannel | CategoryChannel
-): Promise<UserInspection | { error: string }> {
-  let member = guild.members.cache.get(userId);
-  if (!member) {
-    try {
-      member = await guild.members.fetch(userId);
-    } catch {
-      return { error: "That user is not a member of this server, or I could not fetch them." };
-    }
-  }
-
-  const perms = channel.permissionsFor(member);
-  const notes: string[] = [];
-  const roles = [...member.roles.cache.values()]
-    .filter((role) => role.id !== guild.id)
-    .sort((a, b) => b.position - a.position)
-    .map((role) => ({ id: role.id, name: role.name }));
-
-  return {
-    userId: member.id,
-    displayName: member.displayName,
-    channelId: channel.id,
-    channelName: channel.name,
-    roles,
-    effective: perms
-      ? RELEVANT_PERMISSIONS.map((bit) => ({ bit, allowed: perms.has(bit) }))
-      : [],
-    administrator: member.permissions.has(PermissionFlagsBits.Administrator),
-    owner: member.id === guild.ownerId,
-    timedOut: member.isCommunicationDisabled(),
-    timeoutUntil: member.communicationDisabledUntil?.toISOString() ?? null,
-    computed: Boolean(perms),
-    notes,
-  };
-}
 
 async function replyEmbeds(
   interaction: ChatInputCommandInteraction,
@@ -374,7 +163,7 @@ const permissionsCommand: Command = {
           await interaction.editReply(resolved.message);
           return;
         }
-        const inspection = await inspectUser(guild, user.id, resolved.channel);
+        const inspection = await inspectGuildMember(guild, user.id, resolved.channel);
         if ("error" in inspection) {
           await interaction.editReply(inspection.error);
           return;

@@ -22,6 +22,8 @@ export type RoleSnapshot = {
   mentionable: boolean;
   /** Whether Clippy could edit this role. Null when the bot member is unknown. */
   editable: boolean | null;
+  /** Discord role color integer; omitted in older snapshots/tests. */
+  color?: number;
 };
 
 export type ChannelSnapshot = {
@@ -37,6 +39,7 @@ export type ChannelSnapshot = {
 export type BotSnapshot = {
   memberId: string | null;
   highestRolePosition: number | null;
+  highestRoleName?: string | null;
   resolved: boolean;
 };
 
@@ -91,6 +94,8 @@ export type ChannelInspection = {
   notes: string[];
 };
 
+export type OverwriteSource = "base" | "category" | "inherited" | "explicit";
+
 export type ResolvedOverwrite = {
   id: string;
   type: OverwriteTargetType;
@@ -99,6 +104,7 @@ export type ResolvedOverwrite = {
   deny: bigint;
   everyone: boolean;
   member: boolean;
+  source?: OverwriteSource;
 };
 
 export type UserInspection = {

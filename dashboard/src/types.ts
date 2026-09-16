@@ -379,3 +379,142 @@ export interface BotSettingsPatch {
     logCommandErrors?: boolean;
   };
 }
+
+export type PermissionFindingSeverity = "fail" | "warn" | "ok";
+
+export type PermissionFlagDto = {
+  key: string;
+  label: string;
+  allowed?: boolean;
+  granted?: boolean;
+};
+
+export type PermissionFindingDto = {
+  code: string;
+  severity: PermissionFindingSeverity;
+  title: string;
+  detail: string;
+  target?: string;
+};
+
+export type PermissionRoleCatalogDto = {
+  id: string;
+  name: string;
+  color?: string;
+  position: number;
+  managed: boolean;
+  kind: "everyone" | "staff" | "managed" | "decorative" | "human";
+  kindLabel: string;
+};
+
+export type PermissionChannelCatalogDto = {
+  id: string;
+  name: string;
+  type: "text" | "announcement" | "category";
+  parentId: string | null;
+  parentName?: string;
+  permissionsLocked: boolean | null;
+};
+
+export type PermissionMemberCatalogDto = {
+  id: string;
+  displayName: string;
+  username?: string;
+};
+
+export type PermissionsOverviewDto = {
+  generatedAt: string;
+  guild: { id: string; name: string };
+  counts: { error: number; warning: number; expected: number };
+  findings: PermissionFindingDto[];
+  roles: PermissionRoleCatalogDto[];
+  channels: PermissionChannelCatalogDto[];
+  members: PermissionMemberCatalogDto[];
+  bot: {
+    resolved: boolean;
+    highestRoleName: string | null;
+    highestRolePosition: number | null;
+    limitations: string[];
+  };
+  incomplete: { roles: boolean; channels: boolean; members: boolean };
+  writable: false;
+};
+
+export type PermissionRoleInspectionDto = {
+  id: string;
+  name: string;
+  color?: string;
+  position: number;
+  managed: boolean;
+  mentionable: boolean;
+  kind: PermissionRoleCatalogDto["kind"];
+  kindLabel: string;
+  manageable: boolean | null;
+  pinMessages: boolean;
+  pinExpected: boolean;
+  permissions: string;
+  basePermissions: PermissionFlagDto[];
+  highRiskGranted: string[];
+  channelOverrides: {
+    channelId: string;
+    channelName: string;
+    allow: string;
+    deny: string;
+    allowKeys: string[];
+    denyKeys: string[];
+  }[];
+  omittedOverrides: number;
+  notes: string[];
+};
+
+export type PermissionChannelOverwriteDto = {
+  id: string;
+  type: "role" | "member";
+  name: string;
+  everyone: boolean;
+  member: boolean;
+  source: "base" | "category" | "inherited" | "explicit";
+  allow: string;
+  deny: string;
+  allowKeys: string[];
+  denyKeys: string[];
+};
+
+export type PermissionChannelInspectionDto = {
+  id: string;
+  name: string;
+  type: PermissionChannelCatalogDto["type"];
+  parentId: string | null;
+  parentName: string | null;
+  permissionsLocked: boolean | null;
+  syncState: "synced" | "unsynced" | "category" | "none";
+  overwrites: PermissionChannelOverwriteDto[];
+  bot: {
+    resolved: boolean;
+    canView: boolean | null;
+    permissions: PermissionFlagDto[] | null;
+  };
+  roleEffective: {
+    roleId: string;
+    roleName: string;
+    kind: PermissionRoleCatalogDto["kind"];
+    computed: boolean;
+    permissions: PermissionFlagDto[];
+  }[];
+  notes: string[];
+};
+
+export type PermissionMemberInspectionDto = {
+  userId: string;
+  displayName: string;
+  channelId: string;
+  channelName: string;
+  roles: { id: string; name: string }[];
+  computed: boolean;
+  owner: boolean;
+  administrator: boolean;
+  timedOut: boolean;
+  timeoutUntil: string | null;
+  permissions: PermissionFlagDto[];
+  notes: string[];
+};
