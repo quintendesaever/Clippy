@@ -326,6 +326,16 @@ export interface BotSettingsOption {
   name: string;
 }
 
+export interface BotSettingsLogging {
+  enabled: boolean;
+  channelId: string | null;
+  logMembers: boolean;
+  logRoles: boolean;
+  logChannels: boolean;
+  logBotConfig: boolean;
+  logCommandErrors: boolean;
+}
+
 export interface BotSettingsPayload {
   timezone: string;
   f1: {
@@ -334,6 +344,7 @@ export interface BotSettingsPayload {
     roleId: string | null;
     predictionUrl: string | null;
   };
+  logging: BotSettingsLogging;
   channels: BotSettingsOption[];
   roles: BotSettingsOption[];
 }
@@ -345,5 +356,14 @@ export interface BotSettingsPatch {
     channelId?: string | null;
     roleId?: string | null;
     predictionUrl?: string | null;
+  };
+  logging?: {
+    enabled?: boolean;
+    channelId?: string | null;
+    logMembers?: boolean;
+    logRoles?: boolean;
+    logChannels?: boolean;
+    logBotConfig?: boolean;
+    logCommandErrors?: boolean;
   };
 }

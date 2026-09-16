@@ -1,5 +1,16 @@
 import "dotenv/config";
 import { Client, GatewayIntentBits, Partials } from "discord.js";
+import {
+  logChannelCreate,
+  logChannelDelete,
+  logChannelUpdate,
+  logCommandError,
+  logMemberJoin,
+  logMemberLeave,
+  logRoleCreate,
+  logRoleDelete,
+  logRoleUpdate,
+} from "./audit/events.js";
 import { loadCommands } from "./commands/index.js";
 import { getGuildId } from "./config.js";
 import {
@@ -175,6 +186,12 @@ client.on("interactionCreate", async (interaction) => {
     });
   } catch (err) {
     console.error(`Error executing ${interaction.commandName}:`, err);
+    void logCommandError(client, {
+      guildId: interaction.guildId,
+      commandName: interaction.commandName,
+      error: err,
+      user: interaction.user,
+    });
     const payload = { content: "Something went wrong.", ephemeral: true };
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp(payload).catch(() => {});
@@ -182,6 +199,11 @@ client.on("interactionCreate", async (interaction) => {
       await interaction.reply(payload).catch(() => {});
     }
   }
+});
+
+client.on("guildMemberAdd", (member) => {
+  if (member.guild.id !== guildId) return;
+  void logMemberJoin(client, member);
 });
 
 client.on("guildMemberRemove", async (member) => {
@@ -192,6 +214,38 @@ client.on("guildMemberRemove", async (member) => {
   } catch (err) {
     console.error("guildMemberRemove cleanup:", err);
   }
+  void logMemberLeave(client, member);
+});
+
+client.on("roleCreate", (role) => {
+  if (role.guild.id !== guildId) return;
+  void logRoleCreate(client, role);
+});
+
+client.on("roleDelete", (role) => {
+  if (role.guild.id !== guildId) return;
+  void logRoleDelete(client, role);
+});
+
+client.on("roleUpdate", (oldRole, newRole) => {
+  if (newRole.guild.id !== guildId) return;
+  void logRoleUpdate(client, oldRole, newRole);
+});
+
+client.on("channelCreate", (channel) => {
+  if (!("guild" in channel) || channel.guild.id !== guildId) return;
+  void logChannelCreate(client, channel);
+});
+
+client.on("channelDelete", (channel) => {
+  if (!("guild" in channel) || channel.guild.id !== guildId) return;
+  void logChannelDelete(client, channel);
+});
+
+client.on("channelUpdate", (oldChannel, newChannel) => {
+  if (!("guild" in newChannel) || newChannel.guild.id !== guildId) return;
+  if (!("guild" in oldChannel)) return;
+  void logChannelUpdate(client, oldChannel, newChannel);
 });
 
 client.on("messageCreate", async (message) => {

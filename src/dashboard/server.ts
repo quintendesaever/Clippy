@@ -933,8 +933,38 @@ export function createDashboardApp(): express.Express {
               },
             }
           : {}),
+        ...(body.logging && typeof body.logging === "object"
+          ? {
+              logging: {
+                ...(typeof body.logging.enabled === "boolean"
+                  ? { enabled: body.logging.enabled }
+                  : {}),
+                ...(body.logging.channelId === null || typeof body.logging.channelId === "string"
+                  ? { channelId: body.logging.channelId }
+                  : {}),
+                ...(typeof body.logging.logMembers === "boolean"
+                  ? { logMembers: body.logging.logMembers }
+                  : {}),
+                ...(typeof body.logging.logRoles === "boolean"
+                  ? { logRoles: body.logging.logRoles }
+                  : {}),
+                ...(typeof body.logging.logChannels === "boolean"
+                  ? { logChannels: body.logging.logChannels }
+                  : {}),
+                ...(typeof body.logging.logBotConfig === "boolean"
+                  ? { logBotConfig: body.logging.logBotConfig }
+                  : {}),
+                ...(typeof body.logging.logCommandErrors === "boolean"
+                  ? { logCommandErrors: body.logging.logCommandErrors }
+                  : {}),
+              },
+            }
+          : {}),
       };
-      const result = await applyBotSettingsPatch(getGuildId(), discordClient, patch);
+      const sessionUser = (req.session as SessionData | undefined)?.user;
+      const result = await applyBotSettingsPatch(getGuildId(), discordClient, patch, {
+        actor: sessionUser ? { id: sessionUser.id, tag: sessionUser.username } : null,
+      });
       if (!result.ok) {
         res.status(result.status).json({ error: result.error });
         return;

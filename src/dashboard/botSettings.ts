@@ -5,9 +5,23 @@ import { getGuildTimezone } from "../stats/helpers.js";
 import { isValidIanaTimeZone } from "../../shared/timetable/dates.js";
 import { resolvePredictionUrl } from "../f1/predictionUrl.js";
 import { getF1ReminderSettings, upsertF1ReminderSettings } from "../f1/reminderStorage.js";
+import { summarizeBotSettingsChanges } from "../audit/botConfigSummary.js";
+import { logBotConfigChange } from "../audit/events.js";
+import { getAuditLogSettings, upsertAuditLogSettings } from "../audit/settings.js";
+import { emptyAuditLogSettings, type AuditLogSettings } from "../audit/types.js";
 
 export type BotSettingsChannelOption = { id: string; name: string };
 export type BotSettingsRoleOption = { id: string; name: string };
+
+export type BotSettingsLogging = {
+  enabled: boolean;
+  channelId: string | null;
+  logMembers: boolean;
+  logRoles: boolean;
+  logChannels: boolean;
+  logBotConfig: boolean;
+  logCommandErrors: boolean;
+};
 
 export type BotSettingsPayload = {
   timezone: string;
@@ -17,6 +31,7 @@ export type BotSettingsPayload = {
     roleId: string | null;
     predictionUrl: string | null;
   };
+  logging: BotSettingsLogging;
   channels: BotSettingsChannelOption[];
   roles: BotSettingsRoleOption[];
 };
@@ -29,7 +44,47 @@ export type BotSettingsPatch = {
     roleId?: string | null;
     predictionUrl?: string | null;
   };
+  logging?: {
+    enabled?: boolean;
+    channelId?: string | null;
+    logMembers?: boolean;
+    logRoles?: boolean;
+    logChannels?: boolean;
+    logBotConfig?: boolean;
+    logCommandErrors?: boolean;
+  };
 };
+
+export type BotSettingsPatchActor = { id: string; tag?: string | null };
+
+function loggingFromRow(guildId: string, settings: AuditLogSettings | null): BotSettingsLogging {
+  const row = settings ?? emptyAuditLogSettings(guildId);
+  return {
+    enabled: row.enabled,
+    channelId: row.channel_id,
+    logMembers: row.log_members,
+    logRoles: row.log_roles,
+    logChannels: row.log_channels,
+    logBotConfig: row.log_bot_config,
+    logCommandErrors: row.log_command_errors,
+  };
+}
+
+function settingsForBotConfigAudit(
+  previous: AuditLogSettings | null,
+  next: AuditLogSettings | null,
+  guildId: string
+): AuditLogSettings {
+  const prev = previous ?? emptyAuditLogSettings(guildId);
+  const nxt = next ?? emptyAuditLogSettings(guildId);
+  const canSend = (row: AuditLogSettings) =>
+    Boolean(row.enabled && row.channel_id && row.log_bot_config);
+  if (canSend(nxt)) return nxt;
+  if (canSend(prev)) return prev;
+  if (nxt.enabled && nxt.channel_id) return nxt;
+  if (prev.enabled && prev.channel_id) return prev;
+  return nxt;
+}
 
 async function listGuildOptions(
   client: Client | null,
@@ -64,9 +119,10 @@ export async function loadBotSettingsPayload(
   guildId: string,
   client: Client | null
 ): Promise<BotSettingsPayload> {
-  const [timezone, settings, options] = await Promise.all([
+  const [timezone, settings, logging, options] = await Promise.all([
     getGuildTimezone(guildId),
     getF1ReminderSettings(guildId),
+    getAuditLogSettings(guildId),
     listGuildOptions(client, guildId),
   ]);
 
@@ -78,6 +134,7 @@ export async function loadBotSettingsPayload(
       roleId: settings?.role_id ?? null,
       predictionUrl: settings?.prediction_url ?? null,
     },
+    logging: loggingFromRow(guildId, logging),
     channels: options.channels,
     roles: options.roles,
   };
@@ -86,8 +143,12 @@ export async function loadBotSettingsPayload(
 export async function applyBotSettingsPatch(
   guildId: string,
   client: Client | null,
-  patch: BotSettingsPatch
+  patch: BotSettingsPatch,
+  options?: { actor?: BotSettingsPatchActor | null }
 ): Promise<{ ok: true; settings: BotSettingsPayload } | { ok: false; error: string; status: number }> {
+  const previousPayload = await loadBotSettingsPayload(guildId, client);
+  const previousLogging = await getAuditLogSettings(guildId);
+
   if (patch.timezone !== undefined) {
     const timezone = patch.timezone.trim();
     if (!isValidIanaTimeZone(timezone)) {
@@ -157,5 +218,46 @@ export async function applyBotSettingsPatch(
     }
   }
 
-  return { ok: true, settings: await loadBotSettingsPayload(guildId, client) };
+  if (patch.logging) {
+    const { channels } = await listGuildOptions(client, guildId);
+    const channelIds = new Set(channels.map((row) => row.id));
+
+    if (patch.logging.channelId !== undefined && patch.logging.channelId !== null) {
+      if (channels.length > 0 && !channelIds.has(patch.logging.channelId)) {
+        return { ok: false, status: 400, error: "Kies een geldig tekstkanaal in deze server." };
+      }
+    }
+
+    const saved = await upsertAuditLogSettings({
+      guild_id: guildId,
+      ...(patch.logging.enabled !== undefined ? { enabled: patch.logging.enabled } : {}),
+      ...(patch.logging.channelId !== undefined ? { channel_id: patch.logging.channelId } : {}),
+      ...(patch.logging.logMembers !== undefined ? { log_members: patch.logging.logMembers } : {}),
+      ...(patch.logging.logRoles !== undefined ? { log_roles: patch.logging.logRoles } : {}),
+      ...(patch.logging.logChannels !== undefined ? { log_channels: patch.logging.logChannels } : {}),
+      ...(patch.logging.logBotConfig !== undefined
+        ? { log_bot_config: patch.logging.logBotConfig }
+        : {}),
+      ...(patch.logging.logCommandErrors !== undefined
+        ? { log_command_errors: patch.logging.logCommandErrors }
+        : {}),
+    });
+    if (!saved) {
+      return { ok: false, status: 500, error: "Logging-instellingen opslaan mislukt." };
+    }
+  }
+
+  const settings = await loadBotSettingsPayload(guildId, client);
+  const changes = summarizeBotSettingsChanges(previousPayload, settings);
+  if (changes.length > 0 && client) {
+    const nextLogging = await getAuditLogSettings(guildId);
+    void logBotConfigChange(client, {
+      guildId,
+      actor: options?.actor,
+      details: changes.join("\n"),
+      settings: settingsForBotConfigAudit(previousLogging, nextLogging, guildId),
+    }).catch((err) => console.warn("audit: bot config log failed", err));
+  }
+
+  return { ok: true, settings };
 }
