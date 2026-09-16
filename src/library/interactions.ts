@@ -16,7 +16,13 @@ import {
 } from "./time.js";
 import { clearCallerVisit, upsertCallerVisit } from "./visits.js";
 import { buildVisitModal, isLibraryButtonId, isLibraryModalId } from "./view.js";
-import { LIBRARY_PLAN_BUTTON_ID, LIBRARY_END_FIELD, LIBRARY_START_FIELD } from "./types.js";
+import {
+  LIBRARY_END_HOUR_FIELD,
+  LIBRARY_END_MINUTE_FIELD,
+  LIBRARY_PLAN_BUTTON_ID,
+  LIBRARY_START_HOUR_FIELD,
+  LIBRARY_START_MINUTE_FIELD,
+} from "./types.js";
 
 export { buildVisitModal, isLibraryButtonId, isLibraryModalId } from "./view.js";
 
@@ -102,8 +108,10 @@ export async function handleLibraryModal(interaction: ModalSubmitInteraction): P
   }
 
   const guildId = interaction.guildId;
-  const startRaw = interaction.fields.getTextInputValue(LIBRARY_START_FIELD);
-  const endRaw = interaction.fields.getTextInputValue(LIBRARY_END_FIELD);
+  const selected = (fieldId: string) =>
+    interaction.fields.getStringSelectValues(fieldId)[0] ?? "";
+  const startRaw = `${selected(LIBRARY_START_HOUR_FIELD)}:${selected(LIBRARY_START_MINUTE_FIELD)}`;
+  const endRaw = `${selected(LIBRARY_END_HOUR_FIELD)}:${selected(LIBRARY_END_MINUTE_FIELD)}`;
 
   try {
     await withGuildLibraryLock(guildId, async () => {

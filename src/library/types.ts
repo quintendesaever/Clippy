@@ -1,8 +1,10 @@
 export const LIBRARY_PLAN_BUTTON_ID = "library:plan";
 export const LIBRARY_CLEAR_BUTTON_ID = "library:clear";
 export const LIBRARY_VISIT_MODAL_ID = "library:visit";
-export const LIBRARY_START_FIELD = "start_time";
-export const LIBRARY_END_FIELD = "end_time";
+export const LIBRARY_START_HOUR_FIELD = "start_hour";
+export const LIBRARY_START_MINUTE_FIELD = "start_minute";
+export const LIBRARY_END_HOUR_FIELD = "end_hour";
+export const LIBRARY_END_MINUTE_FIELD = "end_minute";
 
 export const DEFAULT_OPEN_MINUTES = 480;
 export const DEFAULT_CLOSE_MINUTES = 1320;

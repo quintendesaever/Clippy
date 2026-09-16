@@ -8,9 +8,11 @@ import {
 import { emptyLibrarySettings, isLibraryScheduleActive } from "./settingsPatch.js";
 import {
   LIBRARY_CLEAR_BUTTON_ID,
-  LIBRARY_END_FIELD,
+  LIBRARY_END_HOUR_FIELD,
+  LIBRARY_END_MINUTE_FIELD,
   LIBRARY_PLAN_BUTTON_ID,
-  LIBRARY_START_FIELD,
+  LIBRARY_START_HOUR_FIELD,
+  LIBRARY_START_MINUTE_FIELD,
   LIBRARY_VISIT_MODAL_ID,
 } from "./types.js";
 
@@ -24,14 +26,27 @@ describe("library interaction ids", () => {
     assert.equal(isLibraryModalId("library:plan"), false);
   });
 
-  it("builds a modal with exact HH:mm fields and library custom ids", () => {
+  it("builds a modal with hour and five-minute selectors", () => {
     const json = buildVisitModal().toJSON();
     assert.equal(json.custom_id, LIBRARY_VISIT_MODAL_ID);
-    const fieldIds = (json.components ?? []).flatMap((row) => {
-      const components = "components" in row ? row.components : [];
-      return components.map((field) => ("custom_id" in field ? field.custom_id : null));
-    });
-    assert.deepEqual(fieldIds, [LIBRARY_START_FIELD, LIBRARY_END_FIELD]);
+    const fields = (json.components ?? []).flatMap((label) =>
+      "component" in label ? [label.component] : []
+    );
+    assert.deepEqual(
+      fields.map((field) => ("custom_id" in field ? field.custom_id : null)),
+      [
+        LIBRARY_START_HOUR_FIELD,
+        LIBRARY_START_MINUTE_FIELD,
+        LIBRARY_END_HOUR_FIELD,
+        LIBRARY_END_MINUTE_FIELD,
+      ]
+    );
+    assert.deepEqual(fields.map((field) => field.type), [3, 3, 3, 3]);
+    assert.equal("options" in fields[0]! ? fields[0].options.length : 0, 24);
+    assert.deepEqual(
+      "options" in fields[1]! ? fields[1].options.map((option) => option.value) : [],
+      ["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"]
+    );
   });
 });
 
