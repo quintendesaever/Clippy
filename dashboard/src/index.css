@@ -2703,7 +2703,6 @@ select.formSelect {
   display: block;
   width: 100%;
   height: auto;
-  max-height: 200px;
   cursor: crosshair;
   touch-action: pan-y;
 }
