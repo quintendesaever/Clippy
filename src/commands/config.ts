@@ -14,6 +14,7 @@ import {
   type BotSettingsPayload,
 } from "../dashboard/botSettings.js";
 import { getPublicDashboardUrl } from "../config.js";
+import { formatMinutesAsHhmm } from "../library/time.js";
 import {
   formatDiscordApiError,
   hasRequiredPermissions,
@@ -44,10 +45,13 @@ function onOff(value: boolean): string {
 function formatConfigShow(settings: BotSettingsPayload): string {
   const log = settings.logging;
   const channel = log.channelId ? `<#${log.channelId}>` : "`not set`";
+  const libraryChannel = settings.library.channelId ? `<#${settings.library.channelId}>` : "`not set`";
+  const hours = `${formatMinutesAsHhmm(settings.library.openMinutes)}–${formatMinutesAsHhmm(settings.library.closeMinutes)}`;
   const dashboardUrl = `${getPublicDashboardUrl()}/admin/bot`;
   return [
     "**Clippy server config**",
     `Timezone: **${settings.timezone}**`,
+    `Library: **${settings.library.enabled ? "enabled" : "disabled"}** in ${libraryChannel} · ${hours}`,
     `Logging: **${log.enabled ? "enabled" : "disabled"}** in ${channel}`,
     `• members: ${onOff(log.logMembers)}`,
     `• roles: ${onOff(log.logRoles)}`,

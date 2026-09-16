@@ -933,6 +933,24 @@ export function createDashboardApp(): express.Express {
               },
             }
           : {}),
+        ...(body.library && typeof body.library === "object"
+          ? {
+              library: {
+                ...(typeof body.library.enabled === "boolean"
+                  ? { enabled: body.library.enabled }
+                  : {}),
+                ...(body.library.channelId === null || typeof body.library.channelId === "string"
+                  ? { channelId: body.library.channelId }
+                  : {}),
+                ...(typeof body.library.openMinutes === "number"
+                  ? { openMinutes: body.library.openMinutes }
+                  : {}),
+                ...(typeof body.library.closeMinutes === "number"
+                  ? { closeMinutes: body.library.closeMinutes }
+                  : {}),
+              },
+            }
+          : {}),
         ...(body.logging && typeof body.logging === "object"
           ? {
               logging: {

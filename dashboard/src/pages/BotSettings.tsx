@@ -6,6 +6,18 @@ import PageLayout from "../components/PageLayout";
 import PagePanel from "../components/PagePanel";
 import type { BotSettingsPayload, DiscordUser } from "../types";
 
+function minutesFromTimeInput(value: string): number | null {
+  const match = /^([01]\d|2[0-3]):([0-5]\d)/.exec(value.trim());
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+function timeInputFromMinutes(minutes: number): string {
+  const hours = Math.min(23, Math.floor(minutes / 60));
+  const mins = minutes >= 1440 ? 0 : minutes % 60;
+  return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+}
+
 function PreferenceToggle({
   label,
   hint,
@@ -47,12 +59,15 @@ export default function BotSettings({ user }: { user: DiscordUser }) {
   const [loading, setLoading] = useState(true);
   const [savingTimezone, setSavingTimezone] = useState(false);
   const [savingF1, setSavingF1] = useState(false);
+  const [savingLibrary, setSavingLibrary] = useState(false);
   const [savingLogging, setSavingLogging] = useState(false);
   const [timezoneError, setTimezoneError] = useState<string | null>(null);
   const [f1Error, setF1Error] = useState<string | null>(null);
+  const [libraryError, setLibraryError] = useState<string | null>(null);
   const [loggingError, setLoggingError] = useState<string | null>(null);
   const [timezoneMessage, setTimezoneMessage] = useState<string | null>(null);
   const [f1Message, setF1Message] = useState<string | null>(null);
+  const [libraryMessage, setLibraryMessage] = useState<string | null>(null);
   const [loggingMessage, setLoggingMessage] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [timezone, setTimezone] = useState("Europe/Brussels");
@@ -60,6 +75,10 @@ export default function BotSettings({ user }: { user: DiscordUser }) {
   const [channelId, setChannelId] = useState("");
   const [roleId, setRoleId] = useState("");
   const [predictionUrl, setPredictionUrl] = useState("");
+  const [libraryEnabled, setLibraryEnabled] = useState(false);
+  const [libraryChannelId, setLibraryChannelId] = useState("");
+  const [libraryOpen, setLibraryOpen] = useState("08:00");
+  const [libraryClose, setLibraryClose] = useState("22:00");
   const [loggingEnabled, setLoggingEnabled] = useState(false);
   const [loggingChannelId, setLoggingChannelId] = useState("");
   const [logMembers, setLogMembers] = useState(true);
@@ -76,6 +95,10 @@ export default function BotSettings({ user }: { user: DiscordUser }) {
     setChannelId(payload.f1.channelId ?? "");
     setRoleId(payload.f1.roleId ?? "");
     setPredictionUrl(payload.f1.predictionUrl ?? "");
+    setLibraryEnabled(payload.library.enabled);
+    setLibraryChannelId(payload.library.channelId ?? "");
+    setLibraryOpen(timeInputFromMinutes(payload.library.openMinutes));
+    setLibraryClose(timeInputFromMinutes(payload.library.closeMinutes));
     setLoggingEnabled(payload.logging.enabled);
     setLoggingChannelId(payload.logging.channelId ?? "");
     setLogMembers(payload.logging.logMembers);
@@ -148,6 +171,40 @@ export default function BotSettings({ user }: { user: DiscordUser }) {
     }
   }
 
+  async function handleSaveLibrary() {
+    setSavingLibrary(true);
+    setLibraryError(null);
+    setLibraryMessage(null);
+    const openMinutes = minutesFromTimeInput(libraryOpen);
+    const closeMinutes = minutesFromTimeInput(libraryClose);
+    if (openMinutes === null || closeMinutes === null) {
+      setLibraryError("Gebruik geldige opening- en sluitingstijden (HH:mm).");
+      setSavingLibrary(false);
+      return;
+    }
+    if (libraryEnabled && !libraryChannelId) {
+      setLibraryError("Kies een kanaal voordat je het bibliotheekrooster inschakelt.");
+      setSavingLibrary(false);
+      return;
+    }
+    try {
+      const payload = await saveBotSettings({
+        library: {
+          enabled: libraryEnabled,
+          channelId: libraryChannelId || null,
+          openMinutes,
+          closeMinutes,
+        },
+      });
+      applyPayload(payload);
+      setLibraryMessage("Opgeslagen.");
+    } catch (err) {
+      setLibraryError(err instanceof Error ? err.message : "Opslaan mislukt");
+    } finally {
+      setSavingLibrary(false);
+    }
+  }
+
   async function handleSaveLogging(nextEnabled?: boolean) {
     setSavingLogging(true);
     setLoggingError(null);
@@ -193,7 +250,8 @@ export default function BotSettings({ user }: { user: DiscordUser }) {
               <PagePanel>
                 <h2 className="cardTitle">Server</h2>
                 <p className="cardHint">
-                  Tijdzone voor stats, rooster en F1-herinneringen (IANA, bv. Europe/Brussels).
+                  Tijdzone voor stats, rooster, bibliotheek en F1-herinneringen (IANA, bv.
+                  Europe/Brussels).
                 </p>
                 <div className="botSettingsFields">
                   <label className="botSettingsField" htmlFor="bot-timezone">
@@ -309,6 +367,88 @@ export default function BotSettings({ user }: { user: DiscordUser }) {
               </PagePanel>
 
               <PagePanel>
+                <h2 className="cardTitle">Bibliotheek</h2>
+                <p className="cardHint">
+                  Dagelijks rooster in één kanaal. Leden plannen hun bezoek via Discord met exacte
+                  start- en eindtijd.
+                </p>
+
+                <PreferenceToggle
+                  label="Rooster ingeschakeld"
+                  hint="Zet uit om het bibliotheekrooster te pauzeren. Het kanaal blijft staan."
+                  checked={libraryEnabled}
+                  disabled={savingLibrary}
+                  onChange={setLibraryEnabled}
+                />
+
+                <div className="botSettingsFields botSettingsGrid">
+                  <label className="botSettingsField" htmlFor="bot-library-channel">
+                    <span>Kanaal</span>
+                    <select
+                      id="bot-library-channel"
+                      className="formInput formSelect"
+                      value={libraryChannelId}
+                      onChange={(e) => setLibraryChannelId(e.target.value)}
+                      disabled={savingLibrary}
+                    >
+                      <option value="">— Kies een kanaal —</option>
+                      {channels.map((channel) => (
+                        <option key={channel.id} value={channel.id}>
+                          #{channel.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="botSettingsField" htmlFor="bot-library-open">
+                    <span>Opening</span>
+                    <input
+                      id="bot-library-open"
+                      className="formInput"
+                      type="time"
+                      step={60}
+                      value={libraryOpen}
+                      onChange={(e) => setLibraryOpen(e.target.value)}
+                      disabled={savingLibrary}
+                    />
+                  </label>
+
+                  <label className="botSettingsField" htmlFor="bot-library-close">
+                    <span>Sluiting</span>
+                    <input
+                      id="bot-library-close"
+                      className="formInput"
+                      type="time"
+                      step={60}
+                      value={libraryClose}
+                      onChange={(e) => setLibraryClose(e.target.value)}
+                      disabled={savingLibrary}
+                    />
+                  </label>
+                </div>
+
+                <p className="cardHint">
+                  Tijden gebruiken de server-tijdzone <strong>{timezone}</strong>. Wijzig die bij
+                  Server hierboven.
+                </p>
+
+                <p className="settingsStateLine" aria-live="polite">
+                  Status:{" "}
+                  <span className={libraryEnabled ? "settingsStateOn" : "settingsStateOff"}>
+                    {libraryEnabled ? "Ingeschakeld" : "Uitgeschakeld"}
+                  </span>
+                  {savingLibrary ? " · Opslaan…" : ""}
+                </p>
+                {libraryError && <p className="errorMsg">{libraryError}</p>}
+                {libraryMessage && <p className="successMsg">{libraryMessage}</p>}
+                <div className="settingsActions">
+                  <Button onClick={() => void handleSaveLibrary()} disabled={savingLibrary}>
+                    {savingLibrary ? "Opslaan…" : "Opslaan"}
+                  </Button>
+                </div>
+              </PagePanel>
+
+              <PagePanel>
                 <h2 className="cardTitle">Logging</h2>
                 <p className="cardHint">
                   Stuur beknopte embeds naar een Discord-kanaal bij joins, rollen, kanalen,
@@ -368,7 +508,7 @@ export default function BotSettings({ user }: { user: DiscordUser }) {
                 />
                 <PreferenceToggle
                   label="Bot-instellingen"
-                  hint="Wijzigingen via deze pagina (tijdzone, F1, logging)."
+                  hint="Wijzigingen via deze pagina (tijdzone, F1, bibliotheek, logging)."
                   checked={logBotConfig}
                   disabled={savingLogging}
                   onChange={setLogBotConfig}

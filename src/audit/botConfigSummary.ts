@@ -1,3 +1,5 @@
+import { formatMinutesAsHhmm } from "../library/time.js";
+
 export type BotConfigSnapshot = {
   timezone: string;
   f1: {
@@ -5,6 +7,12 @@ export type BotConfigSnapshot = {
     channelId: string | null;
     roleId: string | null;
     predictionUrl: string | null;
+  };
+  library: {
+    enabled: boolean;
+    channelId: string | null;
+    openMinutes: number;
+    closeMinutes: number;
   };
   logging: {
     enabled: boolean;
@@ -48,6 +56,22 @@ export function summarizeBotSettingsChanges(
   }
   if (before.f1.predictionUrl !== after.f1.predictionUrl) {
     details.push(after.f1.predictionUrl ? "F1 prediction URL updated" : "F1 prediction URL cleared");
+  }
+  if (before.library.enabled !== after.library.enabled) {
+    details.push(`Library: ${onOff(before.library.enabled)} → ${onOff(after.library.enabled)}`);
+  }
+  if (before.library.channelId !== after.library.channelId) {
+    details.push(
+      `Library channel: ${channelRef(before.library.channelId)} → ${channelRef(after.library.channelId)}`
+    );
+  }
+  if (
+    before.library.openMinutes !== after.library.openMinutes ||
+    before.library.closeMinutes !== after.library.closeMinutes
+  ) {
+    details.push(
+      `Library hours: ${formatMinutesAsHhmm(before.library.openMinutes)}–${formatMinutesAsHhmm(before.library.closeMinutes)} → ${formatMinutesAsHhmm(after.library.openMinutes)}–${formatMinutesAsHhmm(after.library.closeMinutes)}`
+    );
   }
   if (before.logging.enabled !== after.logging.enabled) {
     details.push(`Audit logging: ${onOff(before.logging.enabled)} → ${onOff(after.logging.enabled)}`);
