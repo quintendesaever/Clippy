@@ -10,7 +10,7 @@ import {
 } from "discord.js";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { getDashboardUrl } from "../config.js";
+import { getDashboardUrl, getPublicDashboardUrl } from "../config.js";
 import { getVisibleTimetableDayKeys } from "./timetableVisibility.js";
 import { renderTimetablePng } from "./timetableImage.js";
 import { dayKeyInTimezone, getWeekDayKeys, getWeekMondayKey } from "./timetableService.js";
@@ -65,15 +65,16 @@ function buildDayButtons(
 
   const visibleDays = visibleKeys.map((dayKey) => dayButtons[dayKeys.indexOf(dayKey)]!);
 
+  const publicDashboardUrl = getPublicDashboardUrl();
   const linkButtons = [
     new ButtonBuilder()
-      .setCustomId("timetable:full")
       .setLabel("Volledig Rooster")
-      .setStyle(ButtonStyle.Secondary),
+      .setStyle(ButtonStyle.Link)
+      .setURL(`${publicDashboardUrl}/timetable`),
     new ButtonBuilder()
-      .setCustomId("timetable:settings")
       .setLabel("Instellingen")
-      .setStyle(ButtonStyle.Secondary),
+      .setStyle(ButtonStyle.Link)
+      .setURL(`${publicDashboardUrl}/settings`),
   ];
 
   return [...chunkButtons(visibleDays), ...chunkButtons(linkButtons)];

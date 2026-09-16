@@ -1,7 +1,27 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { ButtonStyle } from "discord.js";
 import { serializeEventForApi } from "./serializeEvent.js";
-import { makeEvent } from "./timetableTestFixtures.js";
+import { makeEvent, makeTimetable } from "./timetableTestFixtures.js";
+import { assembleTimetableView } from "./timetableViews.js";
+
+describe("timetable dashboard links", () => {
+  it("renders direct Discord link buttons without interaction custom ids", () => {
+    const timetable = makeTimetable([makeEvent()]);
+    const view = assembleTimetableView(timetable, "2026-08-17", Buffer.from("png"));
+    const buttons = view.components.flatMap((row) => row.components);
+    const full = buttons.find((button) => "label" in button && button.label === "Volledig Rooster");
+    const settings = buttons.find((button) => "label" in button && button.label === "Instellingen");
+
+    assert.equal(full?.style, ButtonStyle.Link);
+    assert.match(("url" in (full ?? {}) ? full.url : "") ?? "", /\/timetable$/);
+    assert.equal("custom_id" in (full ?? {}), false);
+
+    assert.equal(settings?.style, ButtonStyle.Link);
+    assert.match(("url" in (settings ?? {}) ? settings.url : "") ?? "", /\/settings$/);
+    assert.equal("custom_id" in (settings ?? {}), false);
+  });
+});
 
 describe("serializeEventForApi location privacy", () => {
   const ics = makeEvent({
