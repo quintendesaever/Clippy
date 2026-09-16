@@ -109,7 +109,7 @@ a:hover {
 .timetablePage {
   --timeline-row-height: calc(64px * var(--tt-font-scale, 1));
   --header-height: calc(52px * var(--tt-font-scale, 1));
-  --week-grid-header-height: calc(52px * var(--tt-font-scale, 1));
+  --week-grid-header-height: calc(64px * var(--tt-font-scale, 1));
   --timeline-day-gap: calc(16px * var(--tt-font-scale, 1));
   --timeline-day-padding-y: calc(6px * var(--tt-font-scale, 1));
   --avatar-size: calc(36px * var(--tt-font-scale, 1));
