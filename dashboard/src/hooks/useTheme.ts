@@ -16,7 +16,7 @@ export type ThemePalette = "modern" | "classic";
 const APPEARANCE_KEY = "clippy.appearance";
 const LEGACY_MODE_KEY = "clippy.theme";
 const LEGACY_PALETTE_KEY = "clippy.themePalette";
-const DEFAULT_APPEARANCE: Appearance = "modern";
+const DEFAULT_APPEARANCE: Appearance = "classic";
 const APPEARANCES: readonly Appearance[] = ["modern", "classic", "light"];
 
 function isAppearance(value: string | null): value is Appearance {

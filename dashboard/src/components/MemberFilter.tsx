@@ -53,6 +53,7 @@ export default function MemberFilter({
           type="button"
           className={`memberChip ${selected.has(member.userId) ? "memberChipSelected" : ""}`}
           onClick={() => onToggle(member.userId)}
+          aria-pressed={selected.has(member.userId)}
         >
           <Avatar userId={member.userId} avatarHash={member.avatarHash} alt={member.label} />
           {member.label}
