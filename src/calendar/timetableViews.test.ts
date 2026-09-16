@@ -3,10 +3,12 @@ import { describe, it } from "node:test";
 import { ButtonStyle } from "discord.js";
 import { serializeEventForApi } from "./serializeEvent.js";
 import { makeEvent, makeTimetable } from "./timetableTestFixtures.js";
-import { assembleTimetableView } from "./timetableViews.js";
 
 describe("timetable dashboard links", () => {
-  it("renders direct Discord link buttons without interaction custom ids", () => {
+  it("renders direct Discord link buttons without interaction custom ids", async () => {
+    process.env.SUPABASE_URL ??= "https://example.supabase.co";
+    process.env.SUPABASE_ANON_KEY ??= "test-key";
+    const { assembleTimetableView } = await import("./timetableViews.js");
     const timetable = makeTimetable([makeEvent()]);
     const view = assembleTimetableView(timetable, "2026-08-17", Buffer.from("png"));
     const buttons = view.components.flatMap((row) => row.components);
