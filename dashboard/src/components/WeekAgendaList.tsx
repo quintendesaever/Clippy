@@ -137,7 +137,12 @@ export default function WeekAgendaList({
                     style={accent}
                     onClick={() => onEventClick(item.event)}
                   >
-                    <AvatarStack userIds={item.userIds} avatarByUser={avatarByUser} size="sm" />
+                    <AvatarStack
+                      userIds={item.userIds}
+                      avatarByUser={avatarByUser}
+                      accentByUser={showMemberColors ? colorByUser : undefined}
+                      size="sm"
+                    />
                     <span className="agendaCardText">
                       <span className="agendaCardTitle">{item.title}</span>
                       <span className="agendaCardTime">{item.timeLabel}</span>

@@ -53,24 +53,11 @@ export function useMemberColors(): MemberColorsContextValue {
   return ctx;
 }
 
-/** Single member: solid accent. Multiple: equal segments along the card's top edge. */
+/** Use the first member color as a soft card tint; avatars identify merged members. */
 export function memberAccentStyle(colors: string[]): Record<string, string> | undefined {
   const unique = [...new Set(colors.filter(isCssHexColor))];
   if (unique.length === 0) return undefined;
-  if (unique.length === 1) {
-    return {
-      "--member-color": unique[0]!,
-      "--member-strip": unique[0]!,
-    };
-  }
-  const step = 100 / unique.length;
-  const stops = unique
-    .map((color, index) => `${color} ${index * step}% ${(index + 1) * step}%`)
-    .join(", ");
-  return {
-    "--member-color": unique[0]!,
-    "--member-strip": `linear-gradient(90deg, ${stops})`,
-  };
+  return { "--member-color": unique[0]! };
 }
 
 const HEX_COLOR_RE = /^#[0-9a-f]{6}$/i;
@@ -107,7 +94,7 @@ export function buildMemberColorMap(userIds: Iterable<string>): Map<string, stri
   return new Map(
     ids.map((userId, index) => [
       userId,
-      hslToHex((225 + index * 137.508) % 360, 72, 58),
+      hslToHex((225 + index * 137.508) % 360, 42, 58),
     ])
   );
 }

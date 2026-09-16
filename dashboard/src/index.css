@@ -1213,6 +1213,10 @@ select.formSelect {
   margin-left: 0;
 }
 
+.avatarAccentRing {
+  box-shadow: 0 0 0 2px var(--avatar-accent);
+}
+
 /* Week timeline grid */
 .weekTimelineGridWrap {
   overflow: hidden;
@@ -1472,38 +1476,12 @@ select.formSelect {
 .eventCardMemberColors {
   background: color-mix(in srgb, var(--member-color) 16%, var(--color-card));
   border-color: color-mix(in srgb, var(--member-color) 35%, var(--color-border));
-  padding-top: 4px;
-}
-
-.eventCardMemberColors::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 4px;
-  background: var(--member-strip, var(--member-color));
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
-  pointer-events: none;
 }
 
 .agendaCardMemberColors {
   position: relative;
   background: color-mix(in srgb, var(--member-color) 14%, var(--color-card));
   border-color: color-mix(in srgb, var(--member-color) 35%, var(--color-border));
-  padding-top: calc(0.65rem + 4px);
-}
-
-.agendaCardMemberColors::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 4px;
-  background: var(--member-strip, var(--member-color));
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
-  pointer-events: none;
 }
 
 .settingsActions {
