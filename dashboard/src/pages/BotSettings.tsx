@@ -47,16 +47,26 @@ export default function BotSettings({ user }: { user: DiscordUser }) {
   const [loading, setLoading] = useState(true);
   const [savingTimezone, setSavingTimezone] = useState(false);
   const [savingF1, setSavingF1] = useState(false);
+  const [savingLogging, setSavingLogging] = useState(false);
   const [timezoneError, setTimezoneError] = useState<string | null>(null);
   const [f1Error, setF1Error] = useState<string | null>(null);
+  const [loggingError, setLoggingError] = useState<string | null>(null);
   const [timezoneMessage, setTimezoneMessage] = useState<string | null>(null);
   const [f1Message, setF1Message] = useState<string | null>(null);
+  const [loggingMessage, setLoggingMessage] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [timezone, setTimezone] = useState("Europe/Brussels");
   const [enabled, setEnabled] = useState(false);
   const [channelId, setChannelId] = useState("");
   const [roleId, setRoleId] = useState("");
   const [predictionUrl, setPredictionUrl] = useState("");
+  const [loggingEnabled, setLoggingEnabled] = useState(false);
+  const [loggingChannelId, setLoggingChannelId] = useState("");
+  const [logMembers, setLogMembers] = useState(true);
+  const [logRoles, setLogRoles] = useState(true);
+  const [logChannels, setLogChannels] = useState(true);
+  const [logBotConfig, setLogBotConfig] = useState(true);
+  const [logCommandErrors, setLogCommandErrors] = useState(true);
   const [channels, setChannels] = useState<BotSettingsPayload["channels"]>([]);
   const [roles, setRoles] = useState<BotSettingsPayload["roles"]>([]);
 
@@ -66,6 +76,13 @@ export default function BotSettings({ user }: { user: DiscordUser }) {
     setChannelId(payload.f1.channelId ?? "");
     setRoleId(payload.f1.roleId ?? "");
     setPredictionUrl(payload.f1.predictionUrl ?? "");
+    setLoggingEnabled(payload.logging.enabled);
+    setLoggingChannelId(payload.logging.channelId ?? "");
+    setLogMembers(payload.logging.logMembers);
+    setLogRoles(payload.logging.logRoles);
+    setLogChannels(payload.logging.logChannels);
+    setLogBotConfig(payload.logging.logBotConfig);
+    setLogCommandErrors(payload.logging.logCommandErrors);
     setChannels(payload.channels);
     setRoles(payload.roles);
   }
@@ -128,6 +145,34 @@ export default function BotSettings({ user }: { user: DiscordUser }) {
       setF1Error(err instanceof Error ? err.message : "Opslaan mislukt");
     } finally {
       setSavingF1(false);
+    }
+  }
+
+  async function handleSaveLogging(nextEnabled?: boolean) {
+    setSavingLogging(true);
+    setLoggingError(null);
+    setLoggingMessage(null);
+    const enabledValue = nextEnabled ?? loggingEnabled;
+    if (nextEnabled !== undefined) setLoggingEnabled(nextEnabled);
+    try {
+      const payload = await saveBotSettings({
+        logging: {
+          enabled: enabledValue,
+          channelId: loggingChannelId || null,
+          logMembers,
+          logRoles,
+          logChannels,
+          logBotConfig,
+          logCommandErrors,
+        },
+      });
+      applyPayload(payload);
+      setLoggingMessage("Opgeslagen.");
+    } catch (err) {
+      if (nextEnabled !== undefined) setLoggingEnabled(!nextEnabled);
+      setLoggingError(err instanceof Error ? err.message : "Opslaan mislukt");
+    } finally {
+      setSavingLogging(false);
     }
   }
 
@@ -259,6 +304,95 @@ export default function BotSettings({ user }: { user: DiscordUser }) {
                 <div className="settingsActions">
                   <Button onClick={() => void handleSaveF1()} disabled={savingF1}>
                     {savingF1 ? "Opslaan…" : "Opslaan"}
+                  </Button>
+                </div>
+              </PagePanel>
+
+              <PagePanel>
+                <h2 className="cardTitle">Logging</h2>
+                <p className="cardHint">
+                  Stuur beknopte embeds naar een Discord-kanaal bij joins, rollen, kanalen,
+                  botwijzigingen en commandofouten.
+                </p>
+
+                <PreferenceToggle
+                  label="Logging ingeschakeld"
+                  hint="Zet uit om auditberichten te pauzeren."
+                  checked={loggingEnabled}
+                  disabled={savingLogging}
+                  onChange={(next) => {
+                    void handleSaveLogging(next);
+                  }}
+                />
+
+                <div className="botSettingsFields">
+                  <label className="botSettingsField" htmlFor="bot-log-channel">
+                    <span>Logkanaal</span>
+                    <select
+                      id="bot-log-channel"
+                      className="formInput formSelect"
+                      value={loggingChannelId}
+                      onChange={(e) => setLoggingChannelId(e.target.value)}
+                      disabled={savingLogging}
+                    >
+                      <option value="">— Kies een kanaal —</option>
+                      {channels.map((channel) => (
+                        <option key={channel.id} value={channel.id}>
+                          #{channel.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                <PreferenceToggle
+                  label="Leden"
+                  hint="Join en leave."
+                  checked={logMembers}
+                  disabled={savingLogging}
+                  onChange={setLogMembers}
+                />
+                <PreferenceToggle
+                  label="Rollen"
+                  hint="Aanmaken, relevante wijzigingen en verwijderen."
+                  checked={logRoles}
+                  disabled={savingLogging}
+                  onChange={setLogRoles}
+                />
+                <PreferenceToggle
+                  label="Kanalen"
+                  hint="Tekst, aankondiging en categorie. Geen voice."
+                  checked={logChannels}
+                  disabled={savingLogging}
+                  onChange={setLogChannels}
+                />
+                <PreferenceToggle
+                  label="Bot-instellingen"
+                  hint="Wijzigingen via deze pagina (tijdzone, F1, logging)."
+                  checked={logBotConfig}
+                  disabled={savingLogging}
+                  onChange={setLogBotConfig}
+                />
+                <PreferenceToggle
+                  label="Commandofouten"
+                  hint="Mislukte slashcommands. Stack traces blijven op de console."
+                  checked={logCommandErrors}
+                  disabled={savingLogging}
+                  onChange={setLogCommandErrors}
+                />
+
+                <p className="settingsStateLine" aria-live="polite">
+                  Status:{" "}
+                  <span className={loggingEnabled ? "settingsStateOn" : "settingsStateOff"}>
+                    {loggingEnabled ? "Ingeschakeld" : "Uitgeschakeld"}
+                  </span>
+                  {savingLogging ? " · Opslaan…" : ""}
+                </p>
+                {loggingError && <p className="errorMsg">{loggingError}</p>}
+                {loggingMessage && <p className="successMsg">{loggingMessage}</p>}
+                <div className="settingsActions">
+                  <Button onClick={() => void handleSaveLogging()} disabled={savingLogging}>
+                    {savingLogging ? "Opslaan…" : "Opslaan"}
                   </Button>
                 </div>
               </PagePanel>
