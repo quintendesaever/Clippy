@@ -28,7 +28,8 @@ describe("parseHhmm", () => {
 describe("opening and closing minutes", () => {
   it("requires close after open within the day", () => {
     assert.equal(isValidOpenCloseMinutes(480, 1320), true);
-    assert.equal(isValidOpenCloseMinutes(0, 1440), true);
+    assert.equal(isValidOpenCloseMinutes(0, 1439), true);
+    assert.equal(isValidOpenCloseMinutes(0, 1440), false);
     assert.equal(isValidOpenCloseMinutes(480, 480), false);
     assert.equal(isValidOpenCloseMinutes(1320, 480), false);
     assert.equal(isValidOpenCloseMinutes(-1, 600), false);

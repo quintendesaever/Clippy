@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { buildLibraryDescription } from "./view.js";
+import { buildDisabledLibraryPayload, buildLibraryDescription } from "./view.js";
 
 describe("buildLibraryDescription", () => {
   it("lists visits by start time and shows an empty state", () => {
@@ -40,5 +40,13 @@ describe("buildLibraryDescription", () => {
     assert.ok(aliceAt >= 0 && bobAt > aliceAt);
     assert.match(filled, /09:00–12:00/);
     assert.match(filled, /13:00–15:00/);
+  });
+});
+
+describe("buildDisabledLibraryPayload", () => {
+  it("has no action row so plan/clear cannot be used", () => {
+    const disabled = buildDisabledLibraryPayload();
+    assert.equal(disabled.components.length, 0);
+    assert.match(disabled.embeds[0]?.data.description ?? "", /disabled/i);
   });
 });

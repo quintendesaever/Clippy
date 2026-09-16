@@ -297,9 +297,8 @@ export async function applyBotSettingsPatch(
 
   if (
     client &&
-    (patch.library !== undefined || patch.timezone !== undefined) &&
-    settings.library.enabled &&
-    settings.library.channelId
+    (patch.library !== undefined ||
+      (patch.timezone !== undefined && settings.library.enabled && settings.library.channelId))
   ) {
     try {
       await reconcileLibraryPanel(client, guildId);

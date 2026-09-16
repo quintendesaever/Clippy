@@ -135,6 +135,14 @@ export function buildLibraryPayload(input: {
   return { embeds: [embed], components };
 }
 
+export function buildDisabledLibraryPayload(): LibraryMessagePayload {
+  const embed = new EmbedBuilder()
+    .setColor(LIBRARY_EMBED_COLOR)
+    .setTitle("📚 Library")
+    .setDescription("Library scheduling is disabled.");
+  return { embeds: [embed], components: [] };
+}
+
 export function isLibraryButtonId(customId: string): boolean {
   return customId === LIBRARY_PLAN_BUTTON_ID || customId === LIBRARY_CLEAR_BUTTON_ID;
 }

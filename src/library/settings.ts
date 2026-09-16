@@ -6,6 +6,7 @@ import { emptyLibrarySettings } from "./settingsPatch.js";
 
 export {
   emptyLibrarySettings,
+  isLibraryScheduleActive,
   resolveLibrarySettingsPatch,
   toPublicLibrarySettings,
 } from "./settingsPatch.js";

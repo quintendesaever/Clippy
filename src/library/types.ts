@@ -14,6 +14,7 @@ export type LibrarySettings = {
   open_minutes: number;
   close_minutes: number;
   message_id: string | null;
+  message_channel_id: string | null;
   schedule_day_key: string | null;
   last_cleanup_day_key: string | null;
   created_at?: string;

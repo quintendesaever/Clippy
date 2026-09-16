@@ -10,6 +10,8 @@ export type VisitTimeError =
   | "end_not_after_start"
   | "outside_hours";
 
+export const MAX_CLOSE_MINUTES = 1439;
+
 export function parseHhmm(value: string): number | null {
   const match = HHMM.exec(value.trim());
   if (!match) return null;
@@ -17,7 +19,7 @@ export function parseHhmm(value: string): number | null {
 }
 
 export function formatMinutesAsHhmm(minutes: number): string {
-  const clamped = Math.max(0, Math.min(1440, Math.trunc(minutes)));
+  const clamped = Math.max(0, Math.min(MAX_CLOSE_MINUTES, Math.trunc(minutes)));
   const hours = Math.floor(clamped / 60);
   const mins = clamped % 60;
   return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
@@ -28,7 +30,7 @@ export function isValidOpenCloseMinutes(openMinutes: number, closeMinutes: numbe
     Number.isInteger(openMinutes) &&
     Number.isInteger(closeMinutes) &&
     openMinutes >= 0 &&
-    closeMinutes <= 1440 &&
+    closeMinutes <= MAX_CLOSE_MINUTES &&
     closeMinutes > openMinutes
   );
 }

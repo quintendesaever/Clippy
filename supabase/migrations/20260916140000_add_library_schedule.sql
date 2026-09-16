@@ -8,12 +8,13 @@ CREATE TABLE IF NOT EXISTS public.library_settings (
   open_minutes integer NOT NULL DEFAULT 480,
   close_minutes integer NOT NULL DEFAULT 1320,
   message_id text,
+  message_channel_id text,
   schedule_day_key text,
   last_cleanup_day_key text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT library_settings_hours_check
-    CHECK (open_minutes >= 0 AND close_minutes <= 1440 AND close_minutes > open_minutes)
+    CHECK (open_minutes >= 0 AND close_minutes <= 1439 AND close_minutes > open_minutes)
 );
 
 DO $$
@@ -21,6 +22,18 @@ BEGIN
   ALTER TABLE public.library_settings
     ADD CONSTRAINT library_settings_guild_channel_fkey
     FOREIGN KEY (guild_id, channel_id)
+    REFERENCES public.channels (guild_id, channel_id)
+    ON DELETE SET NULL;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END
+$$;
+
+DO $$
+BEGIN
+  ALTER TABLE public.library_settings
+    ADD CONSTRAINT library_settings_message_channel_fkey
+    FOREIGN KEY (guild_id, message_channel_id)
     REFERENCES public.channels (guild_id, channel_id)
     ON DELETE SET NULL;
 EXCEPTION

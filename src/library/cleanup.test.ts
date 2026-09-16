@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  applyRolloverCleanupMarker,
   cleanupLibraryChannel,
   selectLibraryCleanupDeletes,
   type CleanupDiscord,
@@ -110,5 +111,57 @@ describe("cleanupLibraryChannel", () => {
     assert.ok(deleted.includes("chat-2"));
     assert.ok(!deleted.includes("schedule"));
     assert.ok(!deleted.includes("timetable"));
+  });
+});
+
+describe("applyRolloverCleanupMarker", () => {
+  it("does not advance the marker when cleanup throws", async () => {
+    await assert.rejects(
+      () =>
+        applyRolloverCleanupMarker({
+          lastCleanupDayKey: "2026-09-15",
+          dayKey: "2026-09-16",
+          async runCleanup() {
+            throw new Error("bulk delete failed");
+          },
+        }),
+      /bulk delete failed/
+    );
+  });
+
+  it("advances after a successful cleanup", async () => {
+    const result = await applyRolloverCleanupMarker({
+      lastCleanupDayKey: "2026-09-15",
+      dayKey: "2026-09-16",
+      async runCleanup() {
+        return "ok";
+      },
+    });
+    assert.deepEqual(result, { persistDayKey: true, ran: true });
+  });
+
+  it("advances after an intentional permission skip", async () => {
+    const result = await applyRolloverCleanupMarker({
+      lastCleanupDayKey: "2026-09-15",
+      dayKey: "2026-09-16",
+      async runCleanup() {
+        return "skipped";
+      },
+    });
+    assert.deepEqual(result, { persistDayKey: true, ran: true });
+  });
+
+  it("sets the marker on first run without cleaning", async () => {
+    let ran = false;
+    const result = await applyRolloverCleanupMarker({
+      lastCleanupDayKey: null,
+      dayKey: "2026-09-16",
+      async runCleanup() {
+        ran = true;
+        return "ok";
+      },
+    });
+    assert.equal(ran, false);
+    assert.deepEqual(result, { persistDayKey: true, ran: false });
   });
 });

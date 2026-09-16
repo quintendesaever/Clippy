@@ -94,3 +94,16 @@ export async function cleanupLibraryChannel(input: {
 
   return { deleted, skippedOld, skipped: false };
 }
+
+export async function applyRolloverCleanupMarker(input: {
+  lastCleanupDayKey: string | null;
+  dayKey: string;
+  runCleanup: () => Promise<"ok" | "skipped">;
+}): Promise<{ persistDayKey: boolean; ran: boolean }> {
+  const isRollover = input.lastCleanupDayKey != null && input.lastCleanupDayKey !== input.dayKey;
+  if (!isRollover) {
+    return { persistDayKey: input.lastCleanupDayKey !== input.dayKey, ran: false };
+  }
+  await input.runCleanup();
+  return { persistDayKey: true, ran: true };
+}

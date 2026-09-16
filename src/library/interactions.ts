@@ -5,7 +5,7 @@ import {
   type ModalSubmitInteraction,
 } from "discord.js";
 import { getGuildTimezone } from "../stats/helpers.js";
-import { getLibrarySettings } from "./settings.js";
+import { getLibrarySettings, isLibraryScheduleActive } from "./settings.js";
 import { reconcileLibraryPanelLocked, withGuildLibraryLock } from "./panel.js";
 import {
   formatMinutesAsHhmm,
@@ -39,6 +39,14 @@ export async function handleLibraryButton(interaction: ButtonInteraction): Promi
       });
       return true;
     }
+    const settings = await getLibrarySettings(interaction.guildId);
+    if (!isLibraryScheduleActive(settings)) {
+      await interaction.reply({
+        content: "Library scheduling is not enabled.",
+        flags: MessageFlags.Ephemeral,
+      });
+      return true;
+    }
     await interaction.showModal(buildVisitModal());
     return true;
   }
@@ -56,6 +64,11 @@ export async function handleLibraryButton(interaction: ButtonInteraction): Promi
 
   try {
     await withGuildLibraryLock(guildId, async () => {
+      const settings = await getLibrarySettings(guildId);
+      if (!isLibraryScheduleActive(settings)) {
+        await interaction.editReply("Library scheduling is not enabled.");
+        return;
+      }
       const timezone = await getGuildTimezone(guildId);
       const dayKey = localDayKey(new Date(), timezone);
       const cleared = await clearCallerVisit({
@@ -95,7 +108,7 @@ export async function handleLibraryModal(interaction: ModalSubmitInteraction): P
   try {
     await withGuildLibraryLock(guildId, async () => {
       const settings = await getLibrarySettings(guildId);
-      if (!settings?.enabled || !settings.channel_id) {
+      if (!isLibraryScheduleActive(settings)) {
         await interaction.editReply("Library scheduling is not enabled.");
         return;
       }

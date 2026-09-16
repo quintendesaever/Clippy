@@ -15,6 +15,7 @@ export function emptyLibrarySettings(guildId: string): LibrarySettings {
     open_minutes: DEFAULT_OPEN_MINUTES,
     close_minutes: DEFAULT_CLOSE_MINUTES,
     message_id: null,
+    message_channel_id: null,
     schedule_day_key: null,
     last_cleanup_day_key: null,
   };
@@ -63,4 +64,10 @@ export function resolveLibrarySettingsPatch(input: {
   }
 
   return { ok: true, next };
+}
+
+export function isLibraryScheduleActive<T extends { enabled: boolean; channel_id: string | null }>(
+  settings: T | null
+): settings is T & { enabled: true; channel_id: string } {
+  return Boolean(settings?.enabled && settings.channel_id);
 }

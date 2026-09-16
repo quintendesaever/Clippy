@@ -5,6 +5,7 @@ import {
   isLibraryButtonId,
   isLibraryModalId,
 } from "./view.js";
+import { emptyLibrarySettings, isLibraryScheduleActive } from "./settingsPatch.js";
 import {
   LIBRARY_CLEAR_BUTTON_ID,
   LIBRARY_END_FIELD,
@@ -31,5 +32,16 @@ describe("library interaction ids", () => {
       return components.map((field) => ("custom_id" in field ? field.custom_id : null));
     });
     assert.deepEqual(fieldIds, [LIBRARY_START_FIELD, LIBRARY_END_FIELD]);
+  });
+});
+
+describe("disabled library interactions", () => {
+  it("does not treat a disabled schedule as mutable", () => {
+    const disabled = emptyLibrarySettings("g1");
+    disabled.message_id = "m1";
+    disabled.message_channel_id = "c1";
+    assert.equal(isLibraryScheduleActive(disabled), false);
+    const enabled = { ...disabled, enabled: true, channel_id: "c1" };
+    assert.equal(isLibraryScheduleActive(enabled), true);
   });
 });
