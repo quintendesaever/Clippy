@@ -75,6 +75,12 @@ describe("summarizeBotSettingsChanges", () => {
         roleId: null,
         predictionUrl: null,
       },
+      library: {
+        enabled: false,
+        channelId: null,
+        openMinutes: 480,
+        closeMinutes: 1320,
+      },
       logging: {
         enabled: false,
         channelId: null,
@@ -99,6 +105,12 @@ describe("summarizeBotSettingsChanges", () => {
           roleId: "r1",
           predictionUrl: "https://secret.example/predict?token=abc",
         },
+        library: {
+          enabled: true,
+          channelId: "c3",
+          openMinutes: 9 * 60,
+          closeMinutes: 21 * 60,
+        },
         logging: {
           enabled: true,
           channelId: "c2",
@@ -113,6 +125,8 @@ describe("summarizeBotSettingsChanges", () => {
     assert.ok(details.some((line) => line.includes("Timezone")));
     assert.ok(details.some((line) => line.includes("F1 reminders")));
     assert.ok(details.some((line) => line.includes("F1 prediction URL updated")));
+    assert.ok(details.some((line) => line.includes("Library")));
+    assert.ok(details.some((line) => line.includes("09:00–21:00")));
     assert.ok(details.every((line) => !line.includes("secret.example")));
     assert.ok(details.every((line) => !line.includes("token=abc")));
     assert.ok(details.some((line) => line.includes("Audit logging")));

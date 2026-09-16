@@ -344,6 +344,12 @@ export interface BotSettingsPayload {
     roleId: string | null;
     predictionUrl: string | null;
   };
+  library: {
+    enabled: boolean;
+    channelId: string | null;
+    openMinutes: number;
+    closeMinutes: number;
+  };
   logging: BotSettingsLogging;
   channels: BotSettingsOption[];
   roles: BotSettingsOption[];
@@ -356,6 +362,12 @@ export interface BotSettingsPatch {
     channelId?: string | null;
     roleId?: string | null;
     predictionUrl?: string | null;
+  };
+  library?: {
+    enabled?: boolean;
+    channelId?: string | null;
+    openMinutes?: number;
+    closeMinutes?: number;
   };
   logging?: {
     enabled?: boolean;

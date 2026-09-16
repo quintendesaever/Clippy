@@ -26,8 +26,10 @@ import { ensureGuild } from "./stats/helpers.js";
 import { syncGuildMembers, markMemberLeft } from "./stats/members.js";
 import { startF1ReminderJob } from "./f1/reminderJob.js";
 import { startTimetablePanelJob } from "./calendar/timetablePanelJob.js";
+import { startLibraryJob } from "./library/job.js";
 import { handleTimetableButton } from "./calendar/timetableInteractions.js";
 import { handleF1Button } from "./f1/interactions.js";
+import { handleLibraryButton, handleLibraryModal } from "./library/interactions.js";
 import { F1_STATS_CUSTOM_ID_PREFIX, F1_STATS_PREVIEW_CUSTOM_ID } from "./f1/config.js";
 import { recordDiscordAnalyticsEvent } from "./dashboard/analytics/events.js";
 import { deleteMemberCalendar } from "./calendar/memberCalendars.js";
@@ -90,6 +92,7 @@ client.once("clientReady", async () => {
 
   startF1ReminderJob(client);
   startTimetablePanelJob(client);
+  startLibraryJob(client);
 });
 
 client.on("interactionCreate", async (interaction) => {
@@ -144,8 +147,22 @@ client.on("interactionCreate", async (interaction) => {
         }
         return;
       }
+      const handledLibrary = await handleLibraryButton(interaction);
+      if (handledLibrary) return;
     } catch (err) {
       console.error("Error handling button:", err);
+    }
+    return;
+  }
+
+  if (interaction.isModalSubmit()) {
+    try {
+      const handledLibrary = await handleLibraryModal(interaction);
+      if (!handledLibrary) {
+        console.warn(`No handler for modal: ${interaction.customId}`);
+      }
+    } catch (err) {
+      console.error("Error handling modal:", err);
     }
     return;
   }

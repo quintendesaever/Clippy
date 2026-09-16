@@ -9,6 +9,14 @@ import { summarizeBotSettingsChanges } from "../audit/botConfigSummary.js";
 import { logBotConfigChange } from "../audit/events.js";
 import { getAuditLogSettings, upsertAuditLogSettings } from "../audit/settings.js";
 import { emptyAuditLogSettings, type AuditLogSettings } from "../audit/types.js";
+import {
+  getLibrarySettings,
+  resolveLibrarySettingsPatch,
+  toPublicLibrarySettings,
+  upsertLibrarySettings,
+} from "../library/settings.js";
+import { reconcileLibraryPanel } from "../library/panel.js";
+import type { LibraryPublicSettings, LibrarySettingsPatch } from "../library/types.js";
 
 export type BotSettingsChannelOption = { id: string; name: string };
 export type BotSettingsRoleOption = { id: string; name: string };
@@ -31,6 +39,7 @@ export type BotSettingsPayload = {
     roleId: string | null;
     predictionUrl: string | null;
   };
+  library: LibraryPublicSettings;
   logging: BotSettingsLogging;
   channels: BotSettingsChannelOption[];
   roles: BotSettingsRoleOption[];
@@ -44,6 +53,7 @@ export type BotSettingsPatch = {
     roleId?: string | null;
     predictionUrl?: string | null;
   };
+  library?: LibrarySettingsPatch;
   logging?: {
     enabled?: boolean;
     channelId?: string | null;
@@ -119,9 +129,10 @@ export async function loadBotSettingsPayload(
   guildId: string,
   client: Client | null
 ): Promise<BotSettingsPayload> {
-  const [timezone, settings, logging, options] = await Promise.all([
+  const [timezone, settings, library, logging, options] = await Promise.all([
     getGuildTimezone(guildId),
     getF1ReminderSettings(guildId),
+    getLibrarySettings(guildId),
     getAuditLogSettings(guildId),
     listGuildOptions(client, guildId),
   ]);
@@ -134,6 +145,7 @@ export async function loadBotSettingsPayload(
       roleId: settings?.role_id ?? null,
       predictionUrl: settings?.prediction_url ?? null,
     },
+    library: toPublicLibrarySettings(library, guildId),
     logging: loggingFromRow(guildId, logging),
     channels: options.channels,
     roles: options.roles,
@@ -218,6 +230,30 @@ export async function applyBotSettingsPatch(
     }
   }
 
+  if (patch.library) {
+    const { channels } = await listGuildOptions(client, guildId);
+    const channelIds = new Set(channels.map((row) => row.id));
+    const current = toPublicLibrarySettings(await getLibrarySettings(guildId), guildId);
+    const resolved = resolveLibrarySettingsPatch({
+      current,
+      patch: patch.library,
+      validChannelIds: channelIds,
+    });
+    if (!resolved.ok) {
+      return { ok: false, status: 400, error: resolved.error };
+    }
+    const saved = await upsertLibrarySettings({
+      guild_id: guildId,
+      enabled: resolved.next.enabled,
+      channel_id: resolved.next.channelId,
+      open_minutes: resolved.next.openMinutes,
+      close_minutes: resolved.next.closeMinutes,
+    });
+    if (!saved) {
+      return { ok: false, status: 500, error: "Bibliotheekinstellingen opslaan mislukt." };
+    }
+  }
+
   if (patch.logging) {
     const { channels } = await listGuildOptions(client, guildId);
     const channelIds = new Set(channels.map((row) => row.id));
@@ -257,6 +293,21 @@ export async function applyBotSettingsPatch(
       details: changes.join("\n"),
       settings: settingsForBotConfigAudit(previousLogging, nextLogging, guildId),
     }).catch((err) => console.warn("audit: bot config log failed", err));
+  }
+
+  if (
+    client &&
+    (patch.library !== undefined ||
+      (patch.timezone !== undefined && settings.library.enabled && settings.library.channelId))
+  ) {
+    try {
+      await reconcileLibraryPanel(client, guildId);
+    } catch (err) {
+      console.warn(
+        "library: reconcile after settings save failed",
+        err instanceof Error ? err.message : err
+      );
+    }
   }
 
   return { ok: true, settings };
