@@ -9,7 +9,14 @@ import type {
   RoleInspection,
 } from "./types.js";
 
-const MAX_ROLE_OVERRIDES = 12;
+/** Slash embeds cap channel overrides; dashboard passes `null` for the full list. */
+export const DEFAULT_ROLE_OVERRIDE_LIMIT = 12;
+
+export type InspectRoleOptions = {
+  policy?: ServerPolicy;
+  /** Number of channel overrides to keep. `null` returns every relevant override. */
+  overrideLimit?: number | null;
+};
 
 function roleName(guild: GuildSnapshot, id: string): string {
   if (id === guild.id) return "@everyone";
@@ -19,8 +26,13 @@ function roleName(guild: GuildSnapshot, id: string): string {
 export function inspectRole(
   guild: GuildSnapshot,
   roleId: string,
-  policy: ServerPolicy = CLIPPY_SERVER_POLICY
+  policyOrOptions: ServerPolicy | InspectRoleOptions = CLIPPY_SERVER_POLICY
 ): RoleInspection | null {
+  const options: InspectRoleOptions =
+    policyOrOptions && "staffRoleNames" in policyOrOptions
+      ? { policy: policyOrOptions }
+      : (policyOrOptions as InspectRoleOptions);
+  const policy = options.policy ?? CLIPPY_SERVER_POLICY;
   const role = guild.roles.find((entry) => entry.id === roleId);
   if (!role) return null;
 
@@ -50,7 +62,9 @@ export function inspectRole(
     });
   }
   overrides.sort((a, b) => a.channelName.localeCompare(b.channelName));
-  const omittedOverrides = Math.max(0, overrides.length - MAX_ROLE_OVERRIDES);
+  const cap =
+    options.overrideLimit === null ? overrides.length : (options.overrideLimit ?? DEFAULT_ROLE_OVERRIDE_LIMIT);
+  const omittedOverrides = Math.max(0, overrides.length - cap);
 
   return {
     role,
@@ -63,7 +77,7 @@ export function inspectRole(
     pinMessages: hasExplicit(role.permissions, PermissionFlagsBits.PinMessages),
     pinExpected,
     manageable: role.editable,
-    channelOverrides: overrides.slice(0, MAX_ROLE_OVERRIDES),
+    channelOverrides: overrides.slice(0, cap),
     omittedOverrides,
     notes,
   };

@@ -11,6 +11,10 @@ import type {
   CalendarResponse,
   CalendarsResponse,
   MeResponse,
+  PermissionChannelInspectionDto,
+  PermissionMemberInspectionDto,
+  PermissionRoleInspectionDto,
+  PermissionsOverviewDto,
   TimetableResponse,
 } from "./types";
 
@@ -89,6 +93,30 @@ export async function getAdminStatus(): Promise<AdminStatusReport> {
 
 export async function getBotSettings(): Promise<BotSettingsPayload> {
   return fetchApi<BotSettingsPayload>("/api/admin/bot-settings");
+}
+
+export async function getPermissionsOverview(): Promise<PermissionsOverviewDto> {
+  return fetchApi<PermissionsOverviewDto>("/api/admin/permissions");
+}
+
+export async function getPermissionRole(roleId: string): Promise<PermissionRoleInspectionDto> {
+  return fetchApi<PermissionRoleInspectionDto>(`/api/admin/permissions/roles/${encodeURIComponent(roleId)}`);
+}
+
+export async function getPermissionChannel(channelId: string): Promise<PermissionChannelInspectionDto> {
+  return fetchApi<PermissionChannelInspectionDto>(
+    `/api/admin/permissions/channels/${encodeURIComponent(channelId)}`
+  );
+}
+
+export async function getPermissionMember(
+  userId: string,
+  channelId: string
+): Promise<PermissionMemberInspectionDto> {
+  const params = new URLSearchParams({ channelId });
+  return fetchApi<PermissionMemberInspectionDto>(
+    `/api/admin/permissions/members/${encodeURIComponent(userId)}?${params}`
+  );
 }
 
 export async function saveBotSettings(patch: BotSettingsPatch): Promise<BotSettingsPayload> {

@@ -43,6 +43,18 @@ function BotIcon() {
   );
 }
 
+function PermissionsIcon() {
+  return (
+    <svg className="sidebarNavIcon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path
+        fillRule="evenodd"
+        d="M10 1.5a4.5 4.5 0 0 0-4.5 4.5v1.25H5A1.75 1.75 0 0 0 3.25 9v6.5A1.75 1.75 0 0 0 5 17.25h10A1.75 1.75 0 0 0 16.75 15.5V9A1.75 1.75 0 0 0 15 7.25h-.5V6A4.5 4.5 0 0 0 10 1.5Zm3 5.75V6a3 3 0 1 0-6 0v1.25h6Z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
 function DiscordIcon() {
   return (
     <svg className="sidebarNavIcon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -204,6 +216,14 @@ export default function Sidebar({ user }: { user: DiscordUser }) {
                 <BotIcon />
                 <span className="sidebarLinkLabel">Bot</span>
               </Link>
+              <Link
+                to="/admin/permissions"
+                className={navLinkClass(pathname, "/admin/permissions")}
+                onClick={() => setAdminMenuOpen(false)}
+              >
+                <PermissionsIcon />
+                <span className="sidebarLinkLabel">Permissies</span>
+              </Link>
             </div>
           </div>,
           document.body
@@ -259,6 +279,10 @@ export default function Sidebar({ user }: { user: DiscordUser }) {
               <Link to="/admin/bot" className={navLinkClass(pathname, "/admin/bot")}>
                 <BotIcon />
                 <span className="sidebarLinkLabel">Bot</span>
+              </Link>
+              <Link to="/admin/permissions" className={navLinkClass(pathname, "/admin/permissions")}>
+                <PermissionsIcon />
+                <span className="sidebarLinkLabel">Permissies</span>
               </Link>
             </div>
 

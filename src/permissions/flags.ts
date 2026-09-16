@@ -26,26 +26,31 @@ export const OVERWRITE_COMPARE_PERMISSIONS = [
   ...HIGH_RISK_PERMISSIONS,
 ] as const;
 
-const LABELS: { bit: bigint; label: string }[] = [
-  { bit: PermissionFlagsBits.Administrator, label: "Administrator" },
-  { bit: PermissionFlagsBits.ManageGuild, label: "Manage Server" },
-  { bit: PermissionFlagsBits.ManageRoles, label: "Manage Roles" },
-  { bit: PermissionFlagsBits.ManageChannels, label: "Manage Channels" },
-  { bit: PermissionFlagsBits.ManageMessages, label: "Manage Messages" },
-  { bit: PermissionFlagsBits.MentionEveryone, label: "Mention Everyone" },
-  { bit: PermissionFlagsBits.KickMembers, label: "Kick Members" },
-  { bit: PermissionFlagsBits.BanMembers, label: "Ban Members" },
-  { bit: PermissionFlagsBits.ModerateMembers, label: "Timeout Members" },
-  { bit: PermissionFlagsBits.PinMessages, label: "Pin Messages" },
-  { bit: PermissionFlagsBits.ViewChannel, label: "View Channel" },
-  { bit: PermissionFlagsBits.SendMessages, label: "Send Messages" },
-  { bit: PermissionFlagsBits.ReadMessageHistory, label: "Read Message History" },
+const PERMISSION_META: { bit: bigint; key: string; label: string }[] = [
+  { bit: PermissionFlagsBits.Administrator, key: "Administrator", label: "Administrator" },
+  { bit: PermissionFlagsBits.ManageGuild, key: "ManageGuild", label: "Manage Server" },
+  { bit: PermissionFlagsBits.ManageRoles, key: "ManageRoles", label: "Manage Roles" },
+  { bit: PermissionFlagsBits.ManageChannels, key: "ManageChannels", label: "Manage Channels" },
+  { bit: PermissionFlagsBits.ManageMessages, key: "ManageMessages", label: "Manage Messages" },
+  { bit: PermissionFlagsBits.MentionEveryone, key: "MentionEveryone", label: "Mention Everyone" },
+  { bit: PermissionFlagsBits.KickMembers, key: "KickMembers", label: "Kick Members" },
+  { bit: PermissionFlagsBits.BanMembers, key: "BanMembers", label: "Ban Members" },
+  { bit: PermissionFlagsBits.ModerateMembers, key: "ModerateMembers", label: "Timeout Members" },
+  { bit: PermissionFlagsBits.PinMessages, key: "PinMessages", label: "Pin Messages" },
+  { bit: PermissionFlagsBits.ViewChannel, key: "ViewChannel", label: "View Channel" },
+  { bit: PermissionFlagsBits.SendMessages, key: "SendMessages", label: "Send Messages" },
+  { bit: PermissionFlagsBits.ReadMessageHistory, key: "ReadMessageHistory", label: "Read Message History" },
 ];
 
-const LABEL_BY_BIT = new Map(LABELS.map((entry) => [entry.bit, entry.label]));
+const LABEL_BY_BIT = new Map(PERMISSION_META.map((entry) => [entry.bit, entry.label]));
+const KEY_BY_BIT = new Map(PERMISSION_META.map((entry) => [entry.bit, entry.key]));
 
 export function permissionLabel(bit: bigint): string {
   return LABEL_BY_BIT.get(bit) ?? `Unknown (${bit.toString()})`;
+}
+
+export function permissionKey(bit: bigint): string {
+  return KEY_BY_BIT.get(bit) ?? `Unknown_${bit.toString()}`;
 }
 
 export function hasExplicit(field: bigint, bit: bigint): boolean {
