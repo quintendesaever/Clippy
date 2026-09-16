@@ -188,6 +188,32 @@ describe("permission DTOs", () => {
     assert.ok(customDto.overwrites.some((entry) => entry.source === "explicit" && entry.type === "role"));
     assert.ok(customDto.overwrites.some((entry) => entry.source === "explicit" && entry.type === "member"));
     assert.ok(customDto.overwrites.some((entry) => entry.source === "category"));
+    assert.equal(customDto.roleEffectiveOmitted, 0);
+  });
+
+  it("serializes an omitted role-effective count without bigint", () => {
+    const snapshot = guild({
+      channels: [channel({ id: "general", name: "general" })],
+    });
+    const inspection = inspectChannel(snapshot, "general");
+    assert.ok(inspection);
+    const dto = toChannelInspectionDto(snapshot, inspection!, {
+      roles: [
+        {
+          roleId: GUILD_ID,
+          roleName: "@everyone",
+          kind: "everyone",
+          computed: true,
+          effective: [{ bit: PermissionFlagsBits.ViewChannel, allowed: true }],
+        },
+      ],
+      omittedCount: 8,
+    });
+    assertJsonSafe(dto);
+    JSON.stringify(dto);
+    assert.equal(dto.roleEffectiveOmitted, 8);
+    assert.equal(dto.roleEffective.length, 1);
+    assert.equal(dto.roleEffective[0]?.permissions[0]?.key, "ViewChannel");
   });
 
   it("serializes actual effective member permissions and owner/admin/timeout notes", () => {

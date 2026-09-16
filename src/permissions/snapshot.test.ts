@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { ChannelType, PermissionFlagsBits, type Guild } from "discord.js";
-import { inspectRole } from "./inspect.js";
+import { inspectChannel, inspectRole } from "./inspect.js";
+import { toChannelInspectionDto } from "./dto.js";
 import {
   buildGuildSnapshot,
   inspectGuildMember,
+  inspectRoleEffectiveInChannel,
   loadMemberCatalog,
+  MAX_CHANNEL_ROLE_MATRIX,
   resolveInspectableChannel,
 } from "./snapshot.js";
 
@@ -261,5 +264,181 @@ describe("inspectGuildMember", () => {
     const channel = (guild.channels.cache.get(TEXT_ID) ?? null) as never;
     const inspection = await inspectGuildMember(guild, FOREIGN_ID, channel);
     assert.ok("error" in inspection);
+  });
+});
+
+const COURSE_ID = "100000000000000010";
+const PARENT_ROLE_ID = "100000000000000011";
+const NULL_PERM_ROLE_ID = "100000000000000012";
+
+function mockRole(id: string, name: string, position: number) {
+  return {
+    id,
+    name,
+    position,
+    permissions: bitfield(0n),
+    managed: false,
+    mentionable: false,
+    editable: true,
+    color: 0,
+  };
+}
+
+function matrixGuild(options: { extraStaff?: number; nullPermsForCourse?: boolean } = {}): Guild {
+  const extraStaff = options.extraStaff ?? 30;
+  const everyone = mockRole(GUILD_ID, "@everyone", 0);
+  const course = mockRole(COURSE_ID, "Indie Course", 1);
+  const parentRole = mockRole(PARENT_ROLE_ID, "Category Course", 2);
+  const nullRole = mockRole(NULL_PERM_ROLE_ID, "Broken", 3);
+  const staff = Array.from({ length: extraStaff }, (_, i) =>
+    mockRole(`1100000000000000${String(i).padStart(2, "0")}`, `Admin (${i})`, 100 + i)
+  );
+  const roles = new Map(
+    [everyone, course, parentRole, nullRole, ...staff].map((role) => [role.id, role])
+  );
+  const category = {
+    id: CATEGORY_ID,
+    name: "courses",
+    type: ChannelType.GuildCategory,
+    parentId: null,
+    permissionsLocked: null,
+    permissionOverwrites: {
+      cache: new Map([
+        [
+          PARENT_ROLE_ID,
+          {
+            id: PARENT_ROLE_ID,
+            type: 0,
+            allow: bitfield(PermissionFlagsBits.ViewChannel),
+            deny: bitfield(0n),
+          },
+        ],
+      ]),
+    },
+  };
+  const text = {
+    id: TEXT_ID,
+    name: "general",
+    type: ChannelType.GuildText,
+    parentId: CATEGORY_ID,
+    permissionsLocked: false,
+    permissionOverwrites: {
+      cache: new Map([
+        [
+          COURSE_ID,
+          {
+            id: COURSE_ID,
+            type: 0,
+            allow: bitfield(PermissionFlagsBits.ViewChannel | PermissionFlagsBits.SendMessages),
+            deny: bitfield(0n),
+          },
+        ],
+        [
+          NULL_PERM_ROLE_ID,
+          {
+            id: NULL_PERM_ROLE_ID,
+            type: 0,
+            allow: bitfield(PermissionFlagsBits.ViewChannel),
+            deny: bitfield(0n),
+          },
+        ],
+      ]),
+    },
+    permissionsFor: (target: { id: string }) => {
+      if (options.nullPermsForCourse && target.id === COURSE_ID) return null;
+      if (target.id === NULL_PERM_ROLE_ID) return null;
+      if (target.id === COURSE_ID) {
+        return {
+          has: (bit: bigint) =>
+            bit === PermissionFlagsBits.ViewChannel || bit === PermissionFlagsBits.SendMessages,
+        };
+      }
+      if (target.id === PARENT_ROLE_ID) {
+        return { has: (bit: bigint) => bit === PermissionFlagsBits.ViewChannel };
+      }
+      return { has: () => false };
+    },
+  };
+  const channels = new Map([
+    [CATEGORY_ID, category],
+    [TEXT_ID, text],
+  ]);
+  const botMember = {
+    id: BOT_ID,
+    displayName: "Clippy",
+    user: { username: "clippy", bot: true },
+    roles: { highest: { position: 8, name: "Clippy" }, cache: new Map() },
+    permissions: bitfield(0n),
+    isCommunicationDisabled: () => false,
+    communicationDisabledUntil: null,
+  };
+
+  return {
+    id: GUILD_ID,
+    name: "Clippy Test",
+    ownerId: USER_ID,
+    roles: {
+      fetch: async () => undefined,
+      cache: {
+        values: () => roles.values(),
+        get: (id: string) => roles.get(id),
+      },
+    },
+    channels: {
+      fetch: async () => undefined,
+      cache: {
+        values: () => channels.values(),
+        get: (id: string) => channels.get(id),
+      },
+    },
+    members: {
+      me: botMember,
+      fetchMe: async () => botMember,
+      fetch: async () => new Map(),
+      cache: { values: () => [].values(), get: () => undefined },
+    },
+  } as unknown as Guild;
+}
+
+describe("inspectRoleEffectiveInChannel", () => {
+  it("keeps low-position overwrite targets when more than 24 staff roles exist", async () => {
+    const guild = matrixGuild({ extraStaff: 30 });
+    assert.ok(30 + 4 > MAX_CHANNEL_ROLE_MATRIX);
+    const snapshot = await buildGuildSnapshot(guild);
+    const channel = guild.channels.cache.get(TEXT_ID) as never;
+    const matrix = inspectRoleEffectiveInChannel(guild, snapshot, channel);
+    const ids = matrix.roles.map((entry) => entry.roleId);
+
+    assert.ok(ids.includes(GUILD_ID));
+    assert.ok(ids.includes(COURSE_ID));
+    assert.ok(ids.includes(PARENT_ROLE_ID));
+    assert.ok(ids.includes(NULL_PERM_ROLE_ID));
+    assert.ok(matrix.omittedCount > 0);
+    assert.equal(matrix.roles.filter((entry) => entry.kind === "staff").length, MAX_CHANNEL_ROLE_MATRIX - 4);
+
+    const inspection = inspectChannel(snapshot, TEXT_ID);
+    assert.ok(inspection);
+    const dto = toChannelInspectionDto(snapshot, inspection!, matrix);
+    assert.equal(dto.roleEffectiveOmitted, matrix.omittedCount);
+    assert.ok(dto.roleEffective.some((entry) => entry.roleId === COURSE_ID));
+    assert.ok(dto.roleEffective.some((entry) => entry.roleId === PARENT_ROLE_ID));
+    JSON.stringify(dto);
+  });
+
+  it("reports computed=false when permissionsFor returns null", async () => {
+    const guild = matrixGuild({ extraStaff: 0, nullPermsForCourse: true });
+    const snapshot = await buildGuildSnapshot(guild);
+    const channel = guild.channels.cache.get(TEXT_ID) as never;
+    const matrix = inspectRoleEffectiveInChannel(guild, snapshot, channel);
+    const course = matrix.roles.find((entry) => entry.roleId === COURSE_ID);
+    const broken = matrix.roles.find((entry) => entry.roleId === NULL_PERM_ROLE_ID);
+    assert.ok(course);
+    assert.equal(course!.computed, false);
+    assert.deepEqual(course!.effective, []);
+    assert.ok(broken);
+    assert.equal(broken!.computed, false);
+    const parent = matrix.roles.find((entry) => entry.roleId === PARENT_ROLE_ID);
+    assert.equal(parent?.computed, true);
+    assert.ok(parent?.effective.some((entry) => entry.bit === PermissionFlagsBits.ViewChannel && entry.allowed));
   });
 });

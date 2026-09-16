@@ -501,6 +501,7 @@ export type PermissionChannelInspectionDto = {
     computed: boolean;
     permissions: PermissionFlagDto[];
   }[];
+  roleEffectiveOmitted: number;
   notes: string[];
 };
 

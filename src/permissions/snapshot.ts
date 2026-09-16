@@ -286,24 +286,42 @@ export type RoleEffectiveInspection = {
   effective: { bit: bigint; allowed: boolean }[];
 };
 
+export type RoleEffectiveMatrix = {
+  roles: RoleEffectiveInspection[];
+  omittedCount: number;
+};
+
 export function inspectRoleEffectiveInChannel(
   guild: Guild,
   snapshot: GuildSnapshot,
   channel: GuildChannel | CategoryChannel,
   policy: ServerPolicy = CLIPPY_SERVER_POLICY
-): RoleEffectiveInspection[] {
-  const wanted = relevantOverwriteRoleIds(snapshot, channel.id);
-  const candidates = [...guild.roles.cache.values()]
+): RoleEffectiveMatrix {
+  const requiredIds = relevantOverwriteRoleIds(snapshot, channel.id);
+  const required: Role[] = [];
+  for (const id of requiredIds) {
+    const role = guild.roles.cache.get(id);
+    if (role) required.push(role);
+  }
+
+  const supplemental = [...guild.roles.cache.values()]
     .filter((role) => {
-      if (wanted.has(role.id)) return true;
+      if (requiredIds.has(role.id)) return false;
       const snap = snapshot.roles.find((entry) => entry.id === role.id);
       if (!snap) return false;
       return classifyRole(snap, snapshot.id, policy) === "staff";
     })
-    .sort((a, b) => b.position - a.position)
-    .slice(0, MAX_CHANNEL_ROLE_MATRIX);
+    .sort((a, b) => b.position - a.position);
 
-  return candidates.map((role) => toRoleEffective(channel, role, snapshot, policy));
+  const supplementalCap = Math.max(0, MAX_CHANNEL_ROLE_MATRIX - required.length);
+  const includedSupplemental = supplemental.slice(0, supplementalCap);
+  const omittedCount = supplemental.length - includedSupplemental.length;
+
+  const roles = [...required, ...includedSupplemental]
+    .sort((a, b) => b.position - a.position)
+    .map((role) => toRoleEffective(channel, role, snapshot, policy));
+
+  return { roles, omittedCount };
 }
 
 function toRoleEffective(

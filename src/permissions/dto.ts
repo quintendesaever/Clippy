@@ -1,6 +1,6 @@
 import { listedBits, permissionKey, permissionLabel, RELEVANT_PERMISSIONS } from "./flags.js";
 import { classifyRole, roleKindLabel, CLIPPY_SERVER_POLICY, type ServerPolicy } from "./serverPolicy.js";
-import type { MemberCatalogEntry, RoleEffectiveInspection } from "./snapshot.js";
+import type { MemberCatalogEntry, RoleEffectiveInspection, RoleEffectiveMatrix } from "./snapshot.js";
 import type {
   AuditResult,
   ChannelInspection,
@@ -137,6 +137,7 @@ export type ChannelInspectionDto = {
     permissions: PermissionFlagDto[] | null;
   };
   roleEffective: RoleEffectiveDto[];
+  roleEffectiveOmitted: number;
   notes: string[];
 };
 
@@ -345,10 +346,18 @@ export function toRoleInspectionDto(inspection: RoleInspection): RoleInspectionD
   };
 }
 
+function roleEffectiveMatrix(
+  input: RoleEffectiveInspection[] | RoleEffectiveMatrix | undefined
+): RoleEffectiveMatrix {
+  if (!input) return { roles: [], omittedCount: 0 };
+  if (Array.isArray(input)) return { roles: input, omittedCount: 0 };
+  return input;
+}
+
 export function toChannelInspectionDto(
   guild: GuildSnapshot,
   inspection: ChannelInspection,
-  roleEffective: RoleEffectiveInspection[] = []
+  roleEffective: RoleEffectiveInspection[] | RoleEffectiveMatrix = []
 ): ChannelInspectionDto {
   const channel = inspection.channel;
   const own = inspection.overwrites.map((overwrite) =>
@@ -361,6 +370,7 @@ export function toChannelInspectionDto(
       return allow.length > 0 || deny.length > 0 || overwrite.everyone || overwrite.member;
     })
     .map((overwrite) => toOverwriteDto(overwrite, overwriteSource(channel, true)));
+  const matrix = roleEffectiveMatrix(roleEffective);
 
   return {
     id: channel.id,
@@ -378,13 +388,14 @@ export function toChannelInspectionDto(
         ? permissionFlags(inspection.botEffective.map((entry) => ({ bit: entry.bit, allowed: entry.allowed })))
         : null,
     },
-    roleEffective: roleEffective.map((entry) => ({
+    roleEffective: matrix.roles.map((entry) => ({
       roleId: entry.roleId,
       roleName: entry.roleName,
       kind: entry.kind,
       computed: entry.computed,
       permissions: permissionFlags(entry.effective.map((item) => ({ bit: item.bit, allowed: item.allowed }))),
     })),
+    roleEffectiveOmitted: matrix.omittedCount,
     notes: inspection.notes,
   };
 }

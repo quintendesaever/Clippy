@@ -514,8 +514,19 @@ export default function Permissions({ user }: { user: DiscordUser }) {
                     <PagePanel>
                       <h3 className="permissionsPanelTitle">Effectieve rolpermissies</h3>
                       <p className="cardHint">
-                        Discord-berekening per rol, niet alsof één rol een lid met meerdere rollen is.
+                        Dit is geen volledige matrix van alle serverrollen. Getoond: @everyone, rollen
+                        met een overwrite op dit kanaal of de categorie, en extra staffrollen tot een
+                        limiet. Discord berekent per rol, niet alsof één rol een lid met meerdere rollen
+                        is.
                       </p>
+                      {channel.roleEffectiveOmitted > 0 && (
+                        <p className="permissionsBanner permissionsBannerWarn" role="status">
+                          {channel.roleEffectiveOmitted === 1
+                            ? "1 extra staffrol is weggelaten."
+                            : `${channel.roleEffectiveOmitted} extra staffrollen zijn weggelaten.`}{" "}
+                          Rollen met een expliciete overwrite blijven altijd zichtbaar.
+                        </p>
+                      )}
                       {channel.roleEffective.length === 0 ? (
                         <p className="cardHint">Geen relevante rollen om te tonen.</p>
                       ) : (
