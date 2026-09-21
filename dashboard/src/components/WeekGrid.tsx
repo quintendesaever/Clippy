@@ -118,7 +118,7 @@ export default function WeekGrid({
         className="weekGrid"
         style={{
           gridTemplateColumns: `72px repeat(${dayDates.length}, minmax(100px, 1fr))`,
-          gridTemplateRows: `auto repeat(${hourCount}, ${rowHeight}px)`,
+          gridTemplateRows: `auto var(--week-grid-body-gap, 10px) repeat(${hourCount}, ${rowHeight}px)`,
         }}
       >
         <div className="weekGridCorner" style={{ gridColumn: 1, gridRow: 1 }} />
@@ -155,7 +155,7 @@ export default function WeekGrid({
           <div
             key={i}
             className="weekGridTimeLabel"
-            style={{ gridColumn: 1, gridRow: i + 2 }}
+            style={{ gridColumn: 1, gridRow: i + 3 }}
           >
             {String(hourStart + i).padStart(2, "0")}:00
           </div>
@@ -193,7 +193,7 @@ export default function WeekGrid({
               className="weekGridDayColumn"
               style={{
                 gridColumn: dayIndex + 2,
-                gridRow: `2 / ${hourCount + 2}`,
+                gridRow: `3 / ${hourCount + 3}`,
                 height: hourCount * rowHeight,
               }}
             >
@@ -227,13 +227,14 @@ export default function WeekGrid({
                 );
                 const locationMeta =
                   locationLine || (showSharingOffNote ? "In beschrijving" : undefined);
-                const memberLocationLine = ev.memberLocation
-                  ? shortLocation(ev.memberLocation)
-                  : undefined;
+                const isActivity = ev.source === "activity";
+                const memberLocationLine =
+                  !isActivity && ev.memberLocation
+                    ? shortLocation(ev.memberLocation)
+                    : undefined;
                 const descriptionLine = ev.description
                   ? descriptionPreview(ev.description, 80)
                   : undefined;
-                const isActivity = ev.source === "activity";
                 const courseColor = isActivity
                   ? ACTIVITY_COLOR
                   : (colorsByCourse.get(courseKeyFromTitle(ev.title)) ?? "#5865f2");

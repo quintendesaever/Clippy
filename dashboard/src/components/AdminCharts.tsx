@@ -297,6 +297,7 @@ export function AreaChart({
         ref={svgRef}
         className="adminAreaSvg"
         viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="none"
         role="img"
         aria-label={ariaLabel}
         onPointerDown={(event) => {
