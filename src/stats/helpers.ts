@@ -1,8 +1,7 @@
 import { format, subDays } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
+import { resolveConfiguredTimeZone } from "../../shared/timetable/dates.js";
 import { supabase } from "../supabase.js";
-
-const DEFAULT_TIMEZONE = "UTC";
 
 export async function getGuildTimezone(guildId: string): Promise<string> {
   const { data } = await supabase
@@ -10,7 +9,7 @@ export async function getGuildTimezone(guildId: string): Promise<string> {
     .select("timezone")
     .eq("guild_id", guildId)
     .maybeSingle();
-  return data?.timezone ?? DEFAULT_TIMEZONE;
+  return resolveConfiguredTimeZone(data?.timezone);
 }
 
 export async function ensureGuild(guildId: string): Promise<void> {

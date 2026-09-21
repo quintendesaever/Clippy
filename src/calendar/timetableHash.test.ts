@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { hashGuildTimetable, needsNextWeekForActiveDay, resolveSelectedDay } from "./timetableHash.js";
+import {
+  hashGuildTimetable,
+  isDayOverrideActive,
+  needsNextWeekForActiveDay,
+  resolveSelectedDay,
+  TIMETABLE_DAY_OVERRIDE_MS,
+  timetablePanelNeedsUpdate,
+} from "./timetableHash.js";
 import { makeEvent, makeTimetable } from "./timetableTestFixtures.js";
 
 describe("hashGuildTimetable", () => {
@@ -94,15 +101,58 @@ describe("resolveSelectedDay", () => {
     );
   });
 
-  it("keeps a future selected day in the current week", () => {
+  it("keeps a button-selected day while the in-memory override is active", () => {
+    assert.equal(
+      resolveSelectedDay({
+        todayKey: "2026-08-17",
+        weekKeys,
+        previouslySelected: "2026-08-20",
+        preferToday: true,
+        busyDayKeys: ["2026-08-17", "2026-08-20"],
+        now: 1_000,
+        overrideUntil: 1_000 + TIMETABLE_DAY_OVERRIDE_MS,
+      }),
+      "2026-08-20"
+    );
+  });
+
+  it("returns to auto (today if busy, else next busy) after the override expires", () => {
+    assert.equal(
+      resolveSelectedDay({
+        todayKey: "2026-08-17",
+        weekKeys,
+        previouslySelected: "2026-08-20",
+        preferToday: true,
+        busyDayKeys: ["2026-08-17", "2026-08-20"],
+        now: 1_000 + TIMETABLE_DAY_OVERRIDE_MS,
+        overrideUntil: 1_000 + TIMETABLE_DAY_OVERRIDE_MS,
+      }),
+      "2026-08-17"
+    );
+    assert.equal(
+      resolveSelectedDay({
+        todayKey: "2026-08-22",
+        weekKeys,
+        previouslySelected: "2026-08-18",
+        preferToday: false,
+        busyDayKeys: ["2026-08-17", "2026-08-18", "2026-08-24"],
+        now: 10_000,
+        overrideUntil: 5_000,
+      }),
+      "2026-08-24"
+    );
+  });
+
+  it("without an override, auto-selects even if a future day was previously shown", () => {
     assert.equal(
       resolveSelectedDay({
         todayKey: "2026-08-17",
         weekKeys,
         previouslySelected: "2026-08-20",
         preferToday: false,
+        busyDayKeys: ["2026-08-17", "2026-08-20"],
       }),
-      "2026-08-20"
+      "2026-08-17"
     );
   });
 
@@ -123,5 +173,40 @@ describe("needsNextWeekForActiveDay", () => {
   it("is true when no busy day remains on or after today", () => {
     assert.equal(needsNextWeekForActiveDay("2026-08-22", ["2026-08-17", "2026-08-18"]), true);
     assert.equal(needsNextWeekForActiveDay("2026-08-18", ["2026-08-17", "2026-08-18"]), false);
+  });
+});
+
+describe("timetablePanelNeedsUpdate", () => {
+  it("skips idle ticks while a day override is active", () => {
+    assert.equal(
+      timetablePanelNeedsUpdate({
+        weekChanged: false,
+        dayChanged: false,
+        needsValidation: false,
+        now: 1_000,
+        selectedDayKey: "2026-08-20",
+        overrideUntil: 1_000 + TIMETABLE_DAY_OVERRIDE_MS,
+        autoDayKey: "2026-08-20",
+        needsNextWeek: false,
+      }),
+      false
+    );
+  });
+
+  it("updates after override expiry when auto day differs", () => {
+    assert.equal(isDayOverrideActive(5_000, 5_000), false);
+    assert.equal(
+      timetablePanelNeedsUpdate({
+        weekChanged: false,
+        dayChanged: false,
+        needsValidation: false,
+        now: 5_000,
+        selectedDayKey: "2026-08-20",
+        overrideUntil: 5_000,
+        autoDayKey: "2026-08-17",
+        needsNextWeek: false,
+      }),
+      true
+    );
   });
 });

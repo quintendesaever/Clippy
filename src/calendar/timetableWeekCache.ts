@@ -4,7 +4,14 @@ import {
   getWeekDayKeys,
   getWeekMondayKey,
 } from "../../shared/timetable/dates.js";
-import { hashGuildTimetable, needsNextWeekForActiveDay, resolveSelectedDay } from "./timetableHash.js";
+import { collectAvatarUserIds } from "./timetableCardLayout.js";
+import {
+  hashGuildTimetable,
+  isDayOverrideActive,
+  needsNextWeekForActiveDay,
+  resolveSelectedDay,
+  TIMETABLE_DAY_OVERRIDE_MS,
+} from "./timetableHash.js";
 import type { GuildTimetable } from "./types.js";
 
 export const TIMETABLE_VALIDATE_INTERVAL_MS = 20 * 60 * 1000;
@@ -18,6 +25,8 @@ export type WeekCacheEntry = {
   weekMonday: string;
   calendarDayKey: string;
   selectedDayKey: string;
+  /** Epoch ms when a Discord day-button override expires. Restart/expiry → auto. */
+  dayOverrideUntil?: number;
   dataHash: string;
   validatedAt: number;
   lastFetchAttemptAt: number;
@@ -56,17 +65,21 @@ export function daysWithEvents(timetable: GuildTimetable): string[] {
 function applyAutoSelectedDay(
   entry: WeekCacheEntry,
   todayKey: string,
-  preferToday: boolean,
-  previouslySelected?: string
+  now: number
 ): void {
   entry.calendarDayKey = todayKey;
   entry.selectedDayKey = resolveSelectedDay({
     todayKey,
     weekKeys: getWeekDayKeys(entry.weekMonday),
-    previouslySelected,
-    preferToday,
+    previouslySelected: entry.selectedDayKey,
+    preferToday: true,
     busyDayKeys: daysWithEvents(entry.timetable),
+    now,
+    overrideUntil: entry.dayOverrideUntil,
   });
+  if (!isDayOverrideActive(entry.dayOverrideUntil, now)) {
+    entry.dayOverrideUntil = undefined;
+  }
 }
 
 export function createTimetableWeekCache(deps: TimetableWeekCacheDeps) {
@@ -87,6 +100,7 @@ export function createTimetableWeekCache(deps: TimetableWeekCacheDeps) {
     const weekKeys = getWeekDayKeys(entry.weekMonday);
     if (!weekKeys.includes(dayKey)) return null;
     entry.selectedDayKey = dayKey;
+    entry.dayOverrideUntil = deps.now() + TIMETABLE_DAY_OVERRIDE_MS;
     return entry;
   }
 
@@ -98,8 +112,13 @@ export function createTimetableWeekCache(deps: TimetableWeekCacheDeps) {
     const fetchOpts = { skipIcsCache: options.skipIcsCache };
     let timetable = await deps.fetchTimetable(guildId, fetchOpts);
     let weekMonday = getWeekMondayKey(timetable.rangeStart, timetable.guildTimezone);
-    const todayKey = dayKeyInTimezone(new Date(deps.now()), timetable.guildTimezone);
-    const autoSelect = options.preferToday || !options.selectedDayKey;
+    const now = deps.now();
+    const todayKey = dayKeyInTimezone(new Date(now), timetable.guildTimezone);
+    const startingOverride = Boolean(options.selectedDayKey);
+    const overrideUntil = startingOverride
+      ? now + TIMETABLE_DAY_OVERRIDE_MS
+      : previous?.dayOverrideUntil;
+    const autoSelect = !isDayOverrideActive(overrideUntil, now);
 
     let busyDayKeys = daysWithEvents(timetable);
     if (autoSelect && needsNextWeekForActiveDay(todayKey, busyDayKeys)) {
@@ -119,20 +138,27 @@ export function createTimetableWeekCache(deps: TimetableWeekCacheDeps) {
 
     const weekKeys = getWeekDayKeys(weekMonday);
     const dataHash = hashGuildTimetable(timetable, deps.rendererVersion);
+    const previouslySelected = options.selectedDayKey ?? previous?.selectedDayKey;
     const selectedDayKey = resolveSelectedDay({
       todayKey,
       weekKeys,
-      previouslySelected: options.selectedDayKey ?? previous?.selectedDayKey,
+      previouslySelected,
       preferToday: options.preferToday ?? false,
       busyDayKeys,
+      now,
+      overrideUntil,
     });
+    const overrideKept =
+      isDayOverrideActive(overrideUntil, now) && selectedDayKey === previouslySelected;
+    const dayOverrideUntil = overrideKept ? overrideUntil : undefined;
 
     if (previous && previous.weekMonday === weekMonday && previous.dataHash === dataHash) {
       previous.timetable = timetable;
-      previous.validatedAt = deps.now();
-      previous.lastFetchAttemptAt = deps.now();
+      previous.validatedAt = now;
+      previous.lastFetchAttemptAt = now;
       previous.calendarDayKey = todayKey;
       previous.selectedDayKey = selectedDayKey;
+      previous.dayOverrideUntil = dayOverrideUntil;
       log(`[Timetable] Cache valid for guild ${guildId}`);
       return previous;
     }
@@ -147,7 +173,7 @@ export function createTimetableWeekCache(deps: TimetableWeekCacheDeps) {
 
     const images = new Map<string, Buffer>();
     const renderDays = daysWithEvents(timetable);
-    const userIds = [...new Set(timetable.events.map((event) => event.userId))];
+    const userIds = collectAvatarUserIds(timetable.events);
     let avatars = new Map<string, string>();
     try {
       avatars = await deps.loadAvatars(guildId, userIds);
@@ -172,9 +198,10 @@ export function createTimetableWeekCache(deps: TimetableWeekCacheDeps) {
       weekMonday,
       calendarDayKey: todayKey,
       selectedDayKey,
+      dayOverrideUntil,
       dataHash,
-      validatedAt: deps.now(),
-      lastFetchAttemptAt: deps.now(),
+      validatedAt: now,
+      lastFetchAttemptAt: now,
       timetable,
       images,
     };
@@ -194,16 +221,22 @@ export function createTimetableWeekCache(deps: TimetableWeekCacheDeps) {
   async function refresh(guildId: string, options: RefreshCacheOptions = {}): Promise<WeekCacheEntry> {
     function tryHotPath(entry: WeekCacheEntry): WeekCacheEntry | null {
       if (options.force || options.skipIcsCache || !isFreshForCurrentWeek(entry)) return null;
-      if (options.preferToday) {
-        const todayKey = dayKeyInTimezone(new Date(deps.now()), entry.timetable.guildTimezone);
-        if (needsNextWeekForActiveDay(todayKey, daysWithEvents(entry.timetable))) return null;
-        applyAutoSelectedDay(entry, todayKey, true);
-        return entry;
-      }
+      const now = deps.now();
+      const todayKey = dayKeyInTimezone(new Date(now), entry.timetable.guildTimezone);
+      const overrideActive = isDayOverrideActive(entry.dayOverrideUntil, now);
+
       if (options.selectedDayKey) {
         selectDay(guildId, options.selectedDayKey);
         return entry;
       }
+
+      if (overrideActive) {
+        entry.calendarDayKey = todayKey;
+        return entry;
+      }
+
+      if (needsNextWeekForActiveDay(todayKey, daysWithEvents(entry.timetable))) return null;
+      applyAutoSelectedDay(entry, todayKey, now);
       return entry;
     }
 

@@ -8,6 +8,7 @@ import {
   inclusiveDaySpan,
   isValidIanaTimeZone,
   MAX_TIMETABLE_RANGE_DAYS,
+  resolveConfiguredTimeZone,
   zonedStartEndMinutes,
 } from "./dates.js";
 
@@ -70,7 +71,16 @@ describe("midnight end minutes", () => {
 describe("IANA timezone", () => {
   it("accepts Europe/Brussels and rejects typos", () => {
     assert.equal(isValidIanaTimeZone("Europe/Brussels"), true);
+    assert.equal(isValidIanaTimeZone("UTC"), true);
     assert.equal(isValidIanaTimeZone("Not/AZone"), false);
     assert.equal(isValidIanaTimeZone(""), false);
+  });
+
+  it("keeps a valid configured zone and falls back to machine-local otherwise", () => {
+    assert.equal(resolveConfiguredTimeZone("Europe/Brussels", () => "America/New_York"), "Europe/Brussels");
+    assert.equal(resolveConfiguredTimeZone("UTC", () => "Europe/Berlin"), "UTC");
+    assert.equal(resolveConfiguredTimeZone(null, () => "Europe/Berlin"), "Europe/Berlin");
+    assert.equal(resolveConfiguredTimeZone("Not/AZone", () => "Europe/Berlin"), "Europe/Berlin");
+    assert.equal(resolveConfiguredTimeZone("", () => "Europe/Berlin"), "Europe/Berlin");
   });
 });
