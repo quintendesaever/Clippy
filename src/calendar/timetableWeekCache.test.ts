@@ -229,4 +229,59 @@ describe("timetable week cache", () => {
     assert.equal(entry.selectedDayKey, "2026-08-24");
     assert.equal(entry.calendarDayKey, "2026-08-22");
   });
+
+  it("preloads participant avatars in addition to event.userId", async () => {
+    let loaded: string[] = [];
+    const cache = createTimetableWeekCache({
+      fetchTimetable: async () =>
+        makeTimetable([makeEvent({ userId: "owner", participantIds: ["p2", "p3"] })]),
+      renderDay: async () => Buffer.from("png"),
+      loadAvatars: async (_guildId, userIds) => {
+        loaded = userIds;
+        return new Map();
+      },
+      now: () => MONDAY,
+      validateIntervalMs: VALIDATE_MS,
+      rendererVersion: 1,
+      log: () => undefined,
+    });
+
+    await cache.refresh("g1");
+    assert.deepEqual(loaded.slice().sort(), ["owner", "p2", "p3"].sort());
+  });
+
+  it("keeps a button day for five minutes, then resumes auto", async () => {
+    let now = MONDAY;
+    const cache = createTimetableWeekCache({
+      fetchTimetable: async () =>
+        makeTimetable([
+          makeEvent(),
+          makeEvent({
+            title: "Lab",
+            start: new Date("2026-08-20T08:00:00.000Z"),
+            end: new Date("2026-08-20T10:00:00.000Z"),
+          }),
+        ]),
+      renderDay: async (_timetable, dayKey) => Buffer.from(dayKey),
+      loadAvatars: async () => new Map(),
+      now: () => now,
+      validateIntervalMs: VALIDATE_MS,
+      rendererVersion: 1,
+      log: () => undefined,
+    });
+
+    await cache.refresh("g1");
+    const selected = await cache.refresh("g1", { selectedDayKey: "2026-08-20" });
+    assert.equal(selected.selectedDayKey, "2026-08-20");
+    assert.ok(selected.dayOverrideUntil && selected.dayOverrideUntil > now);
+
+    now = MONDAY + 4 * 60 * 1000;
+    const stillHeld = await cache.refresh("g1", { preferToday: true });
+    assert.equal(stillHeld.selectedDayKey, "2026-08-20");
+
+    now = MONDAY + 5 * 60 * 1000 + 1;
+    const auto = await cache.refresh("g1", { preferToday: true });
+    assert.equal(auto.selectedDayKey, "2026-08-17");
+    assert.equal(auto.dayOverrideUntil, undefined);
+  });
 });

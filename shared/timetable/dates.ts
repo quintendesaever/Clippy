@@ -75,12 +75,35 @@ export function isValidIanaTimeZone(timezone: string): boolean {
     const supported = (
       Intl as typeof Intl & { supportedValuesOf?: (key: string) => string[] }
     ).supportedValuesOf;
-    if (typeof supported === "function") {
-      return supported("timeZone").includes(timezone);
+    if (typeof supported === "function" && supported("timeZone").includes(timezone)) {
+      return true;
     }
+    // Aliases such as UTC are valid but omitted from supportedValuesOf.
     Intl.DateTimeFormat("en-US", { timeZone: timezone }).format(new Date());
     return true;
   } catch {
     return false;
   }
+}
+
+/** Process-local IANA zone; UTC only if Intl cannot report one. */
+export function machineLocalTimeZone(): string {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz && isValidIanaTimeZone(tz)) return tz;
+  } catch {
+    // ignore
+  }
+  return "UTC";
+}
+
+/** Valid configured IANA zone wins; missing/invalid uses machine-local time. */
+export function resolveConfiguredTimeZone(
+  configured: string | null | undefined,
+  fallback: () => string = machineLocalTimeZone
+): string {
+  if (typeof configured === "string" && isValidIanaTimeZone(configured)) {
+    return configured;
+  }
+  return fallback();
 }

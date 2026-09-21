@@ -41,6 +41,13 @@ export function hashGuildTimetable(timetable: GuildTimetable, rendererVersion: n
   return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
 }
 
+/** In-memory Discord panel day button override. Restarts and expiry return to auto. */
+export const TIMETABLE_DAY_OVERRIDE_MS = 5 * 60 * 1000;
+
+export function isDayOverrideActive(overrideUntil: number | undefined, now: number): boolean {
+  return overrideUntil != null && now < overrideUntil;
+}
+
 export function resolveSelectedDay(options: {
   todayKey: string;
   weekKeys: readonly string[];
@@ -48,6 +55,8 @@ export function resolveSelectedDay(options: {
   preferToday: boolean;
   /** Days that have events (any week). Used to skip empty days on auto-select. */
   busyDayKeys?: readonly string[];
+  now?: number;
+  overrideUntil?: number;
 }): string {
   const autoDay = (): string => {
     const busy = options.busyDayKeys ?? [];
@@ -56,16 +65,37 @@ export function resolveSelectedDay(options: {
     return nextBusy ?? options.todayKey;
   };
 
-  if (options.preferToday || !options.previouslySelected) {
-    return autoDay();
+  const now = options.now ?? 0;
+  if (
+    options.previouslySelected &&
+    isDayOverrideActive(options.overrideUntil, now) &&
+    options.weekKeys.includes(options.previouslySelected)
+  ) {
+    return options.previouslySelected;
   }
-  if (!options.weekKeys.includes(options.previouslySelected)) {
-    return autoDay();
+
+  return autoDay();
+}
+
+export function timetablePanelNeedsUpdate(options: {
+  startup?: boolean;
+  weekChanged: boolean;
+  dayChanged: boolean;
+  needsValidation: boolean;
+  now: number;
+  selectedDayKey?: string;
+  overrideUntil?: number;
+  autoDayKey: string;
+  needsNextWeek: boolean;
+}): boolean {
+  if (options.startup || options.weekChanged || options.dayChanged || options.needsValidation) {
+    return true;
   }
-  if (options.previouslySelected < options.todayKey) {
-    return autoDay();
+  if (isDayOverrideActive(options.overrideUntil, options.now)) {
+    return false;
   }
-  return options.previouslySelected;
+  if (options.needsNextWeek) return true;
+  return options.selectedDayKey !== options.autoDayKey;
 }
 
 /** True when the loaded week has no events on or after today (may need next week). */

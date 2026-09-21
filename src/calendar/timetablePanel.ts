@@ -9,7 +9,12 @@ import {
 import { dayKeyInTimezone, getWeekDayKeys, getWeekMondayKey } from "../../shared/timetable/dates.js";
 import { getGuildId } from "../config.js";
 import { getGuildTimezone } from "../stats/helpers.js";
-import { needsNextWeekForActiveDay, resolveSelectedDay } from "./timetableHash.js";
+import {
+  isDayOverrideActive,
+  needsNextWeekForActiveDay,
+  resolveSelectedDay,
+  timetablePanelNeedsUpdate,
+} from "./timetableHash.js";
 import {
   deleteTimetablePanel,
   getTimetablePanel,
@@ -305,15 +310,44 @@ export async function applyTimetablePanelTick(
   const weekChanged = !cache || cache.weekMonday < weekMonday;
   const dayChanged = !cache || cache.calendarDayKey !== todayKey;
   const needsValidation = !cache || now - cache.validatedAt >= TIMETABLE_VALIDATE_INTERVAL_MS;
+  const busyDayKeys = cache ? daysWithEvents(cache.timetable) : [];
+  const overrideActive = isDayOverrideActive(cache?.dayOverrideUntil, now);
+  const autoDayKey = cache
+    ? resolveSelectedDay({
+        todayKey,
+        weekKeys: getWeekDayKeys(cache.weekMonday),
+        previouslySelected: cache.selectedDayKey,
+        preferToday: true,
+        busyDayKeys,
+        now,
+        overrideUntil: cache.dayOverrideUntil,
+      })
+    : todayKey;
+  const needsNextWeek = !overrideActive && needsNextWeekForActiveDay(todayKey, busyDayKeys);
 
-  if (!options.startup && !weekChanged && !dayChanged && !needsValidation) {
+  if (
+    !timetablePanelNeedsUpdate({
+      startup: options.startup,
+      weekChanged,
+      dayChanged,
+      needsValidation,
+      now,
+      selectedDayKey: cache?.selectedDayKey,
+      overrideUntil: cache?.dayOverrideUntil,
+      autoDayKey,
+      needsNextWeek,
+    })
+  ) {
     return;
   }
 
   await withGuildPanelLock(guildId, async () => {
     if (!weekChanged && dayChanged && cache && !needsValidation) {
-      const busyDayKeys = daysWithEvents(cache.timetable);
-      if (needsNextWeekForActiveDay(todayKey, busyDayKeys)) {
+      const currentBusy = daysWithEvents(cache.timetable);
+      if (
+        !isDayOverrideActive(cache.dayOverrideUntil, now) &&
+        needsNextWeekForActiveDay(todayKey, currentBusy)
+      ) {
         await applyStoredPanelUpdate(client, { preferToday: true });
         return;
       }
@@ -327,11 +361,17 @@ export async function applyTimetablePanelTick(
       const selectedDayKey = resolveSelectedDay({
         todayKey,
         weekKeys: getWeekDayKeys(cache.weekMonday),
+        previouslySelected: cache.selectedDayKey,
         preferToday: true,
-        busyDayKeys,
+        busyDayKeys: currentBusy,
+        now,
+        overrideUntil: cache.dayOverrideUntil,
       });
       cache.calendarDayKey = todayKey;
       cache.selectedDayKey = selectedDayKey;
+      if (!isDayOverrideActive(cache.dayOverrideUntil, now)) {
+        cache.dayOverrideUntil = undefined;
+      }
       try {
         await message.edit(toTimetableReply(viewFromCacheEntry(cache, selectedDayKey)));
       } catch (err) {

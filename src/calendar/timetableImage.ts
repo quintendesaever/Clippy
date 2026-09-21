@@ -21,7 +21,6 @@ import {
   ACTIVITY_CARD_BORDER,
   ACTIVITY_CARD_FILL,
   AVATAR_BORDER,
-  AVATAR_OVERLAP,
   AVATAR_SIZE,
   CARD_CONTENT_GAP,
   CARD_GAP,
@@ -41,15 +40,20 @@ import {
   THEME,
   TIMETABLE_WIDTH,
   TITLE_FONT_SIZE,
-  TIME_FONT_SIZE,
   TITLE_LINE_HEIGHT,
   TITLE_MAX_LINES,
 } from "../../shared/timetable/theme.js";
+import {
+  avatarStackWidth,
+  collectAvatarUserIds,
+  pillWidthAt,
+  planCardContent,
+} from "./timetableCardLayout.js";
 
 const WIDTH = TIMETABLE_WIDTH;
 
 /** Bump when SVG/layout rendering changes so Discord PNG caches invalidate. */
-export const TIMETABLE_RENDERER_VERSION = 1;
+export const TIMETABLE_RENDERER_VERSION = 2;
 
 function resolveInterFontPath(): string | null {
   const here = path.dirname(fileURLToPath(import.meta.url));
@@ -126,10 +130,6 @@ function rowTop(rowIndex: number, allDayOffset: number): number {
 
 function createLayout(events: TimetableEvent[], timezone: string): TimelineLayout {
   return createTimelineLayout(events, timezone, WIDTH, GRID_INSET_X);
-}
-
-function approxCharWidth(fontSize: number): number {
-  return fontSize * 0.58;
 }
 
 /** Approximate system-ui advances so titles can fill the card without a blunt char cap. */
@@ -357,25 +357,18 @@ function buildHourGridLines(y: number, height: number, layout: TimelineLayout): 
   return parts;
 }
 
-function avatarStackWidth(count: number, avatarSize: number): number {
-  if (count <= 0) return 0;
-  const overlap = Math.min(AVATAR_OVERLAP, Math.floor(avatarSize * 0.3));
-  const avatarStep = avatarSize - overlap;
-  return avatarSize + avatarStep * (count - 1);
-}
-
 function buildAvatarStack(
   startX: number,
   cy: number,
   userIds: string[],
   avatarDataUrls: Map<string, string>,
   idPrefix: string,
-  avatarSize: number = AVATAR_SIZE
+  avatarSize: number = AVATAR_SIZE,
+  overlap = Math.min(12, Math.floor(avatarSize * 0.3))
 ): { clipDefs: string[]; parts: string[]; endX: number } {
   const clipDefs: string[] = [];
   const parts: string[] = [];
-  const overlap = Math.min(AVATAR_OVERLAP, Math.floor(avatarSize * 0.3));
-  const avatarStep = avatarSize - overlap;
+  const avatarStep = Math.max(avatarSize - overlap, 4);
   let x = startX;
 
   userIds.forEach((userId, index) => {
@@ -395,13 +388,9 @@ function buildAvatarStack(
   });
 
   const rendered = userIds.filter((id) => avatarDataUrls.has(id)).length;
-  const endX = rendered > 0 ? startX + avatarStackWidth(rendered, avatarSize) : startX;
+  const endX = rendered > 0 ? startX + avatarStackWidth(rendered, avatarSize, overlap) : startX;
 
   return { clipDefs, parts, endX };
-}
-
-function textWidth(text: string, fontSize: number): number {
-  return text.length * approxCharWidth(fontSize);
 }
 
 function buildCardContent(
@@ -422,85 +411,47 @@ function buildCardContent(
   if (innerW <= 0 || innerH <= 0) return [];
 
   const availableIds = avatarUserIds.filter((id) => avatarDataUrls.has(id));
-  const minTimeSize = 13;
-
   const badgeLabel = typeBadges[0] ? labelForTypeBadge(typeBadges[0]) : "";
-  const timeNeeded = (size: number) => textWidth(timeLabel, size);
-  const pillWidthAt = (fontSize: number) =>
-    badgeLabel ? textWidth(badgeLabel, fontSize) + Math.round(fontSize * 1.5) : 0;
-  const pillHeightAt = (fontSize: number) => (fontSize > 0 ? Math.round(fontSize * 1.7) : 0);
-  const timeLineH = (size: number) => size;
-  const metaColumnWidth = (size: number, pillFont: number) =>
-    Math.max(pillFont > 0 ? pillWidthAt(pillFont) : 0, timeNeeded(size));
-  const metaColumnHeight = (size: number, pillFont: number) => {
-    const pillH = pillHeightAt(pillFont);
-    return (pillH > 0 ? pillH + CARD_CONTENT_GAP : 0) + timeLineH(size);
-  };
+  const plan = planCardContent({
+    innerW,
+    innerH,
+    timeLabel,
+    avatarCount: availableIds.length,
+    badgeLabel,
+  });
 
-  const reservedWidth = (avSize: number, avCount: number, size: number, pillFont: number) => {
-    const avW = avCount > 0 ? avatarStackWidth(avCount, avSize) : 0;
-    const metaW = metaColumnWidth(size, pillFont);
-    return (avW > 0 ? avW + CARD_CONTENT_GAP : 0) + metaW;
-  };
+  const shownIds = availableIds.slice(0, plan.shownCount);
+  const pillW = plan.pillFont > 0 ? pillWidthAt(badgeLabel, plan.pillFont) : 0;
+  const pillH = plan.pillFont > 0 ? Math.round(plan.pillFont * 1.7) : 0;
+  const stackH = (pillH > 0 ? pillH + CARD_CONTENT_GAP : 0) + plan.timeSize;
 
-  const fits = (size: number, avSize: number, avCount: number, pillFont: number) =>
-    reservedWidth(avSize, avCount, size, pillFont) <= innerW &&
-    metaColumnHeight(size, pillFont) <= innerH;
-
-  let timeSize = TIME_FONT_SIZE;
-  let avatarSize = 0;
-  let shownCount = 0;
-  let pillFont = 0;
-
-  const avatarCandidates =
-    availableIds.length > 0 ? [Math.min(AVATAR_SIZE, innerH * 0.7), 36, 24, 0] : [0];
-  const pillFontCandidates = badgeLabel ? [14, 12, 11, 0] : [0];
-  outer: for (const avSize of avatarCandidates) {
-    const maxCount = avSize > 0 ? availableIds.length : 0;
-    for (const nextPillFont of pillFontCandidates) {
-      for (let size = TIME_FONT_SIZE; size >= minTimeSize; size--) {
-        let count = 0;
-        for (let n = 1; n <= maxCount; n++) {
-          if (fits(size, avSize, n, nextPillFont)) count = n;
-          else break;
-        }
-        if (avSize === 0 ? fits(size, 0, 0, nextPillFont) : count > 0) {
-          timeSize = size;
-          avatarSize = avSize;
-          shownCount = count;
-          pillFont = nextPillFont;
-          break outer;
-        }
-      }
-    }
-  }
-  const shownIds = availableIds.slice(0, shownCount);
-  const stackH = metaColumnHeight(timeSize, pillFont);
-  const topRowH = Math.max(shownIds.length > 0 ? avatarSize : 0, stackH);
-  const avatarCy = innerY + topRowH / 2;
+  const avatarTop = innerY;
+  const avatarCy = plan.stackAvatarsAbove
+    ? avatarTop + plan.avatarSize / 2
+    : innerY + Math.max(plan.avatarSize, stackH) / 2;
   const { clipDefs: avatarClipDefs, parts: avatarParts, endX: avatarsEndX } = buildAvatarStack(
     innerX,
     avatarCy,
     shownIds,
     avatarDataUrls,
     `card-${cardId}`,
-    avatarSize
+    plan.avatarSize,
+    plan.overlap
   );
 
-  const pillW = pillFont > 0 ? pillWidthAt(pillFont) : 0;
-  const pillH = pillHeightAt(pillFont);
-  const metaX = shownIds.length > 0 ? avatarsEndX + CARD_CONTENT_GAP : innerX;
-  const stackTop = innerY + (topRowH - stackH) / 2;
-  const timeClipLeft = metaX;
-  const timeClipWidth = Math.max(innerRight - timeClipLeft, 0);
-  const timeClipId = `card-${cardId}-time`;
-  const titleClipId = `card-${cardId}-title`;
-  const bodyClipId = `card-${cardId}-body`;
-
-  const titleTop = innerY + topRowH + CARD_CONTENT_GAP;
+  const metaX = plan.stackAvatarsAbove || shownIds.length === 0 ? innerX : avatarsEndX + CARD_CONTENT_GAP;
+  const metaTop = plan.stackAvatarsAbove
+    ? innerY + (shownIds.length > 0 ? plan.avatarSize + CARD_CONTENT_GAP : 0)
+    : innerY + (Math.max(plan.avatarSize, stackH) - stackH) / 2;
+  const topConsumed = plan.stackAvatarsAbove
+    ? (shownIds.length > 0 ? plan.avatarSize + CARD_CONTENT_GAP : 0) + stackH
+    : Math.max(shownIds.length > 0 ? plan.avatarSize : 0, stackH);
+  const titleTop = innerY + topConsumed + CARD_CONTENT_GAP;
   const titleMaxH = Math.max(y + height - CARD_INNER_PAD - titleTop, 0);
   const titleX = innerX;
   const titleWidth = innerW;
+  const bodyClipId = `card-${cardId}-body`;
+  const titleClipId = `card-${cardId}-title`;
 
   let titleSize = TITLE_FONT_SIZE;
   let titleLh = TITLE_LINE_HEIGHT;
@@ -512,14 +463,21 @@ function buildCardContent(
     titleLh = titleMaxH;
   }
 
-  const titleLines = titleMaxH > 0 ? wrapText(title, titleWidth, titleSize, maxLines) : [];
+  let titleLines = titleMaxH > 0 ? wrapText(title, titleWidth, titleSize, maxLines) : [];
+  while (
+    titleMaxH > 0 &&
+    titleSize > 16 &&
+    titleLines.some((line) => line.includes("…"))
+  ) {
+    titleSize -= 1;
+    titleLh = Math.max(titleSize + 4, Math.min(TITLE_LINE_HEIGHT, titleMaxH / Math.max(maxLines, 1)));
+    if (titleMaxH >= titleLh * 2) maxLines = TITLE_MAX_LINES;
+    titleLines = wrapText(title, titleWidth, titleSize, maxLines);
+  }
   const radius = Math.min(CARD_RADIUS, height / 2 - 1, width / 2 - 1);
   const parts: string[] = [
     `<defs>`,
     `<clipPath id="${bodyClipId}"><rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${radius}" ry="${radius}"/></clipPath>`,
-    timeClipWidth > 0
-      ? `<clipPath id="${timeClipId}"><rect x="${timeClipLeft}" y="${innerY}" width="${timeClipWidth}" height="${topRowH}"/></clipPath>`
-      : "",
     titleWidth > 0 && titleMaxH > 0
       ? `<clipPath id="${titleClipId}"><rect x="${titleX}" y="${titleTop}" width="${Math.max(titleWidth - TITLE_WRAP_INSET, 0)}" height="${titleMaxH}"/></clipPath>`
       : "",
@@ -530,22 +488,19 @@ function buildCardContent(
   ].filter(Boolean);
 
   if (pillW > 0 && badgeLabel) {
-    const pillY = stackTop;
     const pillRadius = pillH / 2;
     const badgeCode = typeBadges[0];
     const badgeColor = colorForTypeBadge(badgeCode);
     parts.push(
-      `<rect x="${metaX}" y="${pillY}" width="${pillW}" height="${pillH}" rx="${pillRadius}" ry="${pillRadius}" fill="${badgeColor}" fill-opacity="0.16"/>`,
-      `<text x="${metaX + pillW / 2}" y="${pillY + pillH / 2 + pillFont * 0.32}" fill="${badgeColor}" font-size="${pillFont}" font-weight="500" text-anchor="middle" font-family="${FONT}">${escapeXml(badgeLabel)}</text>`
+      `<rect x="${metaX}" y="${metaTop}" width="${pillW}" height="${pillH}" rx="${pillRadius}" ry="${pillRadius}" fill="${badgeColor}" fill-opacity="0.16"/>`,
+      `<text x="${metaX + pillW / 2}" y="${metaTop + pillH / 2 + plan.pillFont * 0.32}" fill="${badgeColor}" font-size="${plan.pillFont}" font-weight="600" text-anchor="middle" font-family="${FONT}">${escapeXml(badgeLabel)}</text>`
     );
   }
 
-  if (timeClipWidth > 0) {
-    const timeY = stackTop + (pillH > 0 ? pillH + CARD_CONTENT_GAP : 0) + timeSize * 0.85;
-    parts.push(
-      `<text x="${metaX}" y="${timeY}" fill="${THEME.textMuted}" font-size="${timeSize}" font-weight="400" text-anchor="start" font-family="${FONT}" clip-path="url(#${timeClipId})">${escapeXml(timeLabel)}</text>`
-    );
-  }
+  const timeY = metaTop + (pillH > 0 ? pillH + CARD_CONTENT_GAP : 0) + plan.timeSize * 0.85;
+  parts.push(
+    `<text x="${metaX}" y="${timeY}" fill="${THEME.textMuted}" font-size="${plan.timeSize}" font-weight="400" text-anchor="start" font-family="${FONT}">${escapeXml(timeLabel)}</text>`
+  );
 
   if (titleLines.length > 0 && titleMaxH > 0) {
     for (const [index, line] of titleLines.entries()) {
@@ -735,7 +690,7 @@ export async function renderTimetablePng(
 ): Promise<Buffer> {
   const guildId = getGuildId();
   const dayEvents = timetable.eventsByDay.get(dayKey) ?? [];
-  const userIds = [...new Set(dayEvents.map((event) => event.userId))];
+  const userIds = collectAvatarUserIds(dayEvents);
   const avatars = avatarDataUrls ?? (await loadAvatarDataUrls(guildId, userIds));
   const svg = buildTimelineSvg(timetable, dayKey, avatars);
   return svgToPng(svg);
