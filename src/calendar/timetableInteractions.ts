@@ -92,7 +92,6 @@ export async function handleTimetableButton(interaction: ButtonInteraction): Pro
         return;
       }
 
-      timetableWeekCache.selectDay(guildId, dayKey);
       const png = await timetableWeekCache.getDayImage(guildId, dayKey);
       await interaction.editReply(
         toTimetableReply(assembleTimetableView(entry.timetable, dayKey, png))
