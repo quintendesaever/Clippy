@@ -34,6 +34,10 @@ export type WeekCacheEntry = {
   images: Map<string, Buffer>;
 };
 
+export type TimeoutHandle = {
+  unref?: () => void;
+};
+
 export type TimetableWeekCacheDeps = {
   fetchTimetable: (guildId: string, options?: FetchTimetableOptions) => Promise<GuildTimetable>;
   renderDay: (
@@ -46,6 +50,9 @@ export type TimetableWeekCacheDeps = {
   validateIntervalMs: number;
   rendererVersion: number;
   log?: (message: string) => void;
+  setTimeout?: (callback: () => void | Promise<void>, delayMs: number) => TimeoutHandle;
+  clearTimeout?: (handle: TimeoutHandle) => void;
+  onOverrideExpired?: (guildId: string) => void | Promise<void>;
 };
 
 export type RefreshCacheOptions = {
@@ -53,6 +60,8 @@ export type RefreshCacheOptions = {
   skipIcsCache?: boolean;
   preferToday?: boolean;
   selectedDayKey?: string;
+  /** Drop an in-memory day override (e.g. /timetable force refresh). */
+  clearDayOverride?: boolean;
 };
 
 export function daysWithEvents(timetable: GuildTimetable): string[] {
@@ -85,13 +94,74 @@ function applyAutoSelectedDay(
 export function createTimetableWeekCache(deps: TimetableWeekCacheDeps) {
   const entries = new Map<string, WeekCacheEntry>();
   const inflight = new Map<string, Promise<WeekCacheEntry>>();
+  const overrideTimers = new Map<string, TimeoutHandle>();
+  let onOverrideExpired = deps.onOverrideExpired;
 
   const log = (message: string) => {
     (deps.log ?? ((line: string) => console.log(line)))(message);
   };
 
+  const scheduleTimeout = deps.setTimeout ?? ((callback: () => void | Promise<void>, delayMs: number) => {
+    const handle = setTimeout(() => {
+      void callback();
+    }, delayMs);
+    handle.unref?.();
+    return handle;
+  });
+  const cancelTimeout = deps.clearTimeout ?? ((handle: TimeoutHandle) => {
+    clearTimeout(handle as NodeJS.Timeout);
+  });
+
   function peek(guildId: string): WeekCacheEntry | undefined {
     return entries.get(guildId);
+  }
+
+  function setOnOverrideExpired(
+    handler: ((guildId: string) => void | Promise<void>) | undefined
+  ): void {
+    onOverrideExpired = handler;
+  }
+
+  function cancelOverrideTimer(guildId: string): boolean {
+    const handle = overrideTimers.get(guildId);
+    if (!handle) return false;
+    cancelTimeout(handle);
+    overrideTimers.delete(guildId);
+    return true;
+  }
+
+  function clearOverrideTimers(): void {
+    for (const guildId of [...overrideTimers.keys()]) {
+      cancelOverrideTimer(guildId);
+    }
+  }
+
+  function scheduleOverrideTimer(guildId: string, until: number): void {
+    cancelOverrideTimer(guildId);
+    const delay = Math.max(0, until - deps.now());
+    const handle = scheduleTimeout(() => onOverrideTimerFired(guildId), delay);
+    handle.unref?.();
+    overrideTimers.set(guildId, handle);
+  }
+
+  async function onOverrideTimerFired(guildId: string): Promise<void> {
+    overrideTimers.delete(guildId);
+    const entry = entries.get(guildId);
+    if (!entry) return;
+    if (isDayOverrideActive(entry.dayOverrideUntil, deps.now())) return;
+
+    const fromDay = entry.selectedDayKey;
+    await refresh(guildId, { preferToday: true });
+
+    const after = entries.get(guildId);
+    if (!after || isDayOverrideActive(after.dayOverrideUntil, deps.now())) return;
+
+    log(`[Timetable] Day override expired for guild ${guildId} (${fromDay} → ${after.selectedDayKey})`);
+    try {
+      await onOverrideExpired?.(guildId);
+    } catch (err) {
+      console.error(`[Timetable] Day override expiry handler failed for guild ${guildId}:`, err);
+    }
   }
 
   function selectDay(guildId: string, dayKey: string): WeekCacheEntry | null {
@@ -101,7 +171,19 @@ export function createTimetableWeekCache(deps: TimetableWeekCacheDeps) {
     if (!weekKeys.includes(dayKey)) return null;
     entry.selectedDayKey = dayKey;
     entry.dayOverrideUntil = deps.now() + TIMETABLE_DAY_OVERRIDE_MS;
+    scheduleOverrideTimer(guildId, entry.dayOverrideUntil);
+    log(`[Timetable] Day override set for guild ${guildId} → ${dayKey}`);
     return entry;
+  }
+
+  function disarmDayOverride(guildId: string, reason: string): void {
+    const entry = entries.get(guildId);
+    const hadOverride = entry?.dayOverrideUntil != null || overrideTimers.has(guildId);
+    cancelOverrideTimer(guildId);
+    if (entry) entry.dayOverrideUntil = undefined;
+    if (hadOverride) {
+      log(`[Timetable] Day override cancelled for guild ${guildId} (${reason})`);
+    }
   }
 
   async function rebuild(
@@ -115,9 +197,12 @@ export function createTimetableWeekCache(deps: TimetableWeekCacheDeps) {
     const now = deps.now();
     const todayKey = dayKeyInTimezone(new Date(now), timetable.guildTimezone);
     const startingOverride = Boolean(options.selectedDayKey);
+    const dropOverride = Boolean(options.clearDayOverride) && !startingOverride;
     const overrideUntil = startingOverride
       ? now + TIMETABLE_DAY_OVERRIDE_MS
-      : previous?.dayOverrideUntil;
+      : dropOverride
+        ? undefined
+        : previous?.dayOverrideUntil;
     const autoSelect = !isDayOverrideActive(overrideUntil, now);
 
     let busyDayKeys = daysWithEvents(timetable);
@@ -160,6 +245,12 @@ export function createTimetableWeekCache(deps: TimetableWeekCacheDeps) {
       previous.selectedDayKey = selectedDayKey;
       previous.dayOverrideUntil = dayOverrideUntil;
       log(`[Timetable] Cache valid for guild ${guildId}`);
+      if (startingOverride && options.selectedDayKey && weekKeys.includes(options.selectedDayKey)) {
+        selectDay(guildId, options.selectedDayKey);
+      } else if (!isDayOverrideActive(previous.dayOverrideUntil, now)) {
+        cancelOverrideTimer(guildId);
+        previous.dayOverrideUntil = undefined;
+      }
       return previous;
     }
 
@@ -206,6 +297,12 @@ export function createTimetableWeekCache(deps: TimetableWeekCacheDeps) {
       images,
     };
     entries.set(guildId, entry);
+    if (startingOverride && options.selectedDayKey && weekKeys.includes(options.selectedDayKey)) {
+      selectDay(guildId, options.selectedDayKey);
+    } else if (!isDayOverrideActive(entry.dayOverrideUntil, now)) {
+      cancelOverrideTimer(guildId);
+      entry.dayOverrideUntil = undefined;
+    }
     return entry;
   }
 
@@ -219,6 +316,10 @@ export function createTimetableWeekCache(deps: TimetableWeekCacheDeps) {
   }
 
   async function refresh(guildId: string, options: RefreshCacheOptions = {}): Promise<WeekCacheEntry> {
+    if (options.clearDayOverride && !options.selectedDayKey) {
+      disarmDayOverride(guildId, "force refresh");
+    }
+
     function tryHotPath(entry: WeekCacheEntry): WeekCacheEntry | null {
       if (options.force || options.skipIcsCache || !isFreshForCurrentWeek(entry)) return null;
       const now = deps.now();
@@ -237,6 +338,7 @@ export function createTimetableWeekCache(deps: TimetableWeekCacheDeps) {
 
       if (needsNextWeekForActiveDay(todayKey, daysWithEvents(entry.timetable))) return null;
       applyAutoSelectedDay(entry, todayKey, now);
+      cancelOverrideTimer(guildId);
       return entry;
     }
 
@@ -287,5 +389,13 @@ export function createTimetableWeekCache(deps: TimetableWeekCacheDeps) {
     }
   }
 
-  return { peek, selectDay, refresh, getDayImage, entries };
+  return {
+    peek,
+    selectDay,
+    refresh,
+    getDayImage,
+    entries,
+    setOnOverrideExpired,
+    clearOverrideTimers,
+  };
 }

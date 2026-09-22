@@ -194,6 +194,7 @@ export async function handleTimetableCommand(interaction: ChatInputCommandIntera
         force: true,
         skipIcsCache: true,
         preferToday: true,
+        clearDayOverride: true,
       });
       const view = viewFromCacheEntry(entry);
       const stored = await getTimetablePanel(guildId);
@@ -293,6 +294,21 @@ export async function applyStoredPanelUpdate(
   return "updated";
 }
 
+export async function applyDayOverrideExpiry(client: Client, guildId: string): Promise<void> {
+  await withGuildPanelLock(guildId, async () => {
+    const cache = timetableWeekCache.peek(guildId);
+    const now = Date.now();
+    if (cache && isDayOverrideActive(cache.dayOverrideUntil, now)) return;
+
+    const result = await applyStoredPanelUpdate(client, { preferToday: true });
+    if (result !== "updated") return;
+    const after = timetableWeekCache.peek(guildId);
+    if (after) {
+      console.log(`[Timetable] Panel edited after day override expiry for guild ${guildId} → ${after.selectedDayKey}`);
+    }
+  });
+}
+
 export async function applyTimetablePanelTick(
   client: Client,
   options: { startup?: boolean } = {}
@@ -324,6 +340,8 @@ export async function applyTimetablePanelTick(
       })
     : todayKey;
   const needsNextWeek = !overrideActive && needsNextWeekForActiveDay(todayKey, busyDayKeys);
+  const overrideExpired =
+    cache != null && !overrideActive && cache.selectedDayKey !== autoDayKey;
 
   if (
     !timetablePanelNeedsUpdate({
@@ -342,13 +360,17 @@ export async function applyTimetablePanelTick(
   }
 
   await withGuildPanelLock(guildId, async () => {
-    if (!weekChanged && dayChanged && cache && !needsValidation) {
+    const inPlaceDayEdit = !weekChanged && (dayChanged || overrideExpired) && cache && !needsValidation;
+    if (inPlaceDayEdit) {
       const currentBusy = daysWithEvents(cache.timetable);
+      const logLabel = dayChanged ? "Day rollover" : "Day override expired";
       if (
         !isDayOverrideActive(cache.dayOverrideUntil, now) &&
         needsNextWeekForActiveDay(todayKey, currentBusy)
       ) {
         await applyStoredPanelUpdate(client, { preferToday: true });
+        const after = timetableWeekCache.peek(guildId);
+        console.log(`[Timetable] ${logLabel} for guild ${guildId} → ${after?.selectedDayKey ?? autoDayKey}`);
         return;
       }
 
@@ -382,12 +404,12 @@ export async function applyTimetablePanelTick(
         }
         throw err;
       }
-      console.log(`[Timetable] Day rollover for guild ${guildId} → ${selectedDayKey}`);
+      console.log(`[Timetable] ${logLabel} for guild ${guildId} → ${selectedDayKey}`);
       return;
     }
 
     await applyStoredPanelUpdate(client, {
-      preferToday: weekChanged || dayChanged || Boolean(options.startup),
+      preferToday: weekChanged || dayChanged || overrideExpired || Boolean(options.startup),
       force: Boolean(options.startup),
     });
   });
