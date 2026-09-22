@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type NamedCount = { label: string; value: number };
 
@@ -229,15 +229,35 @@ export function AreaChart({
   ariaLabel?: string;
   valueLabel?: string;
 }) {
+  const wrapRef = useRef<HTMLDivElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [width, setWidth] = useState(480);
 
-  const width = 480;
   const height = 160;
   const padL = 36;
   const padR = 12;
   const padT = 14;
   const padB = 28;
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+
+    const apply = (next: number) => {
+      const rounded = Math.max(280, Math.round(next));
+      setWidth((prev) => (Math.abs(prev - rounded) < 1 ? prev : rounded));
+    };
+
+    apply(el.getBoundingClientRect().width);
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      apply(entry.contentRect.width);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const chart = useMemo(() => {
     if (items.length === 0) return null;
@@ -261,7 +281,7 @@ export function AreaChart({
       return Array.from(new Set([0, mid, items.length - 1])).sort((a, b) => a - b);
     })();
     return { max, coords, line, area, yTicks, xLabelIndexes };
-  }, [items]);
+  }, [items, width]);
 
   if (!chart) return <p className="cardHint">{empty}</p>;
 
@@ -292,11 +312,17 @@ export function AreaChart({
   }
 
   return (
-    <div className="adminAreaChart" onMouseLeave={() => setActiveIndex(null)}>
+    <div
+      ref={wrapRef}
+      className="adminAreaChart"
+      onMouseLeave={() => setActiveIndex(null)}
+    >
       <svg
         ref={svgRef}
         className="adminAreaSvg"
         viewBox={`0 0 ${width} ${height}`}
+        width="100%"
+        height={height}
         preserveAspectRatio="none"
         role="img"
         aria-label={ariaLabel}
