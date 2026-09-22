@@ -2708,8 +2708,7 @@ select.formSelect {
 .adminAreaSvg {
   display: block;
   width: 100%;
-  height: auto;
-  max-height: 200px;
+  height: 160px;
   flex-shrink: 0;
   cursor: crosshair;
   touch-action: pan-y;
