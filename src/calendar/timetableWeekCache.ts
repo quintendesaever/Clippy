@@ -206,7 +206,11 @@ export function createTimetableWeekCache(deps: TimetableWeekCacheDeps) {
     const autoSelect = !isDayOverrideActive(overrideUntil, now);
 
     let busyDayKeys = daysWithEvents(timetable);
-    if (autoSelect && needsNextWeekForActiveDay(todayKey, busyDayKeys)) {
+    const memberCount = timetable.members.length;
+    const memberErrors = timetable.members.filter((member) => member.error).length;
+    // Avoid a second full ICS stampede when most calendars already failed to load.
+    const majorityIcsFailed = memberCount > 0 && memberErrors * 2 >= memberCount;
+    if (autoSelect && !majorityIcsFailed && needsNextWeekForActiveDay(todayKey, busyDayKeys)) {
       const nextMonday = addCalendarDays(weekMonday, 7);
       const nextWeek = await deps.fetchTimetable(guildId, {
         ...fetchOpts,
