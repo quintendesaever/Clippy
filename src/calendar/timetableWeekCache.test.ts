@@ -273,6 +273,40 @@ describe("timetable week cache", () => {
     assert.equal(entry.calendarDayKey, "2026-08-22");
   });
 
+  it("does not fetch next week when most member calendars failed", async () => {
+    const failedWeek = makeTimetable([], {
+      rangeStart: new Date("2026-08-17T00:00:00.000Z"),
+      rangeEnd: new Date("2026-08-23T23:59:59.999Z"),
+      members: [
+        { userId: "a", initials: "A", color: "#fff", error: "Kalender van A kon niet geladen worden." },
+        { userId: "b", initials: "B", color: "#fff", error: "Kalender van B kon niet geladen worden." },
+      ],
+      memberResults: [
+        { userId: "a", initials: "A", events: [], error: "Kalender van A kon niet geladen worden." },
+        { userId: "b", initials: "B", events: [], error: "Kalender van B kon niet geladen worden." },
+      ],
+    });
+
+    const saturday = Date.parse("2026-08-22T12:00:00.000Z");
+    let fetches = 0;
+    const cache = createTimetableWeekCache({
+      fetchTimetable: async () => {
+        fetches += 1;
+        return failedWeek;
+      },
+      renderDay: async (_timetable, dayKey) => Buffer.from(dayKey),
+      loadAvatars: async () => new Map(),
+      now: () => saturday,
+      validateIntervalMs: VALIDATE_MS,
+      rendererVersion: 1,
+      log: () => undefined,
+    });
+
+    const entry = await cache.refresh("g1", { preferToday: true });
+    assert.equal(fetches, 1);
+    assert.equal(entry.weekMonday, "2026-08-17");
+  });
+
   it("preloads participant avatars in addition to event.userId", async () => {
     let loaded: string[] = [];
     const cache = createTimetableWeekCache({
