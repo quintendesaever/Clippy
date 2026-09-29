@@ -3,6 +3,7 @@ import {
   dayKeyInTimezone,
   getWeekDayKeys as calendarWeekDayKeys,
   getWeekMondayKey,
+  resolveConfiguredTimeZone,
 } from "../../shared/timetable/dates.js";
 import { getGuildTimezone } from "../stats/helpers.js";
 import { getGuildActivitiesInRange } from "./activities.js";
@@ -69,11 +70,20 @@ async function loadMemberEvents(
   member: MemberCalendar,
   rangeStart: Date,
   rangeEnd: Date,
+  guildTimezone: string,
   skipIcsCache?: boolean
 ): Promise<MemberLoadResult> {
   try {
     const content = await fetchIcsContent(member.ics_url, { skipCache: skipIcsCache });
-    const events = parseIcsEvents(content, member.user_id, member.initials, rangeStart, rangeEnd);
+    const floatingTimezone = resolveConfiguredTimeZone(member.timezone, () => guildTimezone);
+    const events = parseIcsEvents(
+      content,
+      member.user_id,
+      member.initials,
+      rangeStart,
+      rangeEnd,
+      floatingTimezone
+    );
     return { userId: member.user_id, initials: member.initials, events };
   } catch (err) {
     console.error(`timetable: failed to load calendar for ${member.initials}:`, err);
@@ -139,7 +149,7 @@ export async function getGuildTimetableForDates(
   const [memberResults, activityEvents] = await Promise.all([
     Promise.all(
       members.map((member) =>
-        loadMemberEvents(member, rangeStart, rangeEnd, options?.skipIcsCache)
+        loadMemberEvents(member, rangeStart, rangeEnd, guildTimezone, options?.skipIcsCache)
       )
     ),
     getGuildActivitiesInRange(guildId, rangeStart, rangeEnd),

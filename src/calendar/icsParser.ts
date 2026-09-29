@@ -1,8 +1,12 @@
+import { fromZonedTime } from "date-fns-tz";
 import nodeIcal from "node-ical";
 import type { CalendarResponse, ParameterValue, VEvent } from "node-ical";
 import { normalizeIcsDescription } from "../../shared/timetable/eventMeta.js";
 import { parseActivitySummary } from "./eventUtils.js";
 import type { TimetableEvent } from "./types.js";
+
+/** node-ical attaches TZID / UTC as `tz` on Date values; floating times omit it. */
+type DateWithIcalTz = Date & { tz?: string };
 
 function paramValueToString(value: ParameterValue | undefined): string | undefined {
   if (value == null) return undefined;
@@ -18,6 +22,36 @@ function toDate(value: Date | { toJSDate?: () => Date } | string | number | null
   }
   const parsed = new Date(value as string | number);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function isFloatingIcalDate(date: Date): boolean {
+  const tz = (date as DateWithIcalTz).tz;
+  return typeof tz !== "string" || !tz.trim();
+}
+
+/**
+ * node-ical stores floating datetimes in the process-local wall clock.
+ * Reinterpret those wall components in the calendar/guild zone so Docker UTC
+ * hosts do not treat school times as UTC instants.
+ */
+function asFloatingInTimezone(date: Date, timezone: string): Date {
+  return fromZonedTime(
+    new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+      date.getHours(),
+      date.getMinutes(),
+      date.getSeconds(),
+      date.getMilliseconds()
+    ),
+    timezone
+  );
+}
+
+function resolveIcalDate(date: Date, floatingTimezone: string | undefined): Date {
+  if (!floatingTimezone || !isFloatingIcalDate(date)) return date;
+  return asFloatingInTimezone(date, floatingTimezone);
 }
 
 function eventDurationMs(event: VEvent, start: Date): number {
@@ -69,12 +103,21 @@ function isVEvent(component: CalendarResponse[string]): component is VEvent {
   return Boolean(component && typeof component === "object" && "type" in component && component.type === "VEVENT");
 }
 
+function overlapsRange(start: Date, end: Date, rangeStart: Date, rangeEnd: Date): boolean {
+  return end.getTime() >= rangeStart.getTime() && start.getTime() <= rangeEnd.getTime();
+}
+
+/** Widen recurrence expansion so floating→zone reinterpret does not drop edge instances. */
+const RECURRENCE_EXPAND_PAD_MS = 36 * 60 * 60 * 1000;
+
 export function parseIcsEvents(
   icsContent: string,
   userId: string,
   initials: string,
   rangeStart: Date,
-  rangeEnd: Date
+  rangeEnd: Date,
+  /** IANA zone for floating (no TZID / no Z) datetimes; typically member or guild timezone. */
+  floatingTimezone?: string
 ): TimetableEvent[] {
   const parsed = nodeIcal.sync.parseICS(icsContent);
   const events: TimetableEvent[] = [];
@@ -90,22 +133,28 @@ export function parseIcsEvents(
 
     if (component.rrule) {
       const instances = nodeIcal.expandRecurringEvent(component, {
-        from: rangeStart,
-        to: rangeEnd,
+        from: new Date(rangeStart.getTime() - RECURRENCE_EXPAND_PAD_MS),
+        to: new Date(rangeEnd.getTime() + RECURRENCE_EXPAND_PAD_MS),
         expandOngoing: true,
       });
 
       for (const instance of instances) {
-        const start = toDate(instance.start);
-        if (!start) continue;
-        const end = toDate(instance.end);
+        const rawStart = toDate(instance.start);
+        if (!rawStart) continue;
+        const start = resolveIcalDate(rawStart, floatingTimezone);
+        const rawEnd = toDate(instance.end);
+        const end = rawEnd ? resolveIcalDate(rawEnd, floatingTimezone) : null;
+        const effectiveEnd =
+          end ?? new Date(start.getTime() + (instance.isFullDay ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000));
+        if (!overlapsRange(start, effectiveEnd, rangeStart, rangeEnd)) continue;
+
         events.push(
           mapInstanceToEvent(
             userId,
             initials,
             paramValueToString(instance.summary) ?? summary,
             start,
-            end,
+            effectiveEnd,
             Boolean(instance.isFullDay),
             location,
             description
@@ -115,16 +164,16 @@ export function parseIcsEvents(
       continue;
     }
 
-    const start = toDate(component.start);
-    if (!start) continue;
+    const rawStart = toDate(component.start);
+    if (!rawStart) continue;
 
-    const end = toDate(component.end);
+    const start = resolveIcalDate(rawStart, floatingTimezone);
+    const rawEnd = toDate(component.end);
+    const end = rawEnd ? resolveIcalDate(rawEnd, floatingTimezone) : null;
     const allDay = component.datetype === "date";
-    const effectiveEnd = end ?? new Date(start.getTime() + eventDurationMs(component, start));
+    const effectiveEnd = end ?? new Date(start.getTime() + eventDurationMs(component, rawStart));
 
-    if (effectiveEnd.getTime() < rangeStart.getTime() || start.getTime() > rangeEnd.getTime()) {
-      continue;
-    }
+    if (!overlapsRange(start, effectiveEnd, rangeStart, rangeEnd)) continue;
 
     events.push(
       mapInstanceToEvent(userId, initials, summary, start, effectiveEnd, allDay, location, description)
