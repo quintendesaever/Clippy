@@ -12,8 +12,8 @@ import { usePreferences } from "../hooks/usePreferences";
 import type { CalendarEntry, DiscordUser } from "../types";
 
 const APPEARANCE_OPTIONS: { value: Appearance; label: string; hint: string }[] = [
-  { value: "modern", label: "Modern", hint: "Huidige donkere dashboardstijl" },
-  { value: "classic", label: "Classic", hint: "Oudere productiekleuren" },
+  { value: "modern", label: "Modern", hint: "Nieuwe donkere stijl" },
+  { value: "classic", label: "Classic", hint: "Klassieke productiekleuren" },
   { value: "light", label: "Licht", hint: "Lichte modus" },
 ];
 
@@ -301,7 +301,7 @@ export default function Settings({ user }: { user: DiscordUser }) {
                     {saving ? "Opslaan…" : "Opslaan"}
                   </Button>
                   {existing && (
-                    <Button variant="secondary" onClick={handleRemove} disabled={saving}>
+                    <Button variant="danger" onClick={handleRemove} disabled={saving}>
                       Verwijderen
                     </Button>
                   )}

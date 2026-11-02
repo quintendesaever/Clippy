@@ -17,5 +17,10 @@ export default function StatusBadge({
   status: HealthState | OverallHealthState | string;
 }) {
   const tone = status in STATUS_LABELS ? status : "unknown";
-  return <span className={`statusBadge statusBadge-${tone}`}>{statusLabel(status)}</span>;
+  return (
+    <span className={`statusBadge statusBadge-${tone}`}>
+      <span className="statusBadgeDot" aria-hidden="true" />
+      {statusLabel(status)}
+    </span>
+  );
 }

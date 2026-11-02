@@ -59,11 +59,21 @@ function readAppearance(): Appearance {
   return DEFAULT_APPEARANCE;
 }
 
+/** Browser chrome colour per appearance; mirrors `--color-bg-page` in theme.css. */
+const THEME_COLORS: Record<Appearance, string> = {
+  modern: "#0f1116",
+  classic: "#16171b",
+  light: "#f3f4f8",
+};
+
 export function applyAppearance(appearance: Appearance) {
   const { theme, palette } = appearanceToAttrs(appearance);
   document.documentElement.dataset.theme = theme;
   document.documentElement.dataset.palette = palette;
   document.documentElement.style.colorScheme = theme;
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute("content", THEME_COLORS[appearance]);
 }
 
 type ThemeContextValue = {

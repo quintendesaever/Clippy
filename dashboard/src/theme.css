@@ -1,46 +1,96 @@
+/*
+ * Design tokens.
+ *
+ * Three appearances share one component layer (index.css):
+ *   - modern  (default dark; `[data-palette="modern"]` + `[data-theme="dark"]`)
+ *   - light   (`[data-theme="light"]`)
+ *   - classic (`[data-palette="classic"]`; colours match the long-running production look)
+ *
+ * Only colours, shadows and the page glow differ per appearance. Layout, type and
+ * spacing tokens are shared so every palette gets the same structure.
+ */
 :root {
   color-scheme: dark;
-  --color-bg: #1a1b1f;
-  --color-bg-page: #121317;
-  --color-bg-elevated: #1a1b1f;
-  --color-bg-sidebar: #15161a;
-  --color-bg-hover: #22232a;
-  --color-bg-active: #2a2b33;
-  --color-card: #2a2b33;
-  --color-border: #2e3038;
-  --color-border-strong: #3c3f48;
-  --color-text: #e3e5e8;
-  --color-text-muted: #8b8f9a;
-  --color-accent: #5865f2;
-  --color-accent-hover: #4752c4;
-  --color-accent-soft: color-mix(in srgb, var(--color-accent) 18%, transparent);
-  --color-error: #f87171;
-  --color-success: #4ade80;
-  --color-focus-ring: color-mix(in srgb, var(--color-accent) 55%, white 10%);
 
-  --font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Surfaces (back → front) */
+  --color-bg-page: #0f1116;
+  --color-bg-sidebar: #0c0e13;
+  --color-bg: #161922;
+  --color-bg-elevated: #1b1f2a;
+  --color-bg-inset: #0f1116;
+  --color-bg-hover: #1f2430;
+  --color-bg-active: #272d3b;
+  --color-card: #1f2430;
+
+  /* Lines */
+  --color-border: #262b37;
+  --color-border-strong: #353c4b;
+  --color-border-subtle: color-mix(in srgb, var(--color-border) 65%, transparent);
+
+  /* Text */
+  --color-text: #e7e9ef;
+  --color-text-muted: #8f95a5;
+  --color-text-subtle: #697087;
+
+  /* Brand + semantic */
+  --color-accent: #5865f2;
+  --color-accent-hover: #4b58e3;
+  --color-accent-contrast: #ffffff;
+  --color-accent-soft: color-mix(in srgb, var(--color-accent) 18%, transparent);
+  --color-accent-glow: color-mix(in srgb, var(--color-accent) 36%, transparent);
+  --color-success: #4ade80;
+  --color-warning: #f0b232;
+  --color-error: #f87171;
+  --color-danger: #ed4245;
+  --color-focus-ring: color-mix(in srgb, var(--color-accent) 60%, white 10%);
+
+  /* Elevation */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.28);
+  --shadow-panel: 0 1px 1px rgba(0, 0, 0, 0.18), 0 10px 30px -18px rgba(0, 0, 0, 0.7);
+  --shadow-popover: 0 24px 60px -24px rgba(0, 0, 0, 0.8), 0 2px 6px rgba(0, 0, 0, 0.35);
+  --shadow-floating: 0 8px 24px -10px rgba(0, 0, 0, 0.7), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --page-glow:
+    radial-gradient(900px 420px at 12% -10%, var(--color-accent-glow), transparent 70%),
+    radial-gradient(700px 360px at 100% 0%, color-mix(in srgb, #eb459e 10%, transparent), transparent 70%);
+
+  /* Typography */
+  --font-family:
+    "Inter", "SF Pro Text", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
   --font-size-xs: 0.6875rem;
   --font-size-sm: 0.8125rem;
   --font-size-md: 0.875rem;
   --font-size-lg: 1.0625rem;
+  --font-size-xl: 1.375rem;
+
+  /* Spacing */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
   --space-4: 1rem;
   --space-5: 1.25rem;
   --space-6: 1.5rem;
+  --space-8: 2rem;
 
-  --sidebar-width: 232px;
+  /* Shape + motion */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration: 140ms;
+
+  /* Layout */
+  --sidebar-width: 248px;
+  --topbar-height: 60px;
   --mobile-topbar-height: 48px;
-  --mobile-tabbar-height: 60px;
+  --mobile-tabbar-height: 62px;
+  --page-max-width: 1320px;
 
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.18);
-  --shadow-panel: none;
-  --topbar-height: 56px;
-
+  /* Timetable */
   --row-height: 92px;
   --row-gap: 8px;
   --timeline-row-height: 64px;
@@ -53,6 +103,7 @@
   --week-grid-header-height: 52px;
   --avatar-size: 36px;
   --avatar-overlap: 8px;
+  --activity-color: #f0b232;
 
   --avail-green: #3d8b5a;
   --avail-olive: #5a6640;
@@ -65,44 +116,62 @@
 
 [data-theme="light"] {
   color-scheme: light;
+  --color-bg-page: #f3f4f8;
+  --color-bg-sidebar: #f9fafc;
   --color-bg: #ffffff;
-  --color-bg-page: #f2f3f5;
   --color-bg-elevated: #ffffff;
-  --color-bg-sidebar: #ebedef;
-  --color-bg-hover: #e3e5e8;
-  --color-bg-active: #dfe1e5;
-  --color-card: #e8eaed;
-  --color-border: #d4d7dc;
-  --color-border-strong: #c4c7ce;
-  --color-text: #2e3338;
-  --color-text-muted: #5c5e66;
+  --color-bg-inset: #f3f4f8;
+  --color-bg-hover: #eceef4;
+  --color-bg-active: #e2e5ee;
+  --color-card: #f1f3f8;
+  --color-border: #e1e4eb;
+  --color-border-strong: #c9cfdb;
+  --color-border-subtle: color-mix(in srgb, var(--color-border) 70%, transparent);
+  --color-text: #1c2230;
+  --color-text-muted: #5f6778;
+  --color-text-subtle: #8a92a3;
   --color-accent: #5865f2;
   --color-accent-hover: #4752c4;
-  --color-accent-soft: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  --color-accent-soft: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  --color-accent-glow: color-mix(in srgb, var(--color-accent) 16%, transparent);
+  --color-success: #15803d;
+  --color-warning: #b7791f;
   --color-error: #dc2626;
-  --color-success: #16a34a;
+  --color-danger: #dc2626;
   --color-focus-ring: var(--color-accent);
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.06);
-  --shadow-panel: none;
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-panel: 0 1px 2px rgba(16, 24, 40, 0.05), 0 8px 24px -16px rgba(16, 24, 40, 0.18);
+  --shadow-popover: 0 24px 60px -24px rgba(16, 24, 40, 0.35), 0 2px 6px rgba(16, 24, 40, 0.08);
+  --shadow-floating: 0 8px 24px -10px rgba(16, 24, 40, 0.25), 0 1px 2px rgba(16, 24, 40, 0.08);
+  --page-glow:
+    radial-gradient(900px 420px at 12% -10%, var(--color-accent-glow), transparent 70%),
+    radial-gradient(700px 360px at 100% 0%, color-mix(in srgb, #eb459e 7%, transparent), transparent 70%);
 }
 
-/* Classic / OG: colors from current production dashboard (dashboard.clippybot.be). */
+/* Classic / OG: colours from the long-running production dashboard. Flat, no glow. */
 [data-palette="classic"] {
-  --color-bg: #1c1d22;
   --color-bg-page: #16171b;
-  --color-bg-elevated: #1c1d22;
   --color-bg-sidebar: #16171b;
+  --color-bg: #1c1d22;
+  --color-bg-elevated: #1c1d22;
+  --color-bg-inset: #16171b;
   --color-bg-hover: #25262c;
   --color-bg-active: #2f3136;
   --color-card: #323338;
   --color-border: #3f4147;
   --color-border-strong: #4e5058;
+  --color-border-subtle: color-mix(in srgb, var(--color-border) 65%, transparent);
   --color-text: #dbdee1;
   --color-text-muted: #949ba4;
+  --color-text-subtle: #6d7380;
   --color-accent: #5865f2;
   --color-accent-hover: #4752c4;
   --color-accent-soft: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  --color-accent-glow: transparent;
   --color-focus-ring: color-mix(in srgb, var(--color-accent) 55%, white 10%);
   --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.2);
   --shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-popover: 0 16px 48px rgba(0, 0, 0, 0.45);
+  --shadow-floating: 0 6px 18px rgba(0, 0, 0, 0.35);
+  --page-glow: none;
 }

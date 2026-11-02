@@ -1,20 +1,33 @@
 @import "./theme.css";
 
-* {
+/* ------------------------------------------------------------------ */
+/* 1. Base                                                             */
+/* ------------------------------------------------------------------ */
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
 html {
   min-height: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
   font-family: var(--font-family);
+  font-size: var(--font-size-md);
+  line-height: 1.45;
   background: var(--color-bg-page);
   color: var(--color-text);
   min-height: 100vh;
   min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv11", "ss01", "tnum" 0;
 }
 
 a {
@@ -26,12 +39,94 @@ a:hover {
   text-decoration: underline;
 }
 
+code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  padding: 0.1em 0.4em;
+  border-radius: var(--radius-xs);
+  background: var(--color-bg-inset);
+  border: 1px solid var(--color-border-subtle);
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
 #root {
   min-height: 100vh;
   min-height: 100dvh;
 }
 
-/* App shell */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::selection {
+  background: var(--color-accent-soft);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sheetUp {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes pulseDot {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 45%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* 2. App shell                                                        */
+/* ------------------------------------------------------------------ */
+
 .appShell {
   display: flex;
   min-height: 100vh;
@@ -43,9 +138,12 @@ a:hover {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background: var(--color-bg-page);
   min-height: 100vh;
   min-height: 100dvh;
+  background-color: var(--color-bg-page);
+  background-image: var(--page-glow);
+  background-repeat: no-repeat;
+  background-attachment: local;
 }
 
 .pageLayout {
@@ -63,27 +161,32 @@ a:hover {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-3) var(--space-4);
   min-height: var(--topbar-height);
-  padding: var(--space-3) var(--space-5);
-  background: var(--color-bg-elevated);
-  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-3) var(--space-6);
+  background: color-mix(in srgb, var(--color-bg-page) 78%, transparent);
+  -webkit-backdrop-filter: saturate(140%) blur(14px);
+  backdrop-filter: saturate(140%) blur(14px);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .topBarHeading {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
 }
 
 .topBarTitle {
   margin: 0;
-  font-size: var(--font-size-lg);
+  font-size: 1.125rem;
   font-weight: 650;
   line-height: 1.25;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
 }
 
 .topBarSubtitle {
-  margin: 0.15rem 0 0;
+  margin: 0;
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
@@ -98,444 +201,93 @@ a:hover {
 .pageLayoutContent {
   flex: 1;
   min-height: 0;
-  padding: var(--space-5);
+  padding: var(--space-6);
   overflow-y: auto;
 }
 
-.timetablePage .pageLayoutContent {
-  padding-bottom: 7.5rem;
-}
-
-.timetablePage {
-  --timeline-row-height: calc(64px * var(--tt-font-scale, 1));
-  --header-height: calc(40px * var(--tt-font-scale, 1));
-  --week-grid-header-height: calc(52px * var(--tt-font-scale, 1));
-  --week-grid-body-gap: calc(10px * var(--tt-font-scale, 1));
-  --timeline-day-gap: calc(16px * var(--tt-font-scale, 1));
-  --timeline-day-padding-y: calc(6px * var(--tt-font-scale, 1));
-  --avatar-size: calc(36px * var(--tt-font-scale, 1));
-  --avatar-overlap: calc(8px * var(--tt-font-scale, 1));
-}
-
-.timetablePage .pagePanel {
-  background: var(--color-bg);
-}
-
-.timetableFontSizeControls {
-  position: fixed;
-  right: max(0.75rem, env(safe-area-inset-right, 0px));
-  bottom: 1rem;
-  z-index: 25;
-  display: flex;
-  flex-direction: row;
-  gap: 0.4rem;
-}
-
-.timetableAddActivityControls {
-  position: fixed;
-  left: calc(var(--sidebar-width) + max(0.75rem, env(safe-area-inset-left, 0px)));
-  bottom: 1rem;
-  z-index: 25;
-}
-
-.timetableFontSizeBtn {
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border-radius: 50%;
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-elevated);
-  color: var(--color-text);
-  font-family: inherit;
-  font-size: 0.875rem;
-  font-weight: 600;
-  line-height: 1;
-  cursor: pointer;
-  box-shadow: var(--shadow-panel);
-}
-
-.timetableFontSizeBtn:hover:not(:disabled) {
-  background: var(--color-border);
-}
-
-.timetableFontSizeBtn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.timetableToolbar {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  margin-bottom: 0.75rem;
-}
-
-.timetableToolbarPrimary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.45rem 0.65rem;
-}
-
-.timetableToolbar .timetableWeekNav {
-  flex-shrink: 0;
-  order: 1;
-}
-
-.timetableToolbar .timetableWeekLabel {
-  order: 2;
-}
-
-.timetableToolbar .timetableLayoutToggle {
-  flex-shrink: 0;
-  order: 3;
-  margin-left: auto;
-}
-
-.timetableWeekLabel {
-  position: relative;
-  flex: 1;
-  min-width: 7rem;
-  text-align: left;
-  white-space: nowrap;
-  color: var(--color-text);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  line-height: 1.3;
-  letter-spacing: -0.01em;
-}
-
-.timetableWeekRange {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 0.35rem;
-}
-
-.timetableWeekLabelLoading .timetableWeekRange {
-  visibility: hidden;
-}
-
-.timetableWeekLabel .timetableLoading {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  margin: 0;
-  font-weight: 500;
-}
-
-.timetableToolbar .memberFilter {
-  flex: 1 1 100%;
-  min-width: 0;
-  margin-top: 0;
-}
-
-.timetableWeekNav {
-  display: inline-flex;
-  align-items: stretch;
-  gap: 0;
-  padding: 0.15rem;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: var(--color-bg-elevated);
-}
-
-.weekNavIconBtn,
-.weekNavThisWeek {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  border: none;
-  background: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease;
-}
-
-.weekNavIconBtn {
-  width: 2rem;
-  min-width: 2rem;
-  height: 1.85rem;
-  padding: 0;
-  border-radius: 999px;
-}
-
-.weekNavThisWeek {
-  min-width: 4.5rem;
-  height: 1.85rem;
-  padding: 0 0.55rem;
-  border-radius: 999px;
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.weekNavThisWeekShort {
-  display: none;
-}
-
-.weekNavIconBtn:hover:not(:disabled),
-.weekNavThisWeek:hover:not(:disabled) {
-  color: var(--color-text);
-  background: var(--color-bg-hover);
-}
-
-.weekNavThisWeekActive {
-  color: var(--color-text);
-  background: var(--color-accent-soft);
-}
-
-.weekNavIconBtn:focus-visible,
-.weekNavThisWeek:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 1px;
-}
-
-.weekNavIconBtn:disabled,
-.weekNavThisWeek:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.timetablePanel {
-  padding: var(--space-3);
-}
-
-.timetablePage .pagePanel.timetablePanel {
-  background: var(--color-bg);
-}
-
-.pagePanel {
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-panel);
-  padding: var(--space-4) var(--space-5);
-}
-
-.pagePanel + .pagePanel {
-  margin-top: var(--space-3);
-}
-
-.pagePanelNarrow {
-  max-width: 720px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.timetableGateOverlay {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  display: grid;
-  place-items: center;
-  padding: 1rem;
-  background: color-mix(in srgb, var(--color-bg) 68%, transparent);
-  backdrop-filter: blur(6px);
-}
-
-.timetableGate {
-  width: min(100%, 30rem);
-  padding: 1.25rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-elevated);
-  box-shadow: var(--shadow-panel);
-  text-align: left;
-}
-
-.timetableGateForm {
-  display: grid;
-  gap: 0.9rem;
-  margin-top: 1rem;
-}
-
-.timetableGateForm .formActions {
-  margin-top: 0.2rem;
-}
-
-.settingsStack {
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
+.pageContainer {
   width: 100%;
-  max-width: 32rem;
+  max-width: var(--page-max-width);
   margin-inline: auto;
+  animation: fadeUp 220ms var(--ease) both;
 }
 
-.settingsStack > .pagePanel {
-  margin-top: 0;
-  width: 100%;
-  box-sizing: border-box;
-}
+/* ------------------------------------------------------------------ */
+/* 3. Sidebar                                                          */
+/* ------------------------------------------------------------------ */
 
-.settingsStack .cardTitle {
-  margin-top: 0;
-}
-
-.settingsStack .cardHint {
-  margin-top: 0.35rem;
-}
-
-.settingsStack .form,
-.settingsStack .settingsForm,
-.settingsStack .settingsPrefBlock,
-.settingsStack .themePicker,
-.settingsStack .settingsAccountRow,
-.settingsStack .settingsPanelHead,
-.settingsStack .settingsStateLine {
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.settingsAccountRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  flex-wrap: nowrap;
-}
-
-.settingsAccountInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  min-width: 0;
-  flex: 1 1 8rem;
-}
-
-.settingsAccountName {
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.settingsAccountHandle {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-}
-
-.settingsPrefBlock {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.settingsFieldLabel {
-  margin: 0.85rem 0 0.4rem;
-  font-size: var(--font-size-sm);
-  font-weight: 650;
-  color: var(--color-text);
-}
-
-.settingsFieldLabel:first-of-type {
-  margin-top: 0.15rem;
-}
-
-.settingsPrefBlock .cardHint {
-  margin: 0;
-}
-
-.settingsPrefBlock .errorMsg {
-  margin-top: 0.15rem;
-}
-
-.settingsPanelHead {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem 1rem;
-  margin-bottom: 0.85rem;
-}
-
-.settingsPanelHead .cardTitle,
-.settingsPanelHead .cardHint {
-  margin-bottom: 0;
-}
-
-.settingsPanelHead .cardHint {
-  margin-top: 0.35rem;
-}
-
-.settingsStatusBadge {
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-  padding: 0.2rem 0.55rem;
-  border-radius: 999px;
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
-
-.settingsStatusLinked {
-  background: color-mix(in srgb, var(--color-success) 18%, transparent);
-  color: var(--color-success);
-}
-
-.settingsStatusEmpty {
-  background: color-mix(in srgb, var(--color-text-muted) 16%, transparent);
-  color: var(--color-text-muted);
-}
-
-.settingsStateLine {
-  margin: 0.75rem 0 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-}
-
-.settingsStateOn {
-  color: var(--color-success);
-  font-weight: 600;
-}
-
-.settingsStateOff {
-  color: var(--color-text-muted);
-  font-weight: 600;
-}
-
-/* Sidebar */
 .sidebar {
   width: var(--sidebar-width);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   background: var(--color-bg-sidebar);
-  border-right: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border-subtle);
   min-height: 100vh;
   position: sticky;
   top: 0;
   height: 100vh;
+  height: 100dvh;
 }
 
 .sidebarBrand {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.7rem;
   padding: var(--space-4) var(--space-4) var(--space-3);
-  font-weight: 700;
-  font-size: var(--font-size-lg);
-  letter-spacing: -0.02em;
   color: var(--color-text);
+  text-decoration: none;
+}
+
+.sidebarBrand:hover {
+  text-decoration: none;
+}
+
+.sidebarBrandMark {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--color-accent) 26%, transparent), transparent 70%),
+    var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
 }
 
 .sidebarLogoIcon {
-  width: 1.625rem;
-  height: 1.625rem;
+  width: 1.375rem;
+  height: 1.375rem;
   object-fit: contain;
-  flex-shrink: 0;
   display: block;
+}
+
+.sidebarBrandText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+.sidebarBrandName {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  letter-spacing: -0.02em;
+}
+
+.sidebarBrandCaption {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--color-text-muted);
 }
 
 .sidebarNav {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  padding: 0 var(--space-2) var(--space-3);
+  gap: var(--space-5);
+  padding: var(--space-2) var(--space-3) var(--space-3);
   flex: 1;
   overflow-y: auto;
 }
@@ -543,29 +295,33 @@ a:hover {
 .sidebarSection {
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: 2px;
 }
 
 .sidebarSectionLabel {
-  margin: 0 0 var(--space-1) 0.65rem;
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  margin: 0 0 0.35rem 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-text-muted);
+  color: var(--color-text-subtle);
 }
 
 .sidebarLink {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.45rem 0.65rem;
+  gap: 0.65rem;
+  min-height: 2.25rem;
+  padding: 0.45rem 0.75rem;
   border-radius: var(--radius-sm);
   color: var(--color-text-muted);
   font-size: var(--font-size-md);
   font-weight: 500;
   text-decoration: none;
+  transition:
+    background var(--duration) var(--ease),
+    color var(--duration) var(--ease);
 }
 
 .sidebarLink:hover {
@@ -579,21 +335,11 @@ a:hover {
   outline-offset: 1px;
 }
 
-.sidebarLinkActive {
-  background: var(--color-bg-active);
+.sidebarLinkActive,
+.sidebarLinkActive:hover {
+  background: var(--color-accent-soft);
   color: var(--color-text);
   font-weight: 600;
-}
-
-.sidebarLinkActive::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0.35rem;
-  bottom: 0.35rem;
-  width: 3px;
-  border-radius: 0 2px 2px 0;
-  background: var(--color-accent);
 }
 
 .sidebarLinkActive .sidebarNavIcon {
@@ -605,7 +351,15 @@ a:hover {
   width: 1.125rem;
   height: 1.125rem;
   flex-shrink: 0;
-  opacity: 0.9;
+  opacity: 0.85;
+  transition: color var(--duration) var(--ease);
+}
+
+.sidebarLinkLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sidebarLabelShort {
@@ -621,7 +375,7 @@ a:hover {
 }
 
 .sidebarFooter {
-  padding: var(--space-2) var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-3) var(--space-3);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -631,11 +385,17 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  padding: 0.65rem 0.75rem;
-  background: var(--color-card);
+  padding: 0.55rem 0.55rem 0.55rem 0.65rem;
+  background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
   min-width: 0;
+}
+
+.sidebarProfileCard .avatar {
+  width: 32px;
+  height: 32px;
 }
 
 .sidebarProfileInfo {
@@ -643,6 +403,7 @@ a:hover {
   flex-direction: column;
   min-width: 0;
   flex: 1;
+  line-height: 1.2;
 }
 
 .sidebarProfileName {
@@ -672,9 +433,12 @@ a:hover {
   padding: 0;
   background: none;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   color: var(--color-text-muted);
   cursor: pointer;
+  transition:
+    background var(--duration) var(--ease),
+    color var(--duration) var(--ease);
 }
 
 .sidebarLogoutIcon {
@@ -683,8 +447,8 @@ a:hover {
 }
 
 .sidebarLogout:hover {
-  color: var(--color-text);
-  background: color-mix(in srgb, var(--color-text) 8%, transparent);
+  color: var(--color-error);
+  background: color-mix(in srgb, var(--color-error) 12%, transparent);
 }
 
 .sidebarLogout:focus-visible {
@@ -692,52 +456,103 @@ a:hover {
   outline-offset: 1px;
 }
 
-/* Buttons */
+/* ------------------------------------------------------------------ */
+/* 4. Buttons                                                          */
+/* ------------------------------------------------------------------ */
+
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.5rem 0.95rem;
+  gap: 0.45rem;
+  min-height: 2.25rem;
+  padding: 0.45rem 0.95rem;
   background: var(--color-accent);
-  color: #fff;
-  border: none;
+  color: var(--color-accent-contrast);
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   font-size: var(--font-size-md);
   font-weight: 600;
+  line-height: 1.2;
   cursor: pointer;
-  font-family: inherit;
   text-decoration: none;
+  white-space: nowrap;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 14%, transparent),
+    0 1px 2px color-mix(in srgb, var(--color-accent) 35%, transparent);
+  transition:
+    background var(--duration) var(--ease),
+    border-color var(--duration) var(--ease),
+    color var(--duration) var(--ease),
+    box-shadow var(--duration) var(--ease),
+    transform var(--duration) var(--ease);
 }
 
 .btn:hover {
   background: var(--color-accent-hover);
   text-decoration: none;
-  color: #fff;
+  color: var(--color-accent-contrast);
+}
+
+.btn:active {
+  transform: translateY(1px);
 }
 
 .btn:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-accent-soft), 0 0 0 1px var(--color-accent);
 }
 
 .btn:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
+  transform: none;
 }
 
 .btnSecondary {
   background: var(--color-bg);
   color: var(--color-text);
-  border: 1px solid var(--color-border-strong);
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-card);
 }
 
 .btnSecondary:hover {
   background: var(--color-bg-hover);
   color: var(--color-text);
+  border-color: var(--color-border-strong);
+}
+
+.btnGhost {
+  background: transparent;
+  color: var(--color-text-muted);
+  box-shadow: none;
+}
+
+.btnGhost:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text);
+}
+
+.btnDanger {
+  background: transparent;
+  color: var(--color-error);
+  border-color: color-mix(in srgb, var(--color-error) 40%, var(--color-border));
+  box-shadow: none;
+}
+
+.btnDanger:hover {
+  background: color-mix(in srgb, var(--color-error) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-error) 60%, var(--color-border));
+  color: var(--color-error);
+}
+
+.btnDanger:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-error) 25%, transparent);
 }
 
 .btnSmall {
-  padding: 0.35rem 0.65rem;
+  min-height: 1.9rem;
+  padding: 0.3rem 0.7rem;
   font-size: var(--font-size-sm);
 }
 
@@ -745,7 +560,10 @@ a:hover {
   width: 100%;
 }
 
-/* Forms */
+/* ------------------------------------------------------------------ */
+/* 5. Forms                                                            */
+/* ------------------------------------------------------------------ */
+
 .card {
   background: var(--color-card);
   border: 1px solid var(--color-border);
@@ -754,14 +572,16 @@ a:hover {
 }
 
 .cardTitle {
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 0 0 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.35rem;
 }
 
 .cardHint {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
+  line-height: 1.5;
   margin: 0 0 1rem;
 }
 
@@ -773,33 +593,59 @@ a:hover {
 
 .formLabel {
   display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  font-size: 0.875rem;
-  font-weight: 500;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 0.35rem;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.formLabel > .formInput {
+  flex-basis: 100%;
 }
 
 .formInput {
-  padding: 0.5rem 0.75rem;
-  background: var(--color-bg);
+  width: 100%;
+  min-height: 2.375rem;
+  padding: 0.5rem 0.8rem;
+  background: var(--color-bg-inset);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: inherit;
-  font-size: 0.875rem;
-  font-family: inherit;
+  font-size: var(--font-size-md);
+  font-weight: 400;
+  line-height: 1.3;
+  transition:
+    border-color var(--duration) var(--ease),
+    box-shadow var(--duration) var(--ease),
+    background var(--duration) var(--ease);
+}
+
+.formInput::placeholder {
+  color: var(--color-text-subtle);
+}
+
+.formInput:hover:not(:disabled):not(:focus) {
+  border-color: var(--color-border-strong);
 }
 
 .formInput:focus {
   outline: none;
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px var(--color-accent-soft);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.formInput:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 select.formSelect {
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23949ba4' d='M1.41 0L6 4.58 10.59 0 12 1.41l-6 6-6-6z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 0.75rem center;
+  background-position: right 0.8rem center;
   padding-right: 2.25rem;
   cursor: pointer;
 }
@@ -812,7 +658,7 @@ select.formSelect {
   display: flex;
   align-items: flex-start;
   gap: 0.6rem;
-  font-size: 0.875rem;
+  font-size: var(--font-size-md);
   font-weight: 500;
   cursor: pointer;
 }
@@ -824,9 +670,10 @@ select.formSelect {
 
 .formCheckHint {
   display: block;
-  margin-top: 0.2rem;
-  font-size: 0.75rem;
+  margin-top: 0.1rem;
+  font-size: var(--font-size-xs);
   font-weight: 400;
+  line-height: 1.45;
   color: var(--color-text-muted);
 }
 
@@ -835,7 +682,7 @@ select.formSelect {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  font-size: 0.875rem;
+  font-size: var(--font-size-md);
   font-weight: 500;
   cursor: pointer;
   min-height: 2rem;
@@ -864,8 +711,8 @@ select.formSelect {
   width: 40px;
   height: 22px;
   border-radius: 999px;
-  background: var(--color-border);
-  transition: background 0.15s ease;
+  background: var(--color-border-strong);
+  transition: background var(--duration) var(--ease);
   pointer-events: none;
 }
 
@@ -876,8 +723,9 @@ select.formSelect {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: var(--color-text);
-  transition: transform 0.15s ease;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  transition: transform var(--duration) var(--ease);
   pointer-events: none;
 }
 
@@ -889,14 +737,18 @@ select.formSelect {
   transform: translateX(18px);
 }
 
+.toggleSwitch input:disabled + .toggleTrack {
+  opacity: 0.55;
+}
+
 .toggleSwitch input:focus-visible + .toggleTrack {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
 .formActions {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.6rem;
   flex-wrap: wrap;
 }
 
@@ -908,113 +760,103 @@ select.formSelect {
 
 .formOptional {
   font-weight: 400;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
 
 .formTextarea {
   resize: vertical;
   min-height: 4.5rem;
+  line-height: 1.45;
 }
 
 .activityFormPopup {
   max-width: 28rem;
 }
 
-.errorMsg {
-  color: var(--color-error);
-  font-size: var(--font-size-md);
-  margin: 0;
-}
-
+.errorMsg,
 .successMsg {
-  color: var(--color-success);
-  font-size: var(--font-size-md);
-  margin-top: 0.75rem;
-}
-
-/* Login */
-.loginPage {
-  min-height: 100vh;
-  min-height: 100dvh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-4);
-  background: var(--color-bg-page);
-}
-
-.loginCard {
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-6) var(--space-5);
-  max-width: 360px;
-  width: 100%;
-  text-align: center;
-}
-
-.loginBrand {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.55rem;
-  margin: 0 0 var(--space-3);
-}
-
-.loginBrand img {
-  width: 2rem;
-  height: 2rem;
-  object-fit: contain;
-}
-
-.loginCard h1 {
   margin: 0;
-  font-size: 1.375rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.loginCard p {
-  color: var(--color-text-muted);
-  margin: 0 0 var(--space-5);
-  font-size: var(--font-size-md);
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
   line-height: 1.45;
 }
 
-.loginCard .errorMsg {
-  margin-top: var(--space-4);
+.errorMsg {
+  color: var(--color-error);
+  background: color-mix(in srgb, var(--color-error) 10%, transparent);
+  border-color: color-mix(in srgb, var(--color-error) 28%, transparent);
 }
 
-.loginCard .btn {
-  width: 100%;
+.successMsg {
+  margin-top: 0.75rem;
+  color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 10%, transparent);
+  border-color: color-mix(in srgb, var(--color-success) 28%, transparent);
 }
 
-/* Top bar tab pills */
-.topBarTabs {
-  display: inline-flex;
-  gap: 0.2rem;
-  padding: 0.2rem;
-  background: var(--color-bg-page);
+.pageLayoutContent > .errorMsg,
+.pageContainer > .errorMsg {
+  margin-bottom: var(--space-4);
+}
+
+/* ------------------------------------------------------------------ */
+/* 6. Panels                                                           */
+/* ------------------------------------------------------------------ */
+
+.pagePanel {
+  background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-5) var(--space-5);
+}
+
+.pagePanel + .pagePanel {
+  margin-top: var(--space-3);
+}
+
+.pagePanelNarrow {
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ------------------------------------------------------------------ */
+/* 7. Segmented controls                                               */
+/* ------------------------------------------------------------------ */
+
+.topBarTabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--color-bg-inset);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
 }
 
 .topBarTab {
-  padding: 0.35rem 0.7rem;
+  min-height: 1.8rem;
+  padding: 0.3rem 0.75rem;
   background: none;
   border: none;
-  border-radius: calc(var(--radius-md) - 2px);
+  border-radius: calc(var(--radius-sm) - 3px);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
   font-weight: 500;
   cursor: pointer;
-  font-family: inherit;
   white-space: nowrap;
+  transition:
+    background var(--duration) var(--ease),
+    color var(--duration) var(--ease),
+    box-shadow var(--duration) var(--ease);
 }
 
 .topBarTab:hover {
   color: var(--color-text);
-  background: var(--color-bg-hover);
 }
 
 .topBarTab:focus-visible {
@@ -1022,10 +864,12 @@ select.formSelect {
   outline-offset: 1px;
 }
 
-.topBarTabActive {
-  background: var(--color-bg-active);
+.topBarTabActive,
+.topBarTabActive:hover {
+  background: var(--color-bg-elevated);
   color: var(--color-text);
   font-weight: 600;
+  box-shadow: var(--shadow-card), inset 0 0 0 1px var(--color-border);
 }
 
 .themePicker {
@@ -1038,26 +882,30 @@ select.formSelect {
   text-align: center;
 }
 
-.timetableLayoutToggle {
+.timetableWeekNav,
+.timetableLayoutToggle,
+.memberFilterActions {
   display: inline-flex;
   align-items: stretch;
-  gap: 0;
-  padding: 0.15rem;
+  gap: 2px;
+  padding: 3px;
   border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: var(--color-bg-elevated);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-card);
 }
 
-.timetableLayoutBtn {
+.weekNavIconBtn,
+.weekNavThisWeek,
+.timetableLayoutBtn,
+.memberFilterAction {
   appearance: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 1.85rem;
   margin: 0;
-  padding: 0 0.7rem;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
@@ -1065,24 +913,270 @@ select.formSelect {
   line-height: 1;
   white-space: nowrap;
   cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease;
+  transition:
+    background var(--duration) var(--ease),
+    color var(--duration) var(--ease),
+    box-shadow var(--duration) var(--ease);
 }
 
-.timetableLayoutBtn:hover {
+.weekNavIconBtn {
+  width: 2rem;
+  min-width: 2rem;
+  height: 1.85rem;
+  padding: 0;
+}
+
+.weekNavThisWeek {
+  min-width: 4.5rem;
+  height: 1.85rem;
+  padding: 0 0.6rem;
+}
+
+.weekNavThisWeekShort {
+  display: none;
+}
+
+.timetableLayoutBtn {
+  min-height: 1.85rem;
+  padding: 0 0.75rem;
+}
+
+.memberFilterAction {
+  min-height: 0;
+  padding: 0 0.6rem;
+}
+
+.weekNavIconBtn:hover:not(:disabled),
+.weekNavThisWeek:hover:not(:disabled),
+.timetableLayoutBtn:hover,
+.memberFilterAction:hover:not(:disabled) {
   color: var(--color-text);
   background: var(--color-bg-hover);
 }
 
-.timetableLayoutBtn:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 1px;
+.weekNavThisWeekActive,
+.weekNavThisWeekActive:hover:not(:disabled) {
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
 }
 
-.timetableLayoutBtnActive {
+.timetableLayoutBtnActive,
+.timetableLayoutBtnActive:hover,
+.memberFilterAction.memberFilterActionSelected,
+.memberFilterAction.memberFilterActionSelected:hover {
   background: var(--color-bg-active);
   color: var(--color-text);
   box-shadow: inset 0 0 0 1px var(--color-border-strong);
 }
+
+.weekNavIconBtn:focus-visible,
+.weekNavThisWeek:focus-visible,
+.timetableLayoutBtn:focus-visible,
+.memberFilterAction:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+}
+
+.weekNavIconBtn:disabled,
+.weekNavThisWeek:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ------------------------------------------------------------------ */
+/* 8. Badges                                                           */
+/* ------------------------------------------------------------------ */
+
+.statusBadge,
+.settingsStatusBadge,
+.adminShareBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.18rem 0.6rem;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-xs);
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  line-height: 1.4;
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--color-text-muted) 16%, transparent);
+  color: var(--color-text-muted);
+}
+
+.statusBadgeDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.statusBadge-ok,
+.settingsStatusLinked,
+.adminShareOn,
+.settingsStateOn {
+  background: color-mix(in srgb, var(--color-success) 16%, transparent);
+  color: var(--color-success);
+}
+
+.statusBadge-degraded {
+  background: color-mix(in srgb, var(--color-warning) 18%, transparent);
+  color: var(--color-warning);
+}
+
+.statusBadge-unavailable {
+  background: color-mix(in srgb, var(--color-error) 16%, transparent);
+  color: var(--color-error);
+}
+
+.statusBadge-disabled,
+.statusBadge-unknown,
+.settingsStatusEmpty,
+.adminShareOff {
+  background: color-mix(in srgb, var(--color-text-muted) 16%, transparent);
+  color: var(--color-text-muted);
+}
+
+.settingsStateOn,
+.settingsStateOff {
+  background: none;
+  padding: 0;
+  font-weight: 600;
+  font-size: inherit;
+}
+
+.settingsStateOff {
+  color: var(--color-text-muted);
+}
+
+/* ------------------------------------------------------------------ */
+/* 9. Login                                                            */
+/* ------------------------------------------------------------------ */
+
+.loginPage {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  background-color: var(--color-bg-page);
+  background-image:
+    radial-gradient(640px 420px at 50% -10%, var(--color-accent-glow), transparent 70%),
+    radial-gradient(520px 380px at 90% 100%, color-mix(in srgb, #eb459e 10%, transparent), transparent 70%);
+  overflow: hidden;
+}
+
+.loginPage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--color-border) 55%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-border) 55%, transparent) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 10%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 10%, transparent 75%);
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+[data-palette="classic"] .loginPage::before {
+  display: none;
+}
+
+.loginCard {
+  position: relative;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-popover);
+  padding: var(--space-8) var(--space-6) var(--space-6);
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  animation: fadeUp 260ms var(--ease) both;
+}
+
+.loginBrand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  margin: 0 0 var(--space-4);
+}
+
+.loginLogo {
+  display: grid;
+  place-items: center;
+  width: 4rem;
+  height: 4rem;
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--color-accent) 30%, transparent), transparent 70%),
+    var(--color-bg);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
+}
+
+.loginLogo img {
+  width: 2.25rem;
+  height: 2.25rem;
+  object-fit: contain;
+}
+
+.loginTitle {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.loginEyebrow {
+  margin: 0.1rem 0 0;
+  font-size: var(--font-size-xs);
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.loginLead {
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-5);
+  font-size: var(--font-size-md);
+  line-height: 1.5;
+}
+
+.loginBtn {
+  width: 100%;
+  min-height: 2.75rem;
+  font-size: 0.9375rem;
+  border-radius: 10px;
+}
+
+.loginDiscordIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+.loginCard .errorMsg {
+  margin-top: var(--space-4);
+  text-align: left;
+}
+
+.loginFooter {
+  margin: var(--space-5) 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-subtle);
+}
+
+/* ------------------------------------------------------------------ */
+/* 10. Loading / empty states                                          */
+/* ------------------------------------------------------------------ */
 
 .timetableEmpty,
 .timetableLoading {
@@ -1090,15 +1184,352 @@ select.formSelect {
   font-size: calc(0.875rem * var(--tt-font-scale, 1));
 }
 
+.timetableLoading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+}
+
+.timetableLoading::before {
+  content: "";
+  width: 0.9em;
+  height: 0.9em;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--color-text-muted) 30%, transparent);
+  border-top-color: var(--color-accent);
+  animation: spin 0.8s linear infinite;
+}
+
 .timetableEmpty {
   margin: 0 0 var(--space-3);
+  padding: 0.65rem 0.85rem;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-bg) 60%, transparent);
+}
+
+.appLoading {
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.appLoadingMark {
+  width: 3rem;
+  height: 3rem;
+  object-fit: contain;
+  opacity: 0.9;
+}
+
+/* ------------------------------------------------------------------ */
+/* 11. Settings                                                        */
+/* ------------------------------------------------------------------ */
+
+.settingsStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 34rem;
+  margin-inline: auto;
+}
+
+.settingsStack > .pagePanel {
+  margin-top: 0;
+  width: 100%;
+}
+
+.settingsStack .cardTitle {
+  margin-top: 0;
+}
+
+.settingsStack .cardHint {
+  margin-top: 0.25rem;
+}
+
+.settingsStack .form,
+.settingsStack .settingsForm,
+.settingsStack .settingsPrefBlock,
+.settingsStack .themePicker,
+.settingsStack .settingsAccountRow,
+.settingsStack .settingsPanelHead,
+.settingsStack .settingsStateLine {
+  width: 100%;
+}
+
+.settingsAccountRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: nowrap;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-inset);
+}
+
+.settingsAccountRow .avatar {
+  width: 36px;
+  height: 36px;
+}
+
+.settingsAccountInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  flex: 1 1 8rem;
+}
+
+.settingsAccountName {
+  font-weight: 600;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settingsAccountHandle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.settingsPrefBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.55rem 0;
+}
+
+.settingsPrefBlock + .settingsPrefBlock {
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.settingsFieldLabel {
+  margin: 0.85rem 0 0.4rem;
+  font-size: var(--font-size-sm);
+  font-weight: 650;
+  color: var(--color-text);
+}
+
+.settingsFieldLabel:first-of-type {
+  margin-top: 0.15rem;
+}
+
+.settingsPrefBlock .cardHint {
+  margin: 0;
+}
+
+.settingsPrefBlock .errorMsg {
+  margin-top: 0.25rem;
+}
+
+.settingsPanelHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.settingsPanelHead .cardTitle,
+.settingsPanelHead .cardHint {
+  margin-bottom: 0;
+}
+
+.settingsPanelHead .cardHint {
+  margin-top: 0.25rem;
+}
+
+.settingsStatusBadge {
+  flex-shrink: 0;
+}
+
+.settingsStateLine {
+  margin: 0.5rem 0 0.35rem;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.settingsActions {
+  margin-top: 0.85rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* 12. Timetable pages                                                 */
+/* ------------------------------------------------------------------ */
+
+.timetablePage .pageLayoutContent {
+  padding-bottom: 7.5rem;
+}
+
+.timetablePage {
+  --timeline-row-height: calc(64px * var(--tt-font-scale, 1));
+  --header-height: calc(40px * var(--tt-font-scale, 1));
+  --week-grid-header-height: calc(52px * var(--tt-font-scale, 1));
+  --week-grid-body-gap: calc(10px * var(--tt-font-scale, 1));
+  --timeline-day-gap: calc(16px * var(--tt-font-scale, 1));
+  --timeline-day-padding-y: calc(6px * var(--tt-font-scale, 1));
+  --avatar-size: calc(36px * var(--tt-font-scale, 1));
+  --avatar-overlap: calc(8px * var(--tt-font-scale, 1));
+}
+
+.timetablePage .pagePanel {
+  background: var(--color-bg);
+}
+
+.timetablePanel {
+  padding: var(--space-3);
+}
+
+.timetablePage .pagePanel.timetablePanel {
+  background: var(--color-bg);
+}
+
+/* Floating controls */
+.timetableFontSizeControls {
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right, 0px));
+  bottom: 1.25rem;
+  z-index: 25;
+  display: flex;
+  flex-direction: row;
+  gap: 0.45rem;
+}
+
+.timetableAddActivityControls {
+  position: fixed;
+  left: calc(var(--sidebar-width) + max(1rem, env(safe-area-inset-left, 0px)));
+  bottom: 1.25rem;
+  z-index: 25;
+}
+
+.timetableFontSizeBtn {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--shadow-floating);
+  transition:
+    background var(--duration) var(--ease),
+    transform var(--duration) var(--ease),
+    border-color var(--duration) var(--ease);
+}
+
+.timetableFontSizeBtn:hover:not(:disabled) {
+  background: var(--color-bg-hover);
+  border-color: var(--color-border-strong);
+  transform: translateY(-1px);
+}
+
+.timetableFontSizeBtn:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.timetableFontSizeBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.timetableAddActivityControls .timetableFontSizeBtn {
+  background: var(--color-accent);
+  border-color: transparent;
+  color: var(--color-accent-contrast);
+  font-size: 1.35rem;
+  font-weight: 500;
+  box-shadow: var(--shadow-floating), 0 0 0 1px color-mix(in srgb, var(--color-accent) 50%, transparent);
+}
+
+.timetableAddActivityControls .timetableFontSizeBtn:hover {
+  background: var(--color-accent-hover);
+}
+
+/* Toolbar */
+.timetableToolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 0.85rem;
+}
+
+.timetableToolbarPrimary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.75rem;
+}
+
+.timetableToolbar .timetableWeekNav {
+  flex-shrink: 0;
+  order: 1;
+}
+
+.timetableToolbar .timetableWeekLabel {
+  order: 2;
+}
+
+.timetableToolbar .timetableLayoutToggle {
+  flex-shrink: 0;
+  order: 3;
+  margin-left: auto;
+}
+
+.timetableWeekLabel {
+  position: relative;
+  flex: 1;
+  min-width: 7rem;
+  text-align: left;
+  white-space: nowrap;
+  color: var(--color-text);
+  font-size: 0.9375rem;
+  font-weight: 650;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+}
+
+.timetableWeekRange {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.35rem;
+}
+
+.timetableWeekLabelLoading .timetableWeekRange {
+  visibility: hidden;
+}
+
+.timetableWeekLabel .timetableLoading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin: 0;
+  font-weight: 500;
+  font-size: var(--font-size-sm);
+}
+
+.timetableToolbar .memberFilter {
+  flex: 1 1 100%;
+  min-width: 0;
+  margin-top: 0;
 }
 
 .timetableLegend {
   margin-top: 1rem;
   padding-top: 0.75rem;
   border-top: 1px solid var(--color-border);
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
   display: flex;
   flex-wrap: wrap;
@@ -1106,84 +1537,102 @@ select.formSelect {
   gap: 0.5rem;
 }
 
+/* ICS gate */
+.timetableGateOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--color-bg-page) 70%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.timetableGate {
+  width: min(100%, 30rem);
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-elevated);
+  box-shadow: var(--shadow-popover);
+  text-align: left;
+  animation: fadeUp 220ms var(--ease) both;
+}
+
+.timetableGateForm {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.timetableGateForm .formActions {
+  margin-top: 0.2rem;
+}
+
 /* Member filter */
 .memberFilter {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.4rem;
   margin-bottom: 0;
 }
 
 .memberFilterActions {
-  display: inline-flex;
   flex-shrink: 0;
-  gap: 0.2rem;
   min-height: 34px;
-  padding: 0.15rem;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: var(--color-bg-elevated);
-  box-sizing: border-box;
-}
-
-.memberFilterAction {
-  min-height: 0;
-  padding: 0 0.55rem;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--color-text-muted);
-  font: inherit;
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.memberFilterAction:hover:not(:disabled) {
-  color: var(--color-text);
-  background: var(--color-bg-hover);
-}
-
-.memberFilterAction.memberFilterActionSelected,
-.memberFilterAction.memberFilterActionSelected:hover {
-  color: var(--color-text);
-  background: var(--color-bg);
-  box-shadow: inset 0 0 0 1px var(--color-text-muted);
 }
 
 .memberChip {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.25rem 0.55rem 0.25rem 0.3rem;
+  gap: 0.45rem;
+  min-height: 34px;
+  padding: 0.25rem 0.65rem 0.25rem 0.3rem;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--color-text);
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
   cursor: pointer;
-  font-family: inherit;
-  min-height: 34px;
-  box-sizing: border-box;
+  box-shadow: var(--shadow-card);
+  transition:
+    opacity var(--duration) var(--ease),
+    border-color var(--duration) var(--ease),
+    background var(--duration) var(--ease);
+}
+
+.memberChip:hover {
+  border-color: var(--color-border-strong);
+}
+
+.memberChip:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
 }
 
 .memberChipSelected {
-  border-color: var(--color-text-muted);
-  background: var(--color-bg);
+  border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-border));
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-bg));
 }
 
 .memberChip:not(.memberChipSelected) {
-  opacity: 0.55;
+  opacity: 0.5;
+  box-shadow: none;
+}
+
+.memberChip:not(.memberChipSelected) .avatar {
+  filter: grayscale(0.6);
 }
 
 .adminMemberFilter {
-  margin: 0 0 1rem;
+  margin: 0 0 1.1rem;
 }
 
-/* Avatar */
-
-/* Avatar */
+/* Avatars */
 .avatar {
   border-radius: 50%;
   object-fit: cover;
@@ -1225,7 +1674,7 @@ select.formSelect {
   box-shadow: 0 0 0 2px var(--avatar-accent);
 }
 
-/* Week timeline grid */
+/* Week timeline grid (shared roster) */
 .weekTimelineGridWrap {
   overflow: hidden;
   margin-top: 0;
@@ -1313,12 +1762,13 @@ select.formSelect {
 
 .weekTimelineAllDayChip,
 .weekGridAllDayChip {
-  border: 1px solid var(--color-border);
-  background: color-mix(in srgb, var(--color-accent, #5865f2) 18%, var(--color-card));
+  border: 1px solid color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
+  background: color-mix(in srgb, var(--color-accent) 16%, var(--color-card));
   color: var(--color-text);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: calc(0.7rem * var(--tt-font-scale, 1));
-  padding: 0.15rem 0.55rem;
+  font-weight: 500;
+  padding: 0.15rem 0.6rem;
   cursor: pointer;
   max-width: 100%;
   overflow: hidden;
@@ -1328,8 +1778,8 @@ select.formSelect {
 
 .weekTimelineAllDayChipActivity,
 .weekGridAllDayChipActivity {
-  border-color: color-mix(in srgb, #f0b232 45%, var(--color-border));
-  background: color-mix(in srgb, #f0b232 22%, var(--color-card));
+  border-color: color-mix(in srgb, var(--activity-color) 45%, var(--color-border));
+  background: color-mix(in srgb, var(--activity-color) 22%, var(--color-card));
 }
 
 .weekTimelineGridOverlay {
@@ -1398,19 +1848,21 @@ select.formSelect {
   transform: translateY(-50%);
   width: 2px;
   height: 2.5rem;
-  background: var(--color-border);
+  border-radius: 2px;
+  background: var(--color-border-strong);
   pointer-events: none;
 }
 
 .weekTimelineDayName {
   font-size: calc(0.8125rem * var(--tt-font-scale, 1));
-  font-weight: 600;
+  font-weight: 650;
   color: var(--color-text);
 }
 
 .weekTimelineDayDate {
   font-size: calc(0.75rem * var(--tt-font-scale, 1));
   color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .weekTimelineTrack {
@@ -1442,6 +1894,7 @@ select.formSelect {
   transform: translateX(-50%);
   font-size: calc(0.75rem * var(--tt-font-scale, 1));
   color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
   pointer-events: none;
 }
@@ -1453,11 +1906,11 @@ select.formSelect {
   width: 1px;
   transform: translateX(-50%);
   background: var(--color-border);
-  opacity: 0.3;
+  opacity: 0.35;
   pointer-events: none;
 }
 
-/* Event card */
+/* Event card (timeline + personal grid) */
 .eventCard {
   position: absolute;
   top: 0;
@@ -1468,17 +1921,34 @@ select.formSelect {
   padding: 0 0.65rem;
   background: var(--color-card);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: 10px;
   color: var(--color-text);
   cursor: pointer;
   text-align: left;
-  font-family: inherit;
   overflow: hidden;
   min-width: 48px;
+  box-shadow: var(--shadow-card);
+  transition:
+    filter var(--duration) var(--ease),
+    border-color var(--duration) var(--ease),
+    box-shadow var(--duration) var(--ease);
 }
 
 .eventCard:hover {
-  filter: brightness(1.06);
+  filter: brightness(1.08);
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-floating);
+  z-index: 2;
+}
+
+.eventCard:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+  z-index: 2;
+}
+
+[data-theme="light"] .eventCard:hover {
+  filter: brightness(0.98);
 }
 
 .eventCardMemberColors {
@@ -1490,50 +1960,6 @@ select.formSelect {
   position: relative;
   background: color-mix(in srgb, var(--member-color) 14%, var(--color-card));
   border-color: color-mix(in srgb, var(--member-color) 35%, var(--color-border));
-}
-
-.settingsActions {
-  margin-top: 0.85rem;
-}
-
-.botSettingsFields {
-  display: grid;
-  gap: 0.9rem;
-  margin-top: 1rem;
-}
-
-.botSettingsGrid {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-}
-
-.botSettingsField {
-  display: grid;
-  gap: 0.4rem;
-  min-width: 0;
-  color: var(--color-text);
-  font-size: var(--font-size-sm);
-  font-weight: 650;
-}
-
-.botSettingsFieldWide {
-  grid-column: 1 / -1;
-}
-
-.botSettingsField .formInput {
-  width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-}
-
-.botSettingsField small {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: 400;
-  line-height: 1.4;
-}
-
-[data-theme="light"] .eventCard:hover {
-  filter: brightness(0.97);
 }
 
 .eventCardText {
@@ -1561,7 +1987,7 @@ select.formSelect {
 
 .eventCardTitle {
   font-size: calc(0.875rem * var(--tt-font-scale, 1));
-  font-weight: 400;
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1572,6 +1998,7 @@ select.formSelect {
 .eventCardTime {
   font-size: calc(0.75rem * var(--tt-font-scale, 1));
   color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1579,17 +2006,18 @@ select.formSelect {
 }
 
 .eventCardActivity {
-  border-color: color-mix(in srgb, #f0b232 45%, var(--color-border));
-  background: color-mix(in srgb, #f0b232 18%, var(--color-card));
+  border-color: color-mix(in srgb, var(--activity-color) 45%, var(--color-border));
+  background: color-mix(in srgb, var(--activity-color) 18%, var(--color-card));
 }
 
 .agendaCardActivity {
-  border-color: color-mix(in srgb, #f0b232 45%, var(--color-border));
-  border-left: 3px solid #f0b232;
-  background: color-mix(in srgb, #f0b232 14%, var(--color-bg-hover));
+  border-color: color-mix(in srgb, var(--activity-color) 45%, var(--color-border));
+  border-left: 3px solid var(--activity-color);
+  background: color-mix(in srgb, var(--activity-color) 14%, var(--color-bg-hover));
 }
 
-/* Week grid (personal) */
+/* Week grid (personal roster). The card paddings/line-heights below are mirrored
+   in WeekGrid.tsx (eventContentVisibility) — keep them in sync. */
 .weekGridWrap {
   overflow-x: auto;
   border-radius: var(--radius-sm);
@@ -1636,13 +2064,14 @@ select.formSelect {
 }
 
 .weekGridDayName {
-  font-weight: 600;
+  font-weight: 650;
   color: var(--color-text);
 }
 
 .weekGridDayDate {
   color: var(--color-text-muted);
   font-size: 0.85em;
+  font-variant-numeric: tabular-nums;
 }
 
 .weekGridAllDay {
@@ -1662,6 +2091,7 @@ select.formSelect {
   font-size: calc(0.75rem * var(--tt-font-scale, 1));
   line-height: 1.2;
   color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
   background: transparent;
   text-align: center;
 }
@@ -1676,7 +2106,7 @@ select.formSelect {
   left: 0;
   right: 0;
   height: 1px;
-  background: color-mix(in srgb, var(--color-border) 40%, transparent);
+  background: color-mix(in srgb, var(--color-border) 45%, transparent);
   pointer-events: none;
   z-index: 0;
 }
@@ -1688,8 +2118,10 @@ select.formSelect {
   width: auto;
   align-items: stretch;
   padding: calc(0.3rem * var(--tt-font-scale, 1)) calc(0.45rem * var(--tt-font-scale, 1));
-  border: 1px solid color-mix(in srgb, var(--course-color, var(--color-border)) 35%, var(--color-border));
-  background: color-mix(in srgb, var(--course-color, var(--color-card)) 22%, var(--color-card));
+  border: 1px solid color-mix(in srgb, var(--course-color, var(--color-border)) 38%, var(--color-border));
+  border-left: 3px solid var(--course-color, var(--color-accent));
+  background: color-mix(in srgb, var(--course-color, var(--color-card)) 20%, var(--color-card));
+  border-radius: 8px;
 }
 
 .weekGridDayColumn .eventCardTitle {
@@ -1718,6 +2150,7 @@ select.formSelect {
 .weekGridEventTime {
   font-size: calc(0.7rem * var(--tt-font-scale, 1));
   color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
   line-height: 1.2;
 }
 
@@ -1732,11 +2165,11 @@ select.formSelect {
   -webkit-box-orient: vertical;
 }
 
-/* Week agenda */
+/* Week agenda (list view) */
 .weekAgenda {
   display: flex;
   flex-direction: column;
-  gap: calc(1rem * var(--tt-font-scale, 1));
+  gap: calc(1.1rem * var(--tt-font-scale, 1));
 }
 
 .weekAgendaDay {
@@ -1747,17 +2180,30 @@ select.formSelect {
   display: flex;
   align-items: baseline;
   gap: 0.45rem;
-  margin: 0 0 0.4rem;
-  padding-bottom: 0.35rem;
+  margin: 0 0 0.45rem;
+  padding-bottom: 0.4rem;
   border-bottom: 1px solid var(--color-border);
   font-size: calc(0.875rem * var(--tt-font-scale, 1));
   font-weight: 650;
+  letter-spacing: -0.01em;
   color: var(--color-text);
 }
 
 .weekAgendaDayToday .weekAgendaDayHeader {
   color: var(--color-accent);
-  border-bottom-color: color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
+  border-bottom-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
+}
+
+.weekAgendaDayToday .weekAgendaDayHeader::after {
+  content: "Vandaag";
+  margin-left: auto;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-size: calc(0.6875rem * var(--tt-font-scale, 1));
+  font-weight: 650;
+  letter-spacing: 0.02em;
 }
 
 .weekAgendaList {
@@ -1769,7 +2215,7 @@ select.formSelect {
 .weekAgendaEmpty {
   margin: 0;
   padding: 0.15rem 0.1rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-subtle);
   font-size: calc(0.8125rem * var(--tt-font-scale, 1));
 }
 
@@ -1779,19 +2225,22 @@ select.formSelect {
   gap: calc(0.65rem * var(--tt-font-scale, 1));
   width: 100%;
   min-height: calc(48px * var(--tt-font-scale, 1));
-  padding: calc(0.55rem * var(--tt-font-scale, 1)) 0.7rem;
+  padding: calc(0.55rem * var(--tt-font-scale, 1)) 0.75rem;
   background: var(--color-bg-hover);
   border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  border-radius: 10px;
   color: var(--color-text);
   cursor: pointer;
   text-align: left;
-  font-family: inherit;
   appearance: none;
+  transition:
+    background var(--duration) var(--ease),
+    border-color var(--duration) var(--ease);
 }
 
 .agendaCard:hover {
   background: var(--color-bg-active);
+  border-color: var(--color-border);
 }
 
 .agendaCard:focus-visible {
@@ -1820,14 +2269,20 @@ select.formSelect {
 .agendaCardTime {
   font-size: calc(0.8125rem * var(--tt-font-scale, 1));
   color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
   line-height: 1.3;
 }
 
-/* Event popup — aligned with PagePanel / login elevated surfaces */
+/* ------------------------------------------------------------------ */
+/* 13. Popups (event details + activity form)                          */
+/* ------------------------------------------------------------------ */
+
 .eventPopupOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: color-mix(in srgb, #05060a 55%, transparent);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1838,11 +2293,12 @@ select.formSelect {
 .eventPopup {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-panel);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-popover);
   max-width: 26rem;
   width: 100%;
   padding: var(--space-5);
+  animation: fadeUp 200ms var(--ease) both;
 }
 
 .eventPopupHeader {
@@ -1859,6 +2315,7 @@ select.formSelect {
   margin: 0;
   font-size: var(--font-size-lg);
   font-weight: 650;
+  letter-spacing: -0.015em;
   line-height: 1.3;
   color: var(--color-text);
 }
@@ -1874,16 +2331,19 @@ select.formSelect {
   padding: 0;
   background: none;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   color: var(--color-text-muted);
   font-size: 1.35rem;
   line-height: 1;
   cursor: pointer;
+  transition:
+    background var(--duration) var(--ease),
+    color var(--duration) var(--ease);
 }
 
 .eventPopupClose:hover {
   color: var(--color-text);
-  background: color-mix(in srgb, var(--color-text) 8%, transparent);
+  background: var(--color-bg-hover);
 }
 
 .eventPopupClose:focus-visible {
@@ -1945,7 +2405,7 @@ select.formSelect {
   font-size: var(--font-size-md);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  background: var(--color-bg);
+  background: var(--color-bg-inset);
   padding: var(--space-2) var(--space-3);
 }
 
@@ -1982,7 +2442,7 @@ select.formSelect {
 .eventPopupExpand summary:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
 }
 
 .eventPopupDescription {
@@ -1990,406 +2450,62 @@ select.formSelect {
   margin: var(--space-2) 0 0;
   color: var(--color-text);
   font-size: var(--font-size-md);
-  line-height: 1.45;
+  line-height: 1.5;
+}
+
+.eventPopup .errorMsg {
+  margin-top: var(--space-3);
 }
 
 .eventPopupActions {
   margin-top: var(--space-4);
-  padding-top: var(--space-3);
+  padding-top: var(--space-4);
   border-top: 1px solid var(--color-border);
 }
 
-/* Mobile shell + roster */
-@media (max-width: 767px) {
-  .botSettingsGrid {
-    grid-template-columns: 1fr;
-  }
+/* ------------------------------------------------------------------ */
+/* 14. Admin dashboards                                                */
+/* ------------------------------------------------------------------ */
 
-  .botSettingsFieldWide {
-    grid-column: auto;
-  }
-
-  .appShell {
-    display: grid;
-    grid-template:
-      "content" 1fr
-      "nav" auto / 1fr;
-    height: 100dvh;
-    min-height: 100dvh;
-    overflow: hidden;
-  }
-
-  .sidebar {
-    display: contents;
-    width: auto;
-    height: auto;
-    min-height: unset;
-    position: static;
-    border-right: none;
-  }
-
-  .sidebarBrand,
-  .sidebarFooter,
-  .sidebarSectionLabel,
-  .sidebarLabelFull {
-    display: none;
-  }
-
-  .sidebarLabelShort {
-    display: inline;
-  }
-
-  .sidebarAdminMobile {
-    display: contents;
-  }
-
-  .sidebarNav {
-    grid-area: nav;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    flex: unset;
-    justify-content: stretch;
-    align-items: stretch;
-    gap: 0.2rem;
-    padding: 0.35rem 0.4rem calc(0.45rem + env(safe-area-inset-bottom, 0px));
-    background: var(--color-bg-sidebar);
-    border-top: 1px solid var(--color-border);
-    z-index: 20;
-    overflow: visible;
-  }
-
-  .sidebarSection {
-    display: contents;
-  }
-
-  /* Must follow .sidebarSection — both classes are on the desktop Beheer block. */
-  .sidebarSection.sidebarAdminDesktop {
-    display: none;
-  }
-
-  .sidebarLink,
-  .sidebarAdminTrigger {
-    flex: 1 1 0;
-    flex-direction: column;
-    justify-content: center;
-    gap: 0.2rem;
-    min-width: 0;
-    min-height: 3rem;
-    padding: 0.4rem 0.35rem 0.35rem;
-    border-radius: var(--radius-sm);
-    font-size: 0.75rem;
-    font-weight: 600;
-    line-height: 1.15;
-    text-align: center;
-  }
-
-  .sidebarAdminTrigger {
-    appearance: none;
-    border: none;
-    background: transparent;
-    color: var(--color-text-muted);
-    font-family: inherit;
-    cursor: pointer;
-  }
-
-  .sidebarAdminTrigger:hover {
-    color: var(--color-text);
-    background: var(--color-bg-hover);
-  }
-
-  .sidebarLinkActive {
-    background: var(--color-accent-soft);
-    color: var(--color-text);
-  }
-
-  .sidebarLinkActive::before {
-    display: none;
-  }
-
-  .sidebarLinkActive .sidebarNavIcon {
-    color: var(--color-accent);
-  }
-
-  .sidebarLinkLabel {
-    white-space: nowrap;
-    overflow: visible;
-    text-overflow: clip;
-    max-width: none;
-  }
-
-  .sidebarLabelShort {
-    font-size: 0.68rem;
-  }
-
-  .sidebarNavIcon {
-    width: 1.25rem;
-    height: 1.25rem;
-  }
-
-  .sidebarAdminSheet {
-    position: fixed;
-    inset: 0;
-    z-index: 40;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-  }
-
-  .sidebarAdminSheetBackdrop {
-    position: absolute;
-    inset: 0;
-    border: none;
-    background: rgba(0, 0, 0, 0.45);
-    cursor: pointer;
-  }
-
-  .sidebarAdminSheetPanel {
-    position: relative;
-    z-index: 1;
-    width: min(100%, 28rem);
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-    padding: 0.85rem 0.85rem calc(0.85rem + env(safe-area-inset-bottom, 0px));
-    background: var(--color-bg-elevated);
-    border: 1px solid var(--color-border);
-    border-bottom: none;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  }
-
-  .sidebarAdminSheetTitle {
-    margin: 0 0 0.35rem 0.35rem;
-    font-size: var(--font-size-xs);
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--color-text-muted);
-  }
-
-  .sidebarAdminSheetPanel .sidebarLink {
-    flex-direction: row;
-    justify-content: flex-start;
-    min-height: 2.75rem;
-    padding: 0.65rem 0.75rem;
-    font-size: var(--font-size-md);
-    text-align: left;
-  }
-
-  .sidebarAdminSheetPanel .sidebarLinkActive::before {
-    display: block;
-  }
-
-  .appContentColumn {
-    grid-area: content;
-    min-height: 0;
-    height: auto;
-    overflow: hidden;
-    padding-top: env(safe-area-inset-top, 0px);
-  }
-
-  .pageLayout {
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  .topBar {
-    padding: 0.55rem 0.75rem;
-    min-height: unset;
-  }
-
-  .topBarTitle {
-    font-size: 1rem;
-  }
-
-  .pageLayoutContent {
-    padding: 0.75rem;
-    padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
-    padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
-  }
-
-  .timetablePage .pageLayoutContent {
-    padding-bottom: 7rem;
-  }
-
-  .timetableFontSizeControls {
-    bottom: calc(var(--mobile-tabbar-height) + env(safe-area-inset-bottom, 0px) + 1.5rem);
-  }
-
-  .timetableAddActivityControls {
-    left: max(0.75rem, env(safe-area-inset-left, 0px));
-    bottom: calc(var(--mobile-tabbar-height) + env(safe-area-inset-bottom, 0px) + 1.5rem);
-  }
-
-  .topBarActions {
-    width: 100%;
-  }
-
-  .pagePanel {
-    padding: 0.85rem 0.95rem;
-  }
-
-  .timetablePanel {
-    padding: 0.65rem 0.7rem;
-  }
-
-  .timetableToolbar {
-    display: flex;
-    flex-direction: column;
-    gap: 0.45rem;
-    margin-bottom: 1rem;
-  }
-
-  .timetableToolbarPrimary {
-    display: grid;
-    grid-template:
-      "nav week toggle" auto / auto minmax(0, 1fr) auto;
-    align-items: center;
-    column-gap: 0.4rem;
-    row-gap: 0.25rem;
-  }
-
-  .timetableToolbar .timetableWeekNav {
-    grid-area: nav;
-    order: unset;
-  }
-
-  .timetableToolbar .timetableWeekLabel {
-    grid-area: week;
-    order: unset;
-    flex: unset;
-    min-width: 0;
-    justify-self: stretch;
-    text-align: center;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .timetableWeekRange {
-    justify-content: center;
-    width: 100%;
-  }
-
-  .timetableWeekLabel .timetableLoading {
-    justify-content: center;
-  }
-
-  .timetableToolbar .timetableLayoutToggle {
-    grid-area: toggle;
-    order: unset;
-    margin-left: 0;
-    justify-self: end;
-  }
-
-  .timetableToolbar .memberFilter {
-    order: unset;
-    flex: unset;
-    margin-top: 0;
-  }
-
-  .weekNavThisWeekFull {
-    display: none;
-  }
-
-  .weekNavThisWeekShort {
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.05rem;
-    line-height: 1.05;
-    font-size: 0.68rem;
-    font-weight: 650;
-  }
-
-  .weekNavThisWeek {
-    min-width: 3.25rem;
-    min-height: 44px;
-    height: 44px;
-    padding: 0 0.35rem;
-  }
-
-  .weekNavIconBtn {
-    width: 44px;
-    min-width: 44px;
-    height: 44px;
-  }
-
-  .timetableLayoutBtn {
-    min-height: 44px;
-    padding: 0 0.65rem;
-  }
-
-  .timetableToolbar .memberFilter {
-    margin-top: 0.15rem;
-  }
-
-  .memberFilter {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding-bottom: 0.1rem;
-  }
-
-  .memberFilter::-webkit-scrollbar {
-    display: none;
-  }
-
-  .memberChip {
-    flex-shrink: 0;
-    min-height: 44px;
-    padding: 0.35rem 0.7rem 0.35rem 0.4rem;
-  }
-
-  .memberFilterActions {
-    min-height: 44px;
-  }
-
-  .sidebarLogout {
-    width: 2.5rem;
-    height: 2.5rem;
-  }
-
-  .eventPopupOverlay {
-    align-items: flex-end;
-    padding: 0;
-  }
-
-  .eventPopup {
-    max-width: none;
-    max-height: min(90dvh, 100%);
-    overflow-y: auto;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    border-bottom: none;
-    padding: var(--space-5) var(--space-5) calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
-  }
-
-  .eventPopupBody {
-    grid-template-columns: minmax(5rem, 28%) 1fr;
-  }
-}
-
-/* Admin dashboard */
 .adminSection {
-  margin-bottom: 1.35rem;
+  margin-bottom: var(--space-8);
   --admin-chart-min-height: 12rem;
   --admin-section-gap: 0.75rem;
 }
 
+.adminSection:last-child {
+  margin-bottom: var(--space-4);
+}
+
 .adminSectionHead {
-  margin-bottom: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-bottom: 0.75rem;
 }
 
 .adminSectionTitle {
   margin: 0;
-  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9375rem;
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--color-text);
 }
 
+.adminSectionTitle::before {
+  content: "";
+  width: 3px;
+  height: 1em;
+  border-radius: 2px;
+  background: var(--color-accent);
+  flex-shrink: 0;
+}
+
 .adminSectionHint {
-  margin: 0.2rem 0 0;
+  margin: 0 0 0 calc(3px + 0.6rem);
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
@@ -2416,52 +2532,73 @@ select.formSelect {
   margin-bottom: 0;
 }
 
+.pageContainer > .adminStatGrid {
+  margin-bottom: var(--space-4);
+}
+
 .adminSectionStack > .adminStatGrid + .adminStatGrid {
   margin-top: 0;
 }
 
 .adminStatGridPrimary {
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 }
 
 .adminStatGridSecondary {
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
 }
 
 .adminStatCard {
+  position: relative;
+  overflow: hidden;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-panel);
-  padding: 0.85rem 1rem;
+  padding: 0.95rem 1.05rem;
+}
+
+.adminStatGridPrimary .adminStatCard::after {
+  content: "";
+  position: absolute;
+  inset: auto -30% -60% auto;
+  width: 60%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--color-accent-soft), transparent 70%);
+  pointer-events: none;
 }
 
 .adminStatCardCompact {
-  padding: 0.65rem 0.75rem;
+  padding: 0.7rem 0.8rem;
 }
 
 .adminStatCardCompact .adminStatValue {
-  font-size: 1.15rem;
+  font-size: 1.2rem;
 }
 
 .adminStatLabel {
   margin: 0;
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .adminStatValue {
   margin: 0.3rem 0 0;
-  font-size: 1.5rem;
-  font-weight: 650;
-  line-height: 1.2;
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
 }
 
 .adminStatHint {
-  margin: 0.25rem 0 0;
-  font-size: 0.75rem;
+  margin: 0.3rem 0 0;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
+  line-height: 1.4;
 }
 
 .adminSplit {
@@ -2479,10 +2616,7 @@ select.formSelect {
   min-height: 0;
 }
 
-.adminSplit > .pagePanel > .adminSubhead {
-  flex-shrink: 0;
-}
-
+.adminSplit > .pagePanel > .adminSubhead,
 .adminSplit > .pagePanel > .cardHint {
   flex-shrink: 0;
 }
@@ -2503,21 +2637,39 @@ select.formSelect {
   min-height: 0;
 }
 
+.adminSubhead {
+  margin: 0 0 0.75rem;
+  font-size: var(--font-size-sm);
+  font-weight: 650;
+  color: var(--color-text);
+}
+
+.adminSubhead + .adminSubhead,
+.adminBars + .adminSubhead,
+.adminDonutWrap + .adminSubhead {
+  margin-top: 1.1rem;
+}
+
+.adminSpacer {
+  height: 1rem;
+}
+
+/* Bars */
 .adminBars {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.5rem;
 }
 
 .adminBarRow {
   display: grid;
-  grid-template-columns: minmax(4.5rem, 9rem) 1fr 2.25rem;
-  gap: 0.5rem;
+  grid-template-columns: minmax(4.5rem, 9rem) 1fr 2.5rem;
+  gap: 0.6rem;
   align-items: center;
 }
 
 .adminBarLabel {
-  font-size: 0.75rem;
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2526,23 +2678,27 @@ select.formSelect {
 
 .adminBarTrack {
   height: 8px;
-  background: var(--color-bg-page);
+  background: var(--color-bg-inset);
   border-radius: 999px;
   overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--color-border-subtle);
 }
 
 .adminBarFill {
   height: 100%;
-  background: var(--color-accent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--color-accent) 70%, var(--color-bg)), var(--color-accent));
   border-radius: inherit;
 }
 
 .adminBarValue {
-  font-size: 0.75rem;
+  font-size: var(--font-size-sm);
   text-align: right;
   color: var(--color-text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
+/* Hour chart */
 .adminHourChart {
   display: flex;
   align-items: flex-end;
@@ -2564,8 +2720,9 @@ select.formSelect {
 .adminHourChartScale {
   display: flex;
   justify-content: space-between;
-  font-size: 0.6875rem;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .adminHourCol {
@@ -2601,11 +2758,13 @@ select.formSelect {
 }
 
 .adminHourLabel {
-  margin-top: 0.25rem;
+  margin-top: 0.3rem;
   font-size: 0.625rem;
   color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
+/* Day heatmap */
 .adminDayHeatmapWrap {
   display: flex;
   flex-direction: column;
@@ -2615,7 +2774,7 @@ select.formSelect {
 .adminDayHeatmap {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 0.35rem;
+  gap: 0.4rem;
 }
 
 .adminDayHeatCell {
@@ -2632,6 +2791,11 @@ select.formSelect {
   cursor: pointer;
   color: inherit;
   font: inherit;
+  transition: transform var(--duration) var(--ease);
+}
+
+.adminDayHeatCell:hover {
+  transform: translateY(-1px);
 }
 
 .adminDayHeatCellActive {
@@ -2639,27 +2803,31 @@ select.formSelect {
 }
 
 .adminDayHeatLabel {
-  font-size: 0.6875rem;
+  font-size: var(--font-size-xs);
   font-weight: 700;
   color: var(--color-text);
   text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .adminDayHeatValue {
-  font-size: 0.875rem;
+  font-size: var(--font-size-md);
   font-weight: 650;
   color: var(--color-text);
+  font-variant-numeric: tabular-nums;
 }
 
+/* Chart tooltip */
 .adminChartTooltip {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.35rem 0.65rem;
-  padding: 0.45rem 0.65rem;
+  padding: 0.45rem 0.7rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
+  box-shadow: var(--shadow-floating);
   font-size: var(--font-size-sm);
 }
 
@@ -2697,6 +2865,7 @@ select.formSelect {
   font-size: var(--font-size-xs);
 }
 
+/* Area chart */
 .adminAreaChart {
   position: relative;
   width: 100%;
@@ -2763,15 +2932,16 @@ select.formSelect {
   display: flex;
   justify-content: space-between;
   margin-top: 0.25rem;
-  font-size: 0.6875rem;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
 
+/* Donut */
 .adminDonutWrap {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 1rem;
+  gap: 1rem 1.25rem;
 }
 
 .adminDonutSvg {
@@ -2790,7 +2960,7 @@ select.formSelect {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.25rem;
   min-width: 8rem;
   flex: 1;
 }
@@ -2805,16 +2975,19 @@ select.formSelect {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.5rem;
   margin: 0;
-  padding: 0.2rem 0.3rem;
+  padding: 0.3rem 0.45rem;
   border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   background: transparent;
   color: inherit;
   font: inherit;
   text-align: left;
   cursor: pointer;
+  transition:
+    background var(--duration) var(--ease),
+    border-color var(--duration) var(--ease);
 }
 
 .adminDonutLegendBtn:hover,
@@ -2826,7 +2999,7 @@ select.formSelect {
 .adminDonutSwatch {
   width: 0.65rem;
   height: 0.65rem;
-  border-radius: 2px;
+  border-radius: 3px;
 }
 
 .adminDonutLegendLabel {
@@ -2834,13 +3007,13 @@ select.formSelect {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
 }
 
 .adminDonutLegendValue {
   font-weight: 600;
   color: var(--color-text);
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -2848,42 +3021,70 @@ select.formSelect {
 .adminDonutLegendPct {
   color: var(--color-text-muted);
   font-weight: 500;
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
 }
 
+/* Tables */
 .adminTableWrap {
   overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-inset);
 }
 
 .adminTable {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
 }
 
 .adminTable th,
 .adminTable td {
   text-align: left;
-  padding: 0.55rem 0.65rem;
-  border-bottom: 1px solid var(--color-border);
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid var(--color-border-subtle);
   vertical-align: top;
 }
 
 .adminTable th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   color: var(--color-text-muted);
-  font-weight: 600;
-  font-size: 0.75rem;
+  font-weight: 650;
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--color-bg);
+  white-space: nowrap;
+}
+
+.adminTable tbody tr {
+  transition: background var(--duration) var(--ease);
+}
+
+.adminTable tbody tr:hover {
+  background: var(--color-bg-hover);
+}
+
+.adminTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.adminTable td {
+  font-variant-numeric: tabular-nums;
 }
 
 .adminUserToolbar {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.85rem;
 }
 
 .adminUserToolbar .formInput {
   flex: 1;
+  width: auto;
   min-width: 12rem;
 }
 
@@ -2891,8 +3092,12 @@ select.formSelect {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
+}
+
+.adminSort .formInput {
+  width: auto;
 }
 
 .adminUserCell {
@@ -2901,53 +3106,28 @@ select.formSelect {
   gap: 0.1rem;
 }
 
-.adminMuted {
-  color: var(--color-text-muted);
-  font-size: 0.75rem;
-}
-
-.adminShareBadge {
-  display: inline-flex;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
+.adminUserCell strong {
   font-weight: 600;
 }
 
-.adminShareOn {
-  background: color-mix(in srgb, var(--color-success) 18%, transparent);
-  color: var(--color-success);
-}
-
-.adminShareOff {
-  background: color-mix(in srgb, var(--color-text-muted) 18%, transparent);
+.adminMuted {
   color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
 }
 
-.adminSubhead {
-  margin: 1rem 0 0.5rem;
-  font-size: 0.875rem;
+.adminSection .formLabel,
+.adminSection .formInput {
+  margin-top: 0.55rem;
 }
 
-.adminSpacer {
-  height: 1rem;
+.adminSection .formLabel:first-child {
+  margin-top: 0;
 }
 
-@media (max-width: 900px) {
-  .adminSplit {
-    grid-template-columns: 1fr;
-  }
+/* ------------------------------------------------------------------ */
+/* 15. Operational status                                              */
+/* ------------------------------------------------------------------ */
 
-  .adminDayHeatmap {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .adminDonutWrap {
-    justify-content: center;
-  }
-}
-
-/* Operational status */
 .statusStack {
   display: flex;
   flex-direction: column;
@@ -2959,147 +3139,151 @@ select.formSelect {
 }
 
 .statusHero {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 0.75rem;
-  padding: 1rem 1.15rem;
+  margin-bottom: 0;
+  padding: 1.15rem 1.35rem;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-left-width: 4px;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-panel);
+  --status-tone: var(--color-text-muted);
+}
+
+.statusHero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, color-mix(in srgb, var(--status-tone) 14%, transparent), transparent 55%);
+  pointer-events: none;
+}
+
+.statusHero > * {
+  position: relative;
 }
 
 .statusHero-ok {
-  border-left-color: var(--color-success);
+  --status-tone: var(--color-success);
 }
 
 .statusHero-degraded {
-  border-left-color: #f0b232;
+  --status-tone: var(--color-warning);
 }
 
 .statusHero-unavailable {
-  border-left-color: var(--color-error);
+  --status-tone: var(--color-error);
 }
 
 .statusHeroLabel {
   margin: 0;
-  font-size: 0.75rem;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--font-size-xs);
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--color-text-muted);
 }
 
+.statusHeroLabel::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--status-tone);
+  color: var(--status-tone);
+  animation: pulseDot 2.2s ease-out infinite;
+}
+
 .statusHeroValue {
-  margin: 0.25rem 0 0;
+  margin: 0.3rem 0 0;
   font-size: 1.75rem;
-  font-weight: 650;
-  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
 }
 
 .statusHeroMeta {
   margin: 0.35rem 0 0;
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
-}
-
-.statusBadge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.15rem 0.55rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  white-space: nowrap;
-  background: color-mix(in srgb, var(--color-text-muted) 18%, transparent);
-  color: var(--color-text-muted);
-}
-
-.statusBadge-ok {
-  background: color-mix(in srgb, var(--color-success) 18%, transparent);
-  color: var(--color-success);
-}
-
-.statusBadge-degraded {
-  background: color-mix(in srgb, #f0b232 22%, transparent);
-  color: #c49216;
-}
-
-.statusBadge-unavailable {
-  background: color-mix(in srgb, var(--color-error) 18%, transparent);
-  color: var(--color-error);
-}
-
-.statusBadge-disabled,
-.statusBadge-unknown {
-  background: color-mix(in srgb, var(--color-text-muted) 18%, transparent);
-  color: var(--color-text-muted);
-}
-
-[data-theme="light"] .statusBadge-degraded {
-  color: #9a7010;
 }
 
 .statusComponentGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 0.75rem;
 }
 
 .statusComponentCard {
+  min-width: 0;
   padding: 0.9rem 1rem;
-  background: var(--color-bg-page);
+  background: var(--color-bg-inset);
   border: 1px solid var(--color-border);
-  border-left-width: 3px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
+  --status-tone: var(--color-text-muted);
+  box-shadow: inset 3px 0 0 var(--status-tone);
 }
 
 .statusTone-ok {
-  border-left-color: var(--color-success);
+  --status-tone: var(--color-success);
 }
 
 .statusTone-degraded {
-  border-left-color: #f0b232;
+  --status-tone: var(--color-warning);
 }
 
 .statusTone-unavailable {
-  border-left-color: var(--color-error);
+  --status-tone: var(--color-error);
 }
 
 .statusTone-disabled {
-  border-left-color: var(--color-text-muted);
+  --status-tone: var(--color-text-muted);
 }
 
 .statusComponentHead {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 0.35rem 0.5rem;
+}
+
+.statusComponentHead .statusBadge {
+  flex-shrink: 0;
 }
 
 .statusComponentTitle {
   margin: 0;
-  font-size: 0.9375rem;
-  font-weight: 600;
+  min-width: 0;
+  font-size: var(--font-size-md);
+  font-weight: 650;
+  overflow-wrap: anywhere;
 }
 
 .statusComponentDetail {
   margin: 0.45rem 0 0;
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
+  line-height: 1.45;
 }
 
 .statusComponentLatency {
-  margin: 0.35rem 0 0;
-  font-size: 0.75rem;
-  font-weight: 600;
+  margin: 0.4rem 0 0;
+  font-size: var(--font-size-xs);
+  font-weight: 650;
   color: var(--color-text);
+  font-variant-numeric: tabular-nums;
 }
 
 .statusMetaList {
   display: grid;
-  gap: 0.65rem;
+  gap: 0;
   margin: 0;
 }
 
@@ -3107,7 +3291,13 @@ select.formSelect {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
-  font-size: 0.875rem;
+  padding: 0.5rem 0;
+  font-size: var(--font-size-md);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.statusMetaList > div:last-child {
+  border-bottom: none;
 }
 
 .statusMetaList dt {
@@ -3118,6 +3308,7 @@ select.formSelect {
   margin: 0;
   font-weight: 600;
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .statusFlagList {
@@ -3126,7 +3317,6 @@ select.formSelect {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
 }
 
 .statusFlagRow {
@@ -3134,7 +3324,13 @@ select.formSelect {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  font-size: 0.875rem;
+  padding: 0.5rem 0;
+  font-size: var(--font-size-md);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.statusFlagRow:last-child {
+  border-bottom: none;
 }
 
 .statusHistory {
@@ -3143,15 +3339,18 @@ select.formSelect {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
 }
 
 .statusHistoryItem {
   display: flex;
   align-items: flex-start;
-  gap: 0.75rem;
-  padding: 0.55rem 0;
-  border-bottom: 1px solid var(--color-border);
+  gap: 0.85rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.statusHistoryItem:first-child {
+  padding-top: 0;
 }
 
 .statusHistoryItem:last-child {
@@ -3165,26 +3364,32 @@ select.formSelect {
 
 .statusHistoryTime {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: var(--font-size-md);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
+
+/* ------------------------------------------------------------------ */
+/* 16. Permissions                                                     */
+/* ------------------------------------------------------------------ */
 
 .permissionsBanner {
   margin: 0 0 0.85rem;
-  padding: 0.75rem 0.9rem;
-  border-radius: var(--radius-md);
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
-  font-size: 0.875rem;
-  line-height: 1.45;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
 }
 
 .permissionsBannerWarn {
-  background: color-mix(in srgb, #f0b232 16%, transparent);
-  border-color: color-mix(in srgb, #f0b232 40%, var(--color-border));
+  background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-warning) 38%, var(--color-border));
 }
 
 .permissionsBannerInfo {
-  background: color-mix(in srgb, var(--color-accent, #3b82f6) 12%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent) 30%, var(--color-border));
 }
 
 .permissionsGroupHead {
@@ -3196,7 +3401,8 @@ select.formSelect {
 
 .permissionsGroupHead h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.9375rem;
+  font-weight: 650;
 }
 
 .permissionsFindingList,
@@ -3206,14 +3412,14 @@ select.formSelect {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 0.65rem;
+  gap: 0.6rem;
 }
 
 .permissionsFinding {
-  padding: 0.7rem 0.8rem;
+  padding: 0.75rem 0.9rem;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-inset);
 }
 
 .permissionsFindingHead {
@@ -3227,20 +3433,22 @@ select.formSelect {
 .permissionsFinding p {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
 }
 
 .permissionsPanelTitle {
   margin: 0 0 0.35rem;
-  font-size: 1rem;
+  font-size: 0.9375rem;
+  font-weight: 650;
 }
 
 .permissionsBasePanel {
-  border-left: 3px solid color-mix(in srgb, var(--color-accent, #3b82f6) 70%, transparent);
+  box-shadow: var(--shadow-panel), inset 3px 0 0 color-mix(in srgb, var(--color-accent) 70%, transparent);
 }
 
 .permissionsOverridePanel {
-  border-left: 3px solid color-mix(in srgb, #f0b232 70%, transparent);
+  box-shadow: var(--shadow-panel), inset 3px 0 0 color-mix(in srgb, var(--color-warning) 70%, transparent);
 }
 
 .permissionsBitOn {
@@ -3256,14 +3464,521 @@ select.formSelect {
   display: flex;
   gap: 0.45rem;
   align-items: baseline;
-  font-size: 0.9rem;
+  font-size: var(--font-size-md);
+  line-height: 1.45;
 }
 
-.adminSection .formLabel,
-.adminSection .formInput {
-  margin-top: 0.55rem;
+/* ------------------------------------------------------------------ */
+/* 17. Bot settings                                                    */
+/* ------------------------------------------------------------------ */
+
+.botSettingsFields {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1rem;
 }
 
-.adminSection .formLabel:first-child {
-  margin-top: 0;
+.botSettingsGrid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.botSettingsField {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.botSettingsFieldWide {
+  grid-column: 1 / -1;
+}
+
+.botSettingsField .formInput {
+  width: 100%;
+  min-width: 0;
+}
+
+.botSettingsField small {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+/* ------------------------------------------------------------------ */
+/* 18. Responsive: admin split                                         */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 900px) {
+  .adminSplit {
+    grid-template-columns: 1fr;
+  }
+
+  .adminDayHeatmap {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .adminDonutWrap {
+    justify-content: center;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* 19. Mobile shell + roster                                           */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 767px) {
+  .botSettingsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .botSettingsFieldWide {
+    grid-column: auto;
+  }
+
+  .appShell {
+    display: grid;
+    grid-template:
+      "content" 1fr
+      "nav" auto / 1fr;
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .sidebar {
+    display: contents;
+    width: auto;
+    height: auto;
+    min-height: unset;
+    position: static;
+    border-right: none;
+  }
+
+  .sidebarBrand,
+  .sidebarFooter,
+  .sidebarSectionLabel,
+  .sidebarLabelFull {
+    display: none;
+  }
+
+  .sidebarLabelShort {
+    display: inline;
+  }
+
+  .sidebarAdminMobile {
+    display: contents;
+  }
+
+  .sidebarNav {
+    grid-area: nav;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    flex: unset;
+    justify-content: stretch;
+    align-items: stretch;
+    gap: 0.15rem;
+    padding: 0.35rem 0.5rem calc(0.4rem + env(safe-area-inset-bottom, 0px));
+    background: color-mix(in srgb, var(--color-bg-sidebar) 88%, transparent);
+    -webkit-backdrop-filter: saturate(140%) blur(14px);
+    backdrop-filter: saturate(140%) blur(14px);
+    border-top: 1px solid var(--color-border);
+    z-index: 20;
+    overflow: visible;
+  }
+
+  .sidebarSection {
+    display: contents;
+  }
+
+  /* Must follow .sidebarSection — both classes are on the desktop Beheer block. */
+  .sidebarSection.sidebarAdminDesktop {
+    display: none;
+  }
+
+  .sidebarLink,
+  .sidebarAdminTrigger {
+    flex: 1 1 0;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.25rem;
+    min-width: 0;
+    min-height: 3.1rem;
+    padding: 0.4rem 0.3rem 0.35rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1.15;
+    text-align: center;
+  }
+
+  .sidebarAdminTrigger {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+  }
+
+  .sidebarAdminTrigger:hover {
+    color: var(--color-text);
+    background: var(--color-bg-hover);
+  }
+
+  .sidebarLink:hover {
+    background: transparent;
+  }
+
+  .sidebarLinkActive,
+  .sidebarLinkActive:hover {
+    background: transparent;
+    color: var(--color-accent);
+  }
+
+  .sidebarLinkActive .sidebarNavIcon {
+    color: var(--color-accent);
+  }
+
+  .sidebarNavIcon {
+    width: 1.375rem;
+    height: 1.375rem;
+    padding: 0.15rem 0;
+    box-sizing: content-box;
+    border-radius: var(--radius-pill);
+    transition:
+      background var(--duration) var(--ease),
+      color var(--duration) var(--ease);
+  }
+
+  .sidebarLinkActive .sidebarNavIcon {
+    background: var(--color-accent-soft);
+    padding-inline: 0.85rem;
+  }
+
+  .sidebarLinkLabel {
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+    max-width: none;
+  }
+
+  .sidebarLabelShort {
+    font-size: 0.6875rem;
+  }
+
+  .sidebarAdminSheet {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  .sidebarAdminSheetBackdrop {
+    position: absolute;
+    inset: 0;
+    border: none;
+    background: color-mix(in srgb, #05060a 50%, transparent);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    cursor: pointer;
+  }
+
+  .sidebarAdminSheetPanel {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 28rem);
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.6rem 0.85rem calc(0.85rem + env(safe-area-inset-bottom, 0px));
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-bottom: none;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    box-shadow: var(--shadow-popover);
+    animation: sheetUp 220ms var(--ease) both;
+  }
+
+  .sidebarAdminSheetPanel::before {
+    content: "";
+    align-self: center;
+    width: 2.5rem;
+    height: 4px;
+    margin-bottom: 0.6rem;
+    border-radius: 999px;
+    background: var(--color-border-strong);
+  }
+
+  .sidebarAdminSheetTitle {
+    margin: 0 0 0.4rem 0.4rem;
+    font-size: var(--font-size-xs);
+    font-weight: 650;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-subtle);
+  }
+
+  .sidebarAdminSheetPanel .sidebarLink {
+    flex-direction: row;
+    justify-content: flex-start;
+    min-height: 2.9rem;
+    padding: 0.65rem 0.75rem;
+    font-size: var(--font-size-md);
+    text-align: left;
+    gap: 0.75rem;
+  }
+
+  .sidebarAdminSheetPanel .sidebarLink:hover {
+    background: var(--color-bg-hover);
+  }
+
+  .sidebarAdminSheetPanel .sidebarLinkActive,
+  .sidebarAdminSheetPanel .sidebarLinkActive:hover {
+    background: var(--color-accent-soft);
+    color: var(--color-text);
+  }
+
+  .sidebarAdminSheetPanel .sidebarNavIcon,
+  .sidebarAdminSheetPanel .sidebarLinkActive .sidebarNavIcon {
+    width: 1.125rem;
+    height: 1.125rem;
+    padding: 0;
+    background: none;
+  }
+
+  .appContentColumn {
+    grid-area: content;
+    min-height: 0;
+    height: auto;
+    overflow: hidden;
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .pageLayout {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .topBar {
+    padding: 0.6rem 0.9rem;
+    min-height: unset;
+  }
+
+  .topBarTitle {
+    font-size: 1rem;
+  }
+
+  .topBarSubtitle {
+    font-size: var(--font-size-xs);
+  }
+
+  .pageLayoutContent {
+    padding: 0.85rem;
+    padding-left: max(0.85rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.85rem, env(safe-area-inset-right, 0px));
+  }
+
+  .timetablePage .pageLayoutContent {
+    padding-bottom: 7rem;
+  }
+
+  .timetableFontSizeControls {
+    bottom: calc(var(--mobile-tabbar-height) + env(safe-area-inset-bottom, 0px) + 1.25rem);
+  }
+
+  .timetableAddActivityControls {
+    left: max(1rem, env(safe-area-inset-left, 0px));
+    bottom: calc(var(--mobile-tabbar-height) + env(safe-area-inset-bottom, 0px) + 1.25rem);
+  }
+
+  .topBarActions {
+    width: 100%;
+  }
+
+  .topBarActions .topBarTabs {
+    width: 100%;
+  }
+
+  .topBarActions .topBarTab {
+    flex: 1;
+    text-align: center;
+  }
+
+  .pagePanel {
+    padding: 0.95rem 1rem;
+  }
+
+  .timetablePanel {
+    padding: 0.65rem 0.7rem;
+  }
+
+  .timetableToolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .timetableToolbarPrimary {
+    display: grid;
+    grid-template:
+      "nav week toggle" auto / auto minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 0.4rem;
+    row-gap: 0.25rem;
+  }
+
+  .timetableToolbar .timetableWeekNav {
+    grid-area: nav;
+    order: unset;
+  }
+
+  .timetableToolbar .timetableWeekLabel {
+    grid-area: week;
+    order: unset;
+    flex: unset;
+    min-width: 0;
+    justify-self: stretch;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: var(--font-size-sm);
+  }
+
+  .timetableWeekRange {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .timetableWeekLabel .timetableLoading {
+    justify-content: center;
+  }
+
+  .timetableToolbar .timetableLayoutToggle {
+    grid-area: toggle;
+    order: unset;
+    margin-left: 0;
+    justify-self: end;
+  }
+
+  .timetableToolbar .memberFilter {
+    order: unset;
+    flex: unset;
+    margin-top: 0.15rem;
+  }
+
+  .weekNavThisWeekFull {
+    display: none;
+  }
+
+  .weekNavThisWeekShort {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.05rem;
+    line-height: 1.05;
+    font-size: 0.68rem;
+    font-weight: 650;
+  }
+
+  .weekNavThisWeek {
+    min-width: 3.25rem;
+    min-height: 44px;
+    height: 44px;
+    padding: 0 0.35rem;
+  }
+
+  .weekNavIconBtn {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+  }
+
+  .timetableLayoutBtn {
+    min-height: 44px;
+    padding: 0 0.65rem;
+  }
+
+  .memberFilter {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 0.1rem;
+  }
+
+  .memberFilter::-webkit-scrollbar {
+    display: none;
+  }
+
+  .memberChip {
+    flex-shrink: 0;
+    min-height: 44px;
+    padding: 0.35rem 0.7rem 0.35rem 0.4rem;
+  }
+
+  .memberFilterActions {
+    min-height: 44px;
+  }
+
+  .sidebarLogout {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .eventPopupOverlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .eventPopup {
+    max-width: none;
+    max-height: min(90dvh, 100%);
+    overflow-y: auto;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    border-bottom: none;
+    padding: var(--space-5) var(--space-5) calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+    animation: sheetUp 220ms var(--ease) both;
+  }
+
+  .eventPopupBody {
+    grid-template-columns: minmax(5rem, 28%) 1fr;
+  }
+
+  .statusHero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .adminStatValue {
+    font-size: 1.4rem;
+  }
+
+  .settingsAccountRow {
+    flex-wrap: wrap;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* 20. Motion preferences                                              */
+/* ------------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .timetableLoading::before {
+    animation: none;
+    border-top-color: var(--color-text-muted);
+  }
 }

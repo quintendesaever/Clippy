@@ -233,8 +233,13 @@ export default function Sidebar({ user }: { user: DiscordUser }) {
   return (
     <aside className="sidebar">
       <div className="sidebarBrand">
-        <LogoIcon />
-        <span>Clippy</span>
+        <span className="sidebarBrandMark">
+          <LogoIcon />
+        </span>
+        <span className="sidebarBrandText">
+          <span className="sidebarBrandName">Clippy</span>
+          <span className="sidebarBrandCaption">Dashboard</span>
+        </span>
       </div>
 
       <nav className="sidebarNav" aria-label="Hoofdnavigatie">

@@ -210,7 +210,7 @@ export default function EventPopup({
                 >
                   Wijzigen
                 </Button>
-                <Button variant="secondary" onClick={handleDelete} disabled={busy}>
+                <Button variant="danger" onClick={handleDelete} disabled={busy}>
                   {busy ? "Verwijderen…" : "Verwijderen"}
                 </Button>
               </>
