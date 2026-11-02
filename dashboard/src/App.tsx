@@ -16,6 +16,7 @@ import OperationalStatus from "./pages/OperationalStatus";
 import Permissions from "./pages/Permissions";
 import Settings from "./pages/Settings";
 import Timetable from "./pages/Timetable";
+import clippyLogo from "./assets/logoicon_clippy_01@2x.png";
 
 function AuthedRoutes({ me }: { me: MeResponse }) {
   return (
@@ -81,7 +82,8 @@ function AppRoutes() {
 
   if (loading) {
     return (
-      <div className="loginPage">
+      <div className="loginPage appLoading" aria-busy="true">
+        <img className="appLoadingMark" src={clippyLogo} alt="" width={48} height={48} />
         <p className="timetableLoading">Laden…</p>
       </div>
     );

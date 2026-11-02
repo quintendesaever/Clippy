@@ -15,7 +15,9 @@ export default function PageLayout({ title, subtitle, actions, children }: PageL
         </div>
         {actions && <div className="topBarActions">{actions}</div>}
       </header>
-      <div className="pageLayoutContent">{children}</div>
+      <div className="pageLayoutContent">
+        <div className="pageContainer">{children}</div>
+      </div>
     </div>
   );
 }

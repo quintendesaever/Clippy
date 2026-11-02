@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="nl">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f1116" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <title>Clippy Dashboard</title>
     <script>
@@ -23,6 +24,13 @@
           document.documentElement.dataset.theme = theme;
           document.documentElement.dataset.palette = palette;
           document.documentElement.style.colorScheme = theme;
+          var themeColor = document.querySelector('meta[name="theme-color"]');
+          if (themeColor) {
+            themeColor.setAttribute(
+              "content",
+              theme === "light" ? "#f3f4f8" : palette === "classic" ? "#16171b" : "#0f1116"
+            );
+          }
         } catch (e) {}
       })();
     </script>

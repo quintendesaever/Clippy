@@ -1,7 +1,14 @@
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary";
+  variant?: "primary" | "secondary" | "ghost" | "danger";
   size?: "default" | "small";
   block?: boolean;
+};
+
+const VARIANT_CLASS: Record<NonNullable<ButtonProps["variant"]>, string> = {
+  primary: "",
+  secondary: "btnSecondary",
+  ghost: "btnGhost",
+  danger: "btnDanger",
 };
 
 export default function Button({
@@ -14,7 +21,7 @@ export default function Button({
 }: ButtonProps) {
   const classes = [
     "btn",
-    variant === "secondary" ? "btnSecondary" : "",
+    VARIANT_CLASS[variant],
     size === "small" ? "btnSmall" : "",
     block ? "btnBlock" : "",
     className,
