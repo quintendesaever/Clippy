@@ -257,6 +257,8 @@ async function fetchOnce(urlString: string): Promise<string> {
     return await readResponseBody(res);
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
+      // Preserve the existing timeout error without exposing the underlying abort error.
+      // eslint-disable-next-line preserve-caught-error
       throw new Error("ICS fetch timed out");
     }
     throw err;

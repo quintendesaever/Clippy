@@ -1,12 +1,4 @@
-const AUDIT_CATEGORIES = [
-  "members",
-  "roles",
-  "channels",
-  "bot_config",
-  "command_errors",
-] as const;
-
-export type AuditCategory = (typeof AUDIT_CATEGORIES)[number];
+export type AuditCategory = "members" | "roles" | "channels" | "bot_config" | "command_errors";
 
 export type AuditSeverity = "info" | "success" | "warn" | "error";
 

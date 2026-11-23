@@ -80,7 +80,6 @@ export function buildLibraryDescription(input: {
       const next = [...kept, line].join("\n");
       const suffix = `\n…and ${omitted + (lines.length - kept.length - 1) + 1} more`;
       if (header.join("\n").length + 1 + next.length + suffix.length > DESCRIPTION_LIMIT) {
-        omitted = lines.length - kept.length;
         break;
       }
       kept.push(line);

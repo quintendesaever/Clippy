@@ -102,15 +102,14 @@ export function parseActivitySummary(
     const fromDesc = extractTypeFromDescription(description);
     if (fromDesc) {
       if (!typeBadges.includes(fromDesc.badge)) typeBadges.push(fromDesc.badge);
-      titleTypeLabel = fromDesc.titleLabel;
     }
   }
 
   s = s
-    .replace(/\s*[(\[]\s*[A-Z0-9]{4,}\s*[)\]]\s*/gi, " ")
+    .replace(/\s*[([]\s*[A-Z0-9]{4,}\s*[)\]]\s*/gi, " ")
     .replace(/\b[A-Z]+\d+[A-Z0-9]*(?:-[A-Z0-9]+)*\b/gi, " ")
     .replace(/\bGR\d+\b/gi, " ")
-    .replace(/\s*[(\[]\s*[A-Za-z]+\s*[)\]]\s*$/i, " ")
+    .replace(/\s*[([]\s*[A-Za-z]+\s*[)\]]\s*$/i, " ")
     .replace(/\s*\(\s*\)\s*/g, " ")
     .replace(/\s*\[\s*\]\s*/g, " ");
 

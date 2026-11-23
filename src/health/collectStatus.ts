@@ -58,7 +58,7 @@ function reportDiscord(client: Client | null, guildId: string): ComponentReport 
   if (!client) {
     return { status: "unavailable", detail: "client not connected" };
   }
-  let ready = false;
+  let ready: boolean;
   try {
     ready = typeof client.isReady === "function" && client.isReady();
   } catch {
