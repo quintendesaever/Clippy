@@ -89,8 +89,6 @@ ssh <user>@<home-server>
 /opt/ClippyBotV3/scripts/deploy-home.sh
 ```
 
-Deploy tooling now lives in `deploy/`; `scripts/deploy.sh` and `scripts/deploy-home.sh` are kept for reference.
-
 Or manually:
 
 ```bash

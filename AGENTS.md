@@ -39,7 +39,7 @@ Canonical GitHub repository: `quintendesaever/Clippy`.
 
 ## Feature layout convention
 
-Feature folders are flat under `src/<feature>/`, with colocated `x.test.ts` tests and no barrel `index.ts`. Use standard seam names when applicable: `job.ts` for background jobs, `interactions.ts` for Discord component handlers, `discordEvents.ts` for gateway registrations exporting `registerXEvents(client, guildId)`, and `types.ts` for types. HTTP routes belong in `src/dashboard/routes/<area>.ts`, export `createXRouter(ctx: DashboardContext)`, and are mounted in `src/dashboard/server.ts`. Slash commands are auto-discovered from `src/commands/`; core files live directly under `src/`.
+Feature folders are flat under `src/<feature>/`, with colocated `x.test.ts` tests and no barrel `index.ts`. A feature may group a clear sub-area in one subfolder (existing: `src/dashboard/analytics/`, `src/dashboard/routes/`, `src/commands/stats/`); `src/commands/index.ts` is the command loader, not a barrel. Use standard seam names when applicable: `job.ts` for background jobs, `interactions.ts` for Discord component handlers, `discordEvents.ts` for gateway registrations exporting `registerXEvents(client, guildId)`, and `types.ts` for types. HTTP routes belong in `src/dashboard/routes/<area>.ts`, export `createXRouter(ctx: DashboardContext)`, and are mounted in `src/dashboard/server.ts`. Slash commands are auto-discovered from `src/commands/`; core files live directly under `src/`.
 
 ### Adding a feature
 

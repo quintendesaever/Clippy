@@ -1,8 +1,8 @@
 Status of AUDIT.md findings as of commit 771c7e3 (2026-11-23).
 
-Paths updated for the chore/codebase-cleanup layout.
+Statuses were judged at 771c7e3; evidence paths are updated to the chore/codebase-cleanup layout (c7bbd18).
 
-| ID | Status | Evidence (file:line @771c7e3) | Trivial? |
+| ID | Status | Evidence (file:line, cleanup layout) | Trivial? |
 | --- | --- | --- | --- |
 | SHIP-001 | fixed | `Dockerfile:38` copies the tracked Inter font; `src/calendar/timetableImage.ts:78` also has a fallback. | — |
 | XSYS-001 | fixed | `dashboard/src/lib/dates.ts:52` uses timezone-aware helpers; `dashboard/src/components/WeekGrid.tsx:165` uses zoned day keys. | — |
