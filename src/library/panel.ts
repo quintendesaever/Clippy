@@ -27,19 +27,10 @@ import {
   retireLibraryPanelState,
   storedPanelFromSettings,
   withGuildLibraryLock,
-  type LibraryPanelRecord,
   type LibraryReconcileDiscord,
 } from "./panelReconcile.js";
 
-export {
-  reconcileLibraryPanelState,
-  retireLibraryPanelState,
-  storedPanelFromSettings,
-  withGuildLibraryLock,
-  type LibraryPanelRecord,
-  type LibraryReconcileDiscord,
-  type LibraryReconcileResult,
-} from "./panelReconcile.js";
+export { withGuildLibraryLock } from "./panelReconcile.js";
 
 function isMissingDiscordResource(err: unknown): boolean {
   return (

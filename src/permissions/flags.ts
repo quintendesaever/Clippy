@@ -21,7 +21,7 @@ export const RELEVANT_PERMISSIONS = [
 ] as const;
 
 /** ViewChannel plus high-risk bits, used for sibling/category overwrite maps. */
-export const OVERWRITE_COMPARE_PERMISSIONS = [
+const OVERWRITE_COMPARE_PERMISSIONS = [
   PermissionFlagsBits.ViewChannel,
   ...HIGH_RISK_PERMISSIONS,
 ] as const;
@@ -57,7 +57,7 @@ export function hasExplicit(field: bigint, bit: bigint): boolean {
   return new PermissionsBitField(field).has(bit, false);
 }
 
-export function maskBits(field: bigint, bits: readonly bigint[]): bigint {
+function maskBits(field: bigint, bits: readonly bigint[]): bigint {
   let masked = 0n;
   for (const bit of bits) {
     if (hasExplicit(field, bit)) masked |= bit;

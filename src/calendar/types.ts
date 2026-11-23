@@ -6,7 +6,7 @@ export type MemberCalendar = {
   show_location: boolean;
 };
 
-export type TimetableEventSource = "ics" | "activity";
+type TimetableEventSource = "ics" | "activity";
 
 export type TimetableEvent = {
   userId: string;

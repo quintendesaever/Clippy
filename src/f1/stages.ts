@@ -182,7 +182,7 @@ export function nextScheduledAction(
   return { stage: "idle", at: null, label: "idle", waitingForResults: false };
 }
 
-export function meetingStillActive(now: Date, schedule: F1StageSchedule, jobIntervalMs = 0): boolean {
+function meetingStillActive(now: Date, schedule: F1StageSchedule, jobIntervalMs = 0): boolean {
   if (schedule.resultsGiveUpAt) {
     return now.getTime() < schedule.resultsGiveUpAt.getTime() + jobIntervalMs;
   }

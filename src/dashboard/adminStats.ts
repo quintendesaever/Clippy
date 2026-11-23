@@ -21,24 +21,8 @@ import {
   type AnalyticsEventRow,
 } from "./analytics/events.js";
 
-export {
-  ADMIN_RANGE_PRESETS,
-  aggregateUserAndActivityStats,
-  aggregateWebStats,
-  aggregateCalendarCoverage,
-  parseAdminRangePreset,
-  parseStatsUserIds,
-  resolveRangeBounds,
-} from "./adminStatsAggregate.js";
-export type {
-  ActivityStatRow,
-  AdminRangePreset,
-  AdminUserRow,
-  CountBucket,
-  MemberStatRow,
-  PageViewRow,
-  ParticipantStatRow,
-} from "./adminStatsAggregate.js";
+export { parseAdminRangePreset, parseStatsUserIds } from "./adminStatsAggregate.js";
+export type { AdminRangePreset } from "./adminStatsAggregate.js";
 
 export async function loadAdminStatsPayload(
   guildId: string,

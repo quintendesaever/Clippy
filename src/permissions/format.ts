@@ -10,7 +10,7 @@ import type {
   UserInspection,
 } from "./types.js";
 
-export const PERMISSION_COLORS = {
+const PERMISSION_COLORS = {
   fail: 0xef4444,
   warn: 0xf59e0b,
   ok: 0x22c55e,
@@ -19,10 +19,10 @@ export const PERMISSION_COLORS = {
 
 export const DISCORD_EMBED_TITLE_LIMIT = 256;
 export const DISCORD_EMBED_DESCRIPTION_LIMIT = 4096;
-export const DISCORD_EMBED_FIELD_NAME_LIMIT = 256;
+const DISCORD_EMBED_FIELD_NAME_LIMIT = 256;
 export const DISCORD_EMBED_FIELD_VALUE_LIMIT = 1024;
-export const DISCORD_MAX_EMBEDS = 10;
-export const DISCORD_MAX_FIELDS = 25;
+const DISCORD_MAX_EMBEDS = 10;
+const DISCORD_MAX_FIELDS = 25;
 
 const STATUS_MARK: Record<FindingSeverity, string> = {
   fail: "❌",
@@ -36,21 +36,21 @@ const STATUS_LABEL: Record<FindingSeverity, string> = {
   ok: "Expected",
 };
 
-export function truncateText(text: string, max: number): string {
+function truncateText(text: string, max: number): string {
   if (text.length <= max) return text;
   if (max <= 1) return "…";
   return `${text.slice(0, max - 1)}…`;
 }
 
-export function clipFieldValue(text: string): string {
+function clipFieldValue(text: string): string {
   return truncateText(text, DISCORD_EMBED_FIELD_VALUE_LIMIT);
 }
 
-export function clipDescription(text: string): string {
+function clipDescription(text: string): string {
   return truncateText(text, DISCORD_EMBED_DESCRIPTION_LIMIT);
 }
 
-export function clipTitle(text: string): string {
+function clipTitle(text: string): string {
   return truncateText(text, DISCORD_EMBED_TITLE_LIMIT);
 }
 

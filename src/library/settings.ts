@@ -5,7 +5,6 @@ import type { LibrarySettings } from "./types.js";
 import { emptyLibrarySettings } from "./settingsPatch.js";
 
 export {
-  emptyLibrarySettings,
   isLibraryScheduleActive,
   resolveLibrarySettingsPatch,
   toPublicLibrarySettings,

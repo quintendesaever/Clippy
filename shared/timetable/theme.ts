@@ -37,13 +37,10 @@ export const CARD_CONTENT_GAP = 4;
 export const AVATAR_SIZE = 52;
 export const AVATAR_OVERLAP = 12;
 export const AVATAR_BORDER = 2;
-/** Short events grow visually to at least this width so text stays readable. */
-export const MIN_CARD_WIDTH = 240;
 
 /** Sized so text stays readable after Discord scales the wide PNG down. */
 export const TITLE_FONT_SIZE = 25;
 export const TIME_FONT_SIZE = 18;
 export const HOUR_LABEL_FONT_SIZE = 20;
 export const TITLE_LINE_HEIGHT = 30;
-export const TIME_LINE_HEIGHT = 22;
 export const TITLE_MAX_LINES = 2;

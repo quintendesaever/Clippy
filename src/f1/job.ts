@@ -44,7 +44,7 @@ function loadTestModeSentinel(): void {
   }
 }
 
-export async function applyF1ReminderTick(client: Client, now: Date = new Date()): Promise<void> {
+async function applyF1ReminderTick(client: Client, now: Date = new Date()): Promise<void> {
   const guildId = getGuildId();
   const guild = client.guilds.cache.get(guildId);
   if (!guild) return;

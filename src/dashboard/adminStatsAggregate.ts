@@ -2,7 +2,7 @@ import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import { addCalendarDays, dayKeyInTimezone } from "../../shared/timetable/dates.js";
 import { formatApproximateLocation } from "./analytics/geo.js";
 
-export const ADMIN_RANGE_PRESETS = ["today", "7d", "30d", "all"] as const;
+const ADMIN_RANGE_PRESETS = ["today", "7d", "30d", "all"] as const;
 export type AdminRangePreset = (typeof ADMIN_RANGE_PRESETS)[number];
 
 export function parseAdminRangePreset(raw: unknown): AdminRangePreset {

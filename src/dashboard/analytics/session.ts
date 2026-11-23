@@ -1,8 +1,8 @@
 import crypto from "node:crypto";
 import type { Request, Response } from "express";
 
-export const ANALYTICS_SESSION_COOKIE = "clippy_vid";
-export const ANALYTICS_SESSION_MAX_AGE_MS = 30 * 60 * 1000;
+const ANALYTICS_SESSION_COOKIE = "clippy_vid";
+const ANALYTICS_SESSION_MAX_AGE_MS = 30 * 60 * 1000;
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -39,7 +39,7 @@ export function resolveAnalyticsSessionId(cookieHeader: string | undefined): {
   return { sessionId: crypto.randomUUID(), isNew: true };
 }
 
-export function setAnalyticsSessionCookie(
+function setAnalyticsSessionCookie(
   res: Response,
   sessionId: string,
   options: { secure: boolean }

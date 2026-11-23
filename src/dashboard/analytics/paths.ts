@@ -1,4 +1,4 @@
-export const ALLOWED_ANALYTICS_PATHS = [
+const ALLOWED_ANALYTICS_PATHS = [
   "/",
   "/timetable",
   "/my-timetable",
@@ -42,5 +42,3 @@ export function shouldRecordPageView(
   if (last.path !== nextPath) return true;
   return now.getTime() - last.occurredAt.getTime() >= windowMs;
 }
-
-export { DEDUP_WINDOW_MS };

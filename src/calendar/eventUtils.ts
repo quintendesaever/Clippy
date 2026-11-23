@@ -1,4 +1,4 @@
-export const MEMBER_COLORS = [
+const MEMBER_COLORS = [
   "#a855f7",
   "#eab308",
   "#22c55e",
@@ -119,10 +119,6 @@ export function parseActivitySummary(
   return { title, typeBadges };
 }
 
-export function colorForInitials(initials: string): string {
-  return colorForKey(initials);
-}
-
 /** Stable member accent keyed by Discord user id (dashboard + API share this). */
 export function colorForUserId(userId: string): string {
   return colorForKey(userId);
@@ -135,25 +131,3 @@ function colorForKey(key: string): string {
   }
   return MEMBER_COLORS[hash % MEMBER_COLORS.length];
 }
-
-export const DISCORD_COLOR_EMOJIS = ["🟣", "🟡", "🟢", "🔵", "🔴", "🩷", "🩵", "🔷", "🟠", "🟩", "💜"];
-
-export function emojiForInitials(initials: string): string {
-  let hash = 0;
-  for (let i = 0; i < initials.length; i++) {
-    hash = (hash * 31 + initials.charCodeAt(i)) >>> 0;
-  }
-  return DISCORD_COLOR_EMOJIS[hash % DISCORD_COLOR_EMOJIS.length];
-}
-
-export const HOUR_START = 8;
-export const HOUR_END = 20;
-export const TOTAL_HOURS = HOUR_END - HOUR_START;
-
-export {
-  colorForTypeBadge,
-  descriptionPreview,
-  labelForTypeBadge,
-  shortLocation,
-  truncateText,
-} from "../../shared/timetable/eventMeta.js";

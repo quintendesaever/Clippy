@@ -24,8 +24,6 @@ import {
   LIBRARY_START_MINUTE_FIELD,
 } from "./types.js";
 
-export { buildVisitModal, isLibraryButtonId, isLibraryModalId } from "./view.js";
-
 function memberProfile(member: GuildMember | null, user: { username: string; avatar: string | null }) {
   return {
     displayName: member?.displayName ?? user.username,

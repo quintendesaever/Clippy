@@ -101,12 +101,12 @@ export function createTimelineLayout(
 }
 
 /** Hours from the timeline origin (`hourStart:00`). */
-export function hoursFromStart(hour: number, minute: number, layout: TimelineLayout): number {
+function hoursFromStart(hour: number, minute: number, layout: TimelineLayout): number {
   return hour - layout.hourStart + minute / 60;
 }
 
 /** Full axis width in the same units as `timeToX` (inner grid plus side insets). */
-export function layoutAxisWidth(layout: TimelineLayout): number {
+function layoutAxisWidth(layout: TimelineLayout): number {
   return 2 * layout.gridInset + layout.colWidth * layout.hourCount;
 }
 
@@ -153,7 +153,7 @@ export function clipEventToGrid(
   };
 }
 
-export function typeBadgeKey(badges: string[] | undefined): string {
+function typeBadgeKey(badges: string[] | undefined): string {
   return [...(badges ?? [])].map((badge) => badge.toUpperCase()).sort().join(",");
 }
 
@@ -243,7 +243,7 @@ export function groupAllDayEvents(events: LayoutEvent[]): RenderCard[] {
   return [...groups.values()].sort((a, b) => a.title.localeCompare(b.title));
 }
 
-export function cardsOverlap(a: RenderCard, b: RenderCard): boolean {
+function cardsOverlap(a: RenderCard, b: RenderCard): boolean {
   return a.startMs < b.endMs && a.endMs > b.startMs;
 }
 

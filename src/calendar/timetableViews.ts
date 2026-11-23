@@ -12,8 +12,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { getDashboardUrl, getPublicDashboardUrl } from "../config.js";
 import { getVisibleTimetableDayKeys } from "./timetableVisibility.js";
-import { renderTimetablePng } from "./timetableImage.js";
-import { dayKeyInTimezone, getWeekDayKeys, getWeekMondayKey } from "./timetableService.js";
+import { getWeekDayKeys, getWeekMondayKey } from "./timetableService.js";
 import type { GuildTimetable } from "./types.js";
 
 const DAY_LABELS = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
@@ -87,8 +86,6 @@ function icsLoadFooter(timetable: GuildTimetable): string {
   return `${failed.length} kalenders konden niet geladen worden.`;
 }
 
-export { getVisibleTimetableDayKeys } from "./timetableVisibility.js";
-
 export function assembleTimetableView(
   timetable: GuildTimetable,
   dayKey: string,
@@ -123,18 +120,6 @@ export function assembleTimetableView(
   };
 }
 
-export async function buildTimetableView(
-  timetable: GuildTimetable,
-  dayKey: string,
-  png?: Buffer
-): Promise<TimetableView> {
-  const dayEvents = timetable.eventsByDay.get(dayKey) ?? [];
-  if (dayEvents.length > 0 && !png) {
-    return assembleTimetableView(timetable, dayKey, await renderTimetablePng(timetable, dayKey));
-  }
-  return assembleTimetableView(timetable, dayKey, png);
-}
-
 export function toTimetableReply(view: TimetableView) {
   const payload: {
     content?: string;
@@ -156,9 +141,3 @@ export function toTimetableReply(view: TimetableView) {
   return payload;
 }
 
-export function getDefaultDayKey(timetable: GuildTimetable): string {
-  return dayKeyInTimezone(new Date(), timetable.guildTimezone);
-}
-
-export { serializeEventForApi } from "./serializeEvent.js";
-export type { MemberGeo, SerializeEventOptions } from "./serializeEvent.js";

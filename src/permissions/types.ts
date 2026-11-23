@@ -1,6 +1,6 @@
 export type FindingSeverity = "fail" | "warn" | "ok";
 
-export type OverwriteTargetType = "role" | "member";
+type OverwriteTargetType = "role" | "member";
 
 export type ChannelKind = "text" | "announcement" | "category";
 
@@ -36,7 +36,7 @@ export type ChannelSnapshot = {
   overwrites: OverwriteSnapshot[];
 };
 
-export type BotSnapshot = {
+type BotSnapshot = {
   memberId: string | null;
   highestRolePosition: number | null;
   highestRoleName?: string | null;

@@ -20,7 +20,7 @@ export type LibraryPanelRecord = {
   messageId: string;
 };
 
-export type FetchMessageResult = "ok" | "missing" | "error";
+type FetchMessageResult = "ok" | "missing" | "error";
 
 export type LibraryReconcileDiscord = {
   fetchMessage(channelId: string, messageId: string): Promise<FetchMessageResult>;

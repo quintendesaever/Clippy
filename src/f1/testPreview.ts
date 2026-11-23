@@ -3,17 +3,13 @@ import { getGuildTimezone } from "../stats/helpers.js";
 import { createDiscordPort } from "./discordPort.js";
 import { replaceActiveF1Message, type F1DiscordPort } from "./messageLifecycle.js";
 import { resolvePredictionUrl } from "./predictionUrl.js";
-import {
-  getF1ReminderSettings,
-  upsertF1ReminderSettings,
-  type F1ReminderSettings,
-} from "./reminderStorage.js";
+import { getF1ReminderSettings, upsertF1ReminderSettings } from "./reminderStorage.js";
 import { fetchSeasonMeetings, findActiveMeeting } from "./schedule.js";
 import { getF1Timing } from "./config.js";
 import { buildF1TestPayload } from "./testPayload.js";
 import type { F1Meeting, F1ReminderStage } from "./types.js";
 
-export { buildF1TestPayload, F1_TEST_STAGES, isF1TestStage } from "./testPayload.js";
+export { F1_TEST_STAGES, isF1TestStage } from "./testPayload.js";
 
 export async function resolveMeetingForPreview(
   now: Date = new Date()
@@ -82,19 +78,5 @@ export async function sendF1TestPreview(options: {
     messageId: replaced.messageId,
     meetingName: meeting.name,
     previousStage,
-  };
-}
-
-export type F1ScheduleSnapshot = Pick<
-  F1ReminderSettings,
-  "last_stage_sent" | "current_meeting_id" | "qualifying_start_at" | "race_start_at"
->;
-
-export function scheduleSnapshot(settings: F1ReminderSettings): F1ScheduleSnapshot {
-  return {
-    last_stage_sent: settings.last_stage_sent,
-    current_meeting_id: settings.current_meeting_id,
-    qualifying_start_at: settings.qualifying_start_at,
-    race_start_at: settings.race_start_at,
   };
 }

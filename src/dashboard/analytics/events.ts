@@ -1,9 +1,9 @@
 import { dayKeyInTimezone } from "../../../shared/timetable/dates.js";
 
-export const ANALYTICS_SOURCES = ["dashboard", "discord"] as const;
-export type AnalyticsSource = (typeof ANALYTICS_SOURCES)[number];
+const ANALYTICS_SOURCES = ["dashboard", "discord"] as const;
+type AnalyticsSource = (typeof ANALYTICS_SOURCES)[number];
 
-export const ANALYTICS_EVENT_TYPES = [
+const ANALYTICS_EVENT_TYPES = [
   "activity.create",
   "activity.update",
   "activity.delete",
@@ -45,7 +45,7 @@ const METADATA_KEYS_BY_TYPE: Record<AnalyticsEventType, readonly string[]> = {
   "f1.stats": ["preview", "meetingKey"],
 };
 
-export const ANALYTICS_RECENT_LIMIT = 30;
+const ANALYTICS_RECENT_LIMIT = 30;
 
 export type AnalyticsEventRow = {
   user_id: string | null;

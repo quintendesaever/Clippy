@@ -1,4 +1,4 @@
-export const AUDIT_CATEGORIES = [
+const AUDIT_CATEGORIES = [
   "members",
   "roles",
   "channels",
@@ -15,7 +15,7 @@ export type AuditActor = {
   tag?: string | null;
 };
 
-export type AuditField = {
+type AuditField = {
   name: string;
   value: string;
   inline?: boolean;
@@ -45,7 +45,7 @@ export type AuditLogSettings = {
   updated_at?: string;
 };
 
-export const CATEGORY_SETTING_KEY: Record<AuditCategory, keyof AuditLogSettings> = {
+const CATEGORY_SETTING_KEY: Record<AuditCategory, keyof AuditLogSettings> = {
   members: "log_members",
   roles: "log_roles",
   channels: "log_channels",

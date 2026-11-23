@@ -14,14 +14,14 @@ import type {
   UserInspection,
 } from "./types.js";
 
-export type PermissionFlagDto = {
+type PermissionFlagDto = {
   key: string;
   label: string;
   allowed?: boolean;
   granted?: boolean;
 };
 
-export type FindingDto = {
+type FindingDto = {
   code: string;
   severity: Finding["severity"];
   title: string;
@@ -29,7 +29,7 @@ export type FindingDto = {
   target?: string;
 };
 
-export type RoleCatalogDto = {
+type RoleCatalogDto = {
   id: string;
   name: string;
   color?: string;
@@ -39,7 +39,7 @@ export type RoleCatalogDto = {
   kindLabel: string;
 };
 
-export type ChannelCatalogDto = {
+type ChannelCatalogDto = {
   id: string;
   name: string;
   type: ChannelSnapshot["kind"];
@@ -48,7 +48,7 @@ export type ChannelCatalogDto = {
   permissionsLocked: boolean | null;
 };
 
-export type MemberCatalogDto = {
+type MemberCatalogDto = {
   id: string;
   displayName: string;
   username?: string;
@@ -72,7 +72,7 @@ export type PermissionsOverviewDto = {
   writable: false;
 };
 
-export type RoleOverrideDto = {
+type RoleOverrideDto = {
   channelId: string;
   channelName: string;
   allow: string;
@@ -101,7 +101,7 @@ export type RoleInspectionDto = {
   notes: string[];
 };
 
-export type ChannelOverwriteDto = {
+type ChannelOverwriteDto = {
   id: string;
   type: "role" | "member";
   name: string;
@@ -114,7 +114,7 @@ export type ChannelOverwriteDto = {
   denyKeys: string[];
 };
 
-export type RoleEffectiveDto = {
+type RoleEffectiveDto = {
   roleId: string;
   roleName: string;
   kind: RoleKind;
@@ -194,7 +194,7 @@ function countFindings(findings: Finding[]) {
   };
 }
 
-function botLimitations(snapshot: GuildSnapshot, result: AuditResult): string[] {
+function botLimitations(result: AuditResult): string[] {
   const codes = new Set(["bot_member_unresolved", "bot_hierarchy", "incomplete_fetch"]);
   return result.findings.filter((finding) => codes.has(finding.code)).map((finding) => finding.detail);
 }
@@ -304,7 +304,7 @@ export function toOverviewDto(
       resolved: snapshot.bot.resolved,
       highestRoleName: snapshot.bot.highestRoleName ?? null,
       highestRolePosition: snapshot.bot.highestRolePosition,
-      limitations: botLimitations(snapshot, result),
+      limitations: botLimitations(result),
     },
     incomplete: {
       roles: snapshot.rolesFetchIncomplete,

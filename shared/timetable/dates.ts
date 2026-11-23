@@ -16,7 +16,7 @@ export function formatTimeInTimezone(isoOrDate: string | Date, timezone: string)
   return `${String(zoned.getHours()).padStart(2, "0")}:${String(zoned.getMinutes()).padStart(2, "0")}`;
 }
 
-export function zonedMinutes(date: Date, timezone: string): number {
+function zonedMinutes(date: Date, timezone: string): number {
   const zoned = toZonedTime(date, timezone);
   return zoned.getHours() * 60 + zoned.getMinutes();
 }
@@ -87,7 +87,7 @@ export function isValidIanaTimeZone(timezone: string): boolean {
 }
 
 /** Process-local IANA zone; UTC only if Intl cannot report one. */
-export function machineLocalTimeZone(): string {
+function machineLocalTimeZone(): string {
   try {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     if (tz && isValidIanaTimeZone(tz)) return tz;

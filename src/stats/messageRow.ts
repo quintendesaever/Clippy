@@ -49,39 +49,6 @@ export function buildMessageRow(message: Message, timezone: string): MessageRowI
   };
 }
 
-export function buildMessageRowFromFields(
-  guildId: string,
-  channelId: string,
-  userId: string,
-  discordMessageId: string,
-  createdTimestamp: number,
-  timezone: string,
-  options: {
-    attachmentCount?: number;
-    wordCount?: number;
-    charCount?: number;
-    replyToMessageId?: string | null;
-    threadId?: string | null;
-  } = {}
-): MessageRowInsert {
-  const createdAt = new Date(createdTimestamp);
-  const { hourLocal, dayLocal } = toLocalHourAndDay(createdAt, timezone);
-  return {
-    guild_id: guildId,
-    channel_id: channelId,
-    user_id: userId,
-    discord_message_id: discordMessageId,
-    created_at: createdAt.toISOString(),
-    hour_local: hourLocal,
-    day_local: dayLocal,
-    attachment_count: options.attachmentCount ?? 0,
-    word_count: options.wordCount ?? 0,
-    char_count: options.charCount ?? 0,
-    reply_to_message_id: options.replyToMessageId ?? null,
-    thread_id: options.threadId ?? null,
-  };
-}
-
 export function buildReactionRows(
   message: Message
 ): Omit<ReactionRowInsert, "message_id">[] {

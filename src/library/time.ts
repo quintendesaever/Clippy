@@ -10,7 +10,7 @@ export type VisitTimeError =
   | "end_not_after_start"
   | "outside_hours";
 
-export const MAX_CLOSE_MINUTES = 1439;
+const MAX_CLOSE_MINUTES = 1439;
 
 export function parseHhmm(value: string): number | null {
   const match = HHMM.exec(value.trim());

@@ -8,9 +8,9 @@ import type {
   StatusSummary,
 } from "./types.js";
 
-export const DEFAULT_STATUS_CHECK_TIMEOUT_MS = 2000;
+const DEFAULT_STATUS_CHECK_TIMEOUT_MS = 2000;
 
-export type F1AdminSettings = {
+type F1AdminSettings = {
   enabled: boolean;
   channel_id: string | null;
   role_id: string | null;
@@ -130,7 +130,7 @@ function rollupStatus(components: StatusReport["components"]): StatusReport["sta
   return "ok";
 }
 
-export function summarizeComponents(components: StatusReport["components"]): StatusSummary {
+function summarizeComponents(components: StatusReport["components"]): StatusSummary {
   const summary: StatusSummary = { ok: 0, degraded: 0, unavailable: 0, disabled: 0 };
   for (const component of Object.values(components)) {
     summary[component.status] += 1;
@@ -151,7 +151,7 @@ function processStartedAt(checkedAt: string, uptimeSeconds: number): string {
   return new Date(Date.parse(checkedAt) - uptimeSeconds * 1000).toISOString();
 }
 
-export function buildStatusRuntime(
+function buildStatusRuntime(
   report: Pick<StatusReport, "checkedAt" | "uptimeSeconds">,
   history?: CollectStatusDeps["history"]
 ): StatusRuntime {

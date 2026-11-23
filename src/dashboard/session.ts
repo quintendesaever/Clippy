@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 
-export const GUILD_RECHECK_MS = 15 * 60 * 1000;
+const GUILD_RECHECK_MS = 15 * 60 * 1000;
 
 export interface DiscordUser {
   id: string;

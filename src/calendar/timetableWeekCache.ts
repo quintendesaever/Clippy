@@ -16,7 +16,7 @@ import type { GuildTimetable } from "./types.js";
 
 export const TIMETABLE_VALIDATE_INTERVAL_MS = 20 * 60 * 1000;
 
-export type FetchTimetableOptions = {
+type FetchTimetableOptions = {
   skipIcsCache?: boolean;
   weekMonday?: string;
 };

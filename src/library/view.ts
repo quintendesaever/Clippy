@@ -23,17 +23,15 @@ import {
   type LibraryVisit,
 } from "./types.js";
 
-export const LIBRARY_EMBED_COLOR = 0x2b6cb0;
+const LIBRARY_EMBED_COLOR = 0x2b6cb0;
 const DESCRIPTION_LIMIT = 3900;
-
-export type LibraryViewVisit = LibraryVisit & { displayName: string };
 
 export type LibraryMessagePayload = {
   embeds: EmbedBuilder[];
   components: ActionRowBuilder<ButtonBuilder>[];
 };
 
-export function libraryVisitDisplayName(
+function libraryVisitDisplayName(
   userId: string,
   labels: Map<string, MemberLabel>
 ): string {
@@ -45,7 +43,7 @@ export function libraryVisitDisplayName(
   });
 }
 
-export function formatLibraryDayLabel(dayKey: string): string {
+function formatLibraryDayLabel(dayKey: string): string {
   const [year, month, day] = dayKey.split("-").map(Number);
   return format(new Date(year, month - 1, day, 12, 0, 0), "EEE d MMM yyyy");
 }

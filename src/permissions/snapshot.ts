@@ -32,7 +32,7 @@ export const THREAD_CHANNEL_TYPES = [
   ChannelType.AnnouncementThread,
 ] as const;
 
-export const UNSUPPORTED_CHANNEL_REPLY =
+const UNSUPPORTED_CHANNEL_REPLY =
   "This inspector supports server text, announcement, and category channels. Threads are resolved to their parent.";
 
 export const MAX_CHANNEL_ROLE_MATRIX = 24;
@@ -47,14 +47,14 @@ export type InspectableChannelResult =
   | { ok: true; channel: GuildChannel | CategoryChannel }
   | { ok: false; message: string };
 
-export function channelKind(type: ChannelType): ChannelKind | null {
+function channelKind(type: ChannelType): ChannelKind | null {
   if (type === ChannelType.GuildText) return "text";
   if (type === ChannelType.GuildAnnouncement) return "announcement";
   if (type === ChannelType.GuildCategory) return "category";
   return null;
 }
 
-export function isThreadType(type: ChannelType): boolean {
+function isThreadType(type: ChannelType): boolean {
   return (
     type === ChannelType.PublicThread ||
     type === ChannelType.PrivateThread ||
@@ -71,7 +71,7 @@ function snapshotOverwrites(channel: GuildChannel | CategoryChannel): OverwriteS
   }));
 }
 
-export function snapshotChannel(channel: GuildChannel | CategoryChannel): ChannelSnapshot | null {
+function snapshotChannel(channel: GuildChannel | CategoryChannel): ChannelSnapshot | null {
   const kind = channelKind(channel.type);
   if (!kind) return null;
   return {

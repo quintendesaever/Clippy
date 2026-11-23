@@ -10,7 +10,7 @@ const LOCATION_MAX = 120;
 const DESCRIPTION_MAX = 500;
 const MAX_DURATION_MS = 12 * 60 * 60 * 1000;
 
-export type ActivityRow = {
+type ActivityRow = {
   id: string;
   guild_id: string;
   created_by: string;
@@ -45,7 +45,7 @@ function trimOrNull(value: string | null | undefined, max: number): string | nul
   return trimmed.slice(0, max);
 }
 
-export function validateActivityInput(
+function validateActivityInput(
   input: ActivityWriteInput,
   guildTimezone: string
 ): {

@@ -18,8 +18,8 @@ import {
 import { reconcileLibraryPanel } from "../library/panel.js";
 import type { LibraryPublicSettings, LibrarySettingsPatch } from "../library/types.js";
 
-export type BotSettingsChannelOption = { id: string; name: string };
-export type BotSettingsRoleOption = { id: string; name: string };
+type BotSettingsChannelOption = { id: string; name: string };
+type BotSettingsRoleOption = { id: string; name: string };
 
 export type BotSettingsLogging = {
   enabled: boolean;

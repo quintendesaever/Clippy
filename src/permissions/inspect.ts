@@ -10,7 +10,7 @@ import type {
 } from "./types.js";
 
 /** Slash embeds cap channel overrides; dashboard passes `null` for the full list. */
-export const DEFAULT_ROLE_OVERRIDE_LIMIT = 12;
+const DEFAULT_ROLE_OVERRIDE_LIMIT = 12;
 
 export type InspectRoleOptions = {
   policy?: ServerPolicy;
