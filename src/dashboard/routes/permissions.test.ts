@@ -5,8 +5,8 @@ import { describe, it } from "node:test";
 import express from "express";
 import { ChannelType, OverwriteType, PermissionFlagsBits, type Client, type Guild } from "discord.js";
 import type { AddressInfo } from "node:net";
-import { createRequireAdmin } from "./adminAuth.js";
-import { createPermissionsRouter, GUILD_UNAVAILABLE_ERROR } from "./permissionsApi.js";
+import { createRequireAdmin } from "../adminAuth.js";
+import { createPermissionsRouter, GUILD_UNAVAILABLE_ERROR } from "./permissions.js";
 
 const GUILD_ID = "100000000000000001";
 const ROLE_ID = "100000000000000002";
