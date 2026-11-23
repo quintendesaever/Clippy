@@ -12,7 +12,7 @@ import {
 const TZ = "Europe/Brussels";
 const NOW = new Date("2026-08-25T12:00:00.000Z");
 
-function message(overrides: Partial<DiscordMessageRow>): DiscordMessageRow {
+function message(overrides?: Partial<DiscordMessageRow>): DiscordMessageRow {
   return {
     user_id: "u1",
     channel_id: "c-text",
