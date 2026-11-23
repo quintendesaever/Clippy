@@ -1,4 +1,4 @@
-export type DeviceType = "desktop" | "mobile" | "tablet" | "unknown";
+type DeviceType = "desktop" | "mobile" | "tablet" | "unknown";
 
 export type ParsedUserAgent = {
   deviceType: DeviceType;

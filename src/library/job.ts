@@ -1,7 +1,7 @@
 import type { Client } from "discord.js";
 import { applyLibraryTick } from "./panel.js";
 
-export const LIBRARY_TICK_MS = 60 * 1000;
+const LIBRARY_TICK_MS = 60 * 1000;
 
 let intervalHandle: NodeJS.Timeout | null = null;
 
@@ -18,8 +18,4 @@ export function startLibraryJob(client: Client): void {
       console.warn("library: tick failed", err instanceof Error ? err.message : err)
     );
   }, LIBRARY_TICK_MS);
-}
-
-export function isLibraryJobRunning(): boolean {
-  return intervalHandle != null;
 }

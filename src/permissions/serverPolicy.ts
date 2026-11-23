@@ -20,11 +20,11 @@ export const CLIPPY_SERVER_POLICY = {
 
 export type ServerPolicy = typeof CLIPPY_SERVER_POLICY;
 
-export function normalizeRoleName(name: string): string {
+function normalizeRoleName(name: string): string {
   return name.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-export function isStaffRoleName(name: string, policy: ServerPolicy = CLIPPY_SERVER_POLICY): boolean {
+function isStaffRoleName(name: string, policy: ServerPolicy = CLIPPY_SERVER_POLICY): boolean {
   const normalized = normalizeRoleName(name);
   if ((policy.staffRoleNames as readonly string[]).includes(normalized)) return true;
   return normalized.startsWith(policy.staffRolePrefix);
@@ -34,13 +34,13 @@ export function isMutedRoleName(name: string, policy: ServerPolicy = CLIPPY_SERV
   return normalizeRoleName(name) === policy.mutedRoleName;
 }
 
-export function isDecorativeRoleName(name: string): boolean {
+function isDecorativeRoleName(name: string): boolean {
   const trimmed = name.trim();
   if (!trimmed) return true;
   return !/\p{L}|\p{N}/u.test(trimmed);
 }
 
-export function isEveryoneRole(role: Pick<RoleSnapshot, "id">, guildId: string): boolean {
+function isEveryoneRole(role: Pick<RoleSnapshot, "id">, guildId: string): boolean {
   return role.id === guildId;
 }
 

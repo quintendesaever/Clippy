@@ -1,4 +1,4 @@
-export type HealthState = "ok" | "degraded" | "unavailable" | "disabled";
+type HealthState = "ok" | "degraded" | "unavailable" | "disabled";
 
 export type ComponentReport = {
   status: HealthState;

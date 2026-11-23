@@ -1,12 +1,12 @@
 const JOLPICA_BASE = "https://api.jolpi.ca/ergast/f1";
 
-export type JolpicaDriver = {
+type JolpicaDriver = {
   givenName?: string;
   familyName?: string;
   code?: string;
 };
 
-export type JolpicaConstructor = {
+type JolpicaConstructor = {
   name?: string;
 };
 

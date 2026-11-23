@@ -4,7 +4,7 @@ import {
 } from "../../shared/timetable/eventMeta.js";
 import type { TimetableEvent } from "./types.js";
 
-export type MemberGeo = {
+type MemberGeo = {
   country: string | null;
   region: string | null;
   city: string | null;

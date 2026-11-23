@@ -1,4 +1,4 @@
-import { format, subDays } from "date-fns";
+import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { resolveConfiguredTimeZone } from "../../shared/timetable/dates.js";
 import { supabase } from "../supabase.js";
@@ -39,26 +39,6 @@ export function toLocalHourAndDay(
   const day = String(zoned.getDate()).padStart(2, "0");
   const dayLocal = `${year}-${month}-${day}`;
   return { hourLocal, dayLocal };
-}
-
-export function getTodayInGuildTz(ianaTimezone: string): string {
-  const zoned = toZonedTime(new Date(), ianaTimezone);
-  return format(zoned, "yyyy-MM-dd");
-}
-
-export function getNDaysAgoInGuildTz(ianaTimezone: string, n: number): string {
-  const zoned = toZonedTime(subDays(new Date(), n), ianaTimezone);
-  return format(zoned, "yyyy-MM-dd");
-}
-
-export function getCurrentHourInGuildTz(ianaTimezone: string): number {
-  const zoned = toZonedTime(new Date(), ianaTimezone);
-  return zoned.getHours();
-}
-
-export function getDayLocalFromIso(isoString: string, ianaTimezone: string): string {
-  const zoned = toZonedTime(new Date(isoString), ianaTimezone);
-  return format(zoned, "yyyy-MM-dd");
 }
 
 export function formatInTimezone(utcDate: Date, ianaTimezone: string): string {

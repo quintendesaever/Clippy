@@ -1,14 +1,14 @@
 import { Router, type Request, type Response } from "express";
 import type { Client, Guild } from "discord.js";
-import { evaluateAudit } from "../permissions/evaluate.js";
-import { inspectChannel, inspectRole, withBotChannelPermissions } from "../permissions/inspect.js";
+import { evaluateAudit } from "../../permissions/evaluate.js";
+import { inspectChannel, inspectRole, withBotChannelPermissions } from "../../permissions/inspect.js";
 import {
   assertJsonSafe,
   toChannelInspectionDto,
   toMemberInspectionDto,
   toOverviewDto,
   toRoleInspectionDto,
-} from "../permissions/dto.js";
+} from "../../permissions/dto.js";
 import {
   botEffectiveOn,
   buildGuildSnapshot,
@@ -16,7 +16,7 @@ import {
   inspectRoleEffectiveInChannel,
   loadMemberCatalog,
   resolveInspectableChannel,
-} from "../permissions/snapshot.js";
+} from "../../permissions/snapshot.js";
 
 export const GUILD_UNAVAILABLE_ERROR = "Server is unavailable";
 

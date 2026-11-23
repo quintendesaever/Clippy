@@ -133,7 +133,7 @@ export async function syncGuildMembers(guild: Guild): Promise<SyncGuildMembersRe
   };
 }
 
-export const DEFAULT_SHOW_TYPE_PREFIX = true;
+const DEFAULT_SHOW_TYPE_PREFIX = true;
 
 export async function getShowTypePrefix(guildId: string, userId: string): Promise<boolean> {
   const { data, error } = await supabase

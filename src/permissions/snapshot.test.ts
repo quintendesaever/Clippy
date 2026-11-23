@@ -137,7 +137,7 @@ function mockGuild(options: {
     [ROLE_ID, student],
     [botRole.id, botRole],
   ]);
-  const channels = new Map([
+  const channels = new Map<string, typeof category | typeof text>([
     [CATEGORY_ID, category],
     [TEXT_ID, text],
   ]);
@@ -359,7 +359,7 @@ function matrixGuild(options: { extraStaff?: number; nullPermsForCourse?: boolea
       return { has: () => false };
     },
   };
-  const channels = new Map([
+  const channels = new Map<string, typeof category | typeof text>([
     [CATEGORY_ID, category],
     [TEXT_ID, text],
   ]);

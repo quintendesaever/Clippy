@@ -4,7 +4,7 @@ import { formatAnalyticsEventDetail, recentAnalyticsEvents } from "./analytics/e
 import type { AdminRangePreset } from "./adminStatsAggregate.js";
 
 export const DISCORD_RECENT_LIMIT = 30;
-export const DISCORD_TOP_LIMIT = 10;
+const DISCORD_TOP_LIMIT = 10;
 /** Closed sessions longer than this are treated as crash leftovers, not real talk time. */
 export const MAX_RELIABLE_VOICE_SECONDS = 24 * 60 * 60;
 
@@ -48,7 +48,7 @@ export type DiscordUserStat = {
   lastActivityAt: string | null;
 };
 
-export type DiscordRecentActivity = {
+type DiscordRecentActivity = {
   type: "message" | "voice" | "bot";
   occurredAt: string;
   userId: string;

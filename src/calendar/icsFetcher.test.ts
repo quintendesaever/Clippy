@@ -28,7 +28,7 @@ describe("fetchIcsContent", () => {
   it("serves fresh cache without refetching", async () => {
     let fetches = 0;
     configureIcsFetcherForTests({
-      lookup: (async () => [{ address: "8.8.8.8", family: 4 }]) as typeof import("node:dns/promises").lookup,
+      lookup: (async () => [{ address: "8.8.8.8", family: 4 }]) as unknown as typeof import("node:dns/promises").lookup,
       fetch: (async () => {
         fetches += 1;
         return okResponse();
@@ -46,7 +46,7 @@ describe("fetchIcsContent", () => {
     let attempts = 0;
     const sleeps: number[] = [];
     configureIcsFetcherForTests({
-      lookup: (async () => [{ address: "8.8.8.8", family: 4 }]) as typeof import("node:dns/promises").lookup,
+      lookup: (async () => [{ address: "8.8.8.8", family: 4 }]) as unknown as typeof import("node:dns/promises").lookup,
       timeoutMs: 30,
       retryDelayMs: 5,
       maxAttempts: 2,
@@ -78,7 +78,7 @@ describe("fetchIcsContent", () => {
     let now = 1_000;
     let phase: "ok" | "timeout" = "ok";
     configureIcsFetcherForTests({
-      lookup: (async () => [{ address: "8.8.8.8", family: 4 }]) as typeof import("node:dns/promises").lookup,
+      lookup: (async () => [{ address: "8.8.8.8", family: 4 }]) as unknown as typeof import("node:dns/promises").lookup,
       now: () => now,
       timeoutMs: 20,
       maxAttempts: 1,
@@ -108,7 +108,7 @@ describe("fetchIcsContent", () => {
     let peak = 0;
 
     configureIcsFetcherForTests({
-      lookup: (async () => [{ address: "8.8.8.8", family: 4 }]) as typeof import("node:dns/promises").lookup,
+      lookup: (async () => [{ address: "8.8.8.8", family: 4 }]) as unknown as typeof import("node:dns/promises").lookup,
       maxConcurrentPerHost: 2,
       maxAttempts: 1,
       timeoutMs: 2_000,
@@ -135,7 +135,7 @@ describe("fetchIcsContent", () => {
   it("does not retry non-timeout HTTP failures", async () => {
     let attempts = 0;
     configureIcsFetcherForTests({
-      lookup: (async () => [{ address: "8.8.8.8", family: 4 }]) as typeof import("node:dns/promises").lookup,
+      lookup: (async () => [{ address: "8.8.8.8", family: 4 }]) as unknown as typeof import("node:dns/promises").lookup,
       maxAttempts: 3,
       fetch: (async () => {
         attempts += 1;

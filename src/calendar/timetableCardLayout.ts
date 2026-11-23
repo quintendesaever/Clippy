@@ -5,10 +5,10 @@ import {
   TIME_FONT_SIZE,
 } from "../../shared/timetable/theme.js";
 
-export const MIN_CARD_TIME_FONT = 11;
-export const MIN_CARD_AVATAR_SIZE = 18;
-export const MIN_CARD_PILL_FONT = 13;
-export const MAX_CARD_PILL_FONT = 16;
+const MIN_CARD_TIME_FONT = 11;
+const MIN_CARD_AVATAR_SIZE = 18;
+const MIN_CARD_PILL_FONT = 13;
+const MAX_CARD_PILL_FONT = 16;
 const COMPACT_OVERLAP_RATIO = 0.55;
 const TIME_WIDTH_FACTOR = 0.62;
 const BADGE_WIDTH_FACTOR = 0.56;
@@ -43,11 +43,11 @@ export function pillWidthAt(label: string, fontSize: number): number {
   return estimateTextWidth(label, fontSize, BADGE_WIDTH_FACTOR) + Math.round(fontSize * 1.5);
 }
 
-export function pillHeightAt(fontSize: number): number {
+function pillHeightAt(fontSize: number): number {
   return fontSize > 0 ? Math.round(fontSize * 1.7) : 0;
 }
 
-export function avatarOverlapPx(avatarSize: number, compact: boolean): number {
+function avatarOverlapPx(avatarSize: number, compact: boolean): number {
   if (avatarSize <= 0) return 0;
   const ratio = compact ? COMPACT_OVERLAP_RATIO : 0.3;
   const raw = compact ? Math.floor(avatarSize * ratio) : Math.min(AVATAR_OVERLAP, Math.floor(avatarSize * ratio));

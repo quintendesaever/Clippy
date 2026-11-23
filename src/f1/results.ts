@@ -147,7 +147,7 @@ export function parsePositionSwings(classification: F1ResultRow[]): {
   return { biggestGain, biggestLoss };
 }
 
-export function parsePitStops(pits: OpenF1Pit[], drivers: OpenF1Driver[]): F1PitSummary[] {
+function parsePitStops(pits: OpenF1Pit[], drivers: OpenF1Driver[]): F1PitSummary[] {
   const byNumber = driverMap(drivers);
   const counts = new Map<number, number>();
   for (const pit of pits) {

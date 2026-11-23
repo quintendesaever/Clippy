@@ -18,14 +18,6 @@ import {
   type RoleSnapshot,
 } from "./summaries.js";
 
-export {
-  channelTypeLabel,
-  isAuditableChannelType,
-  summarizeChannelUpdate,
-  summarizeRoleUpdate,
-};
-export type { ChannelSnapshot, RoleSnapshot };
-
 function memberActor(member: GuildMember | PartialGuildMember | User): AuditActor {
   if ("username" in member && !("guild" in member)) {
     return { id: member.id, tag: member.username };

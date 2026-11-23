@@ -135,9 +135,9 @@ export function buildReminderPayload(options: {
 
   const roleMention = `<@&${roleId}>`;
   const prefix = test ? "(test) " : "";
-  let content = "";
-  let title = meeting.name;
-  let description = "";
+  let content: string;
+  let title: string;
+  let description: string;
 
   if (stage === "predictions_open") {
     content = `${roleMention} ${prefix}Predictions are open for the **${meeting.name}**.`;

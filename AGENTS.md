@@ -21,6 +21,8 @@ Canonical GitHub repository: `quintendesaever/Clippy`.
 | Path | Role |
 |------|------|
 | `src/index.ts` | Discord client entry: events, jobs, dashboard server |
+| `src/interactions.ts` | Discord interaction dispatch |
+| `src/dashboard/routes/` | Dashboard HTTP route modules |
 | `src/commands/` | Auto-discovered slash commands |
 | `src/stats/` | Live message / voice / reaction / member writers to Supabase |
 | `src/calendar/` | ICS feeds, activities, timetable panels and Discord jobs |
@@ -34,6 +36,17 @@ Canonical GitHub repository: `quintendesaever/Clippy`.
 | `Dockerfile`, `docker-compose*.yml`, `Caddyfile` | Container build and deploy overlays |
 | `README.md` | Human project / env / ops documentation |
 | `.cursor/rules/` | Cursor rules (only intentionally tracked rules belong in git) |
+
+## Feature layout convention
+
+Feature folders are flat under `src/<feature>/`, with colocated `x.test.ts` tests and no barrel `index.ts`. A feature may group a clear sub-area in one subfolder (existing: `src/dashboard/analytics/`, `src/dashboard/routes/`, `src/commands/stats/`); `src/commands/index.ts` is the command loader, not a barrel. Use standard seam names when applicable: `job.ts` for background jobs, `interactions.ts` for Discord component handlers, `discordEvents.ts` for gateway registrations exporting `registerXEvents(client, guildId)`, and `types.ts` for types. HTTP routes belong in `src/dashboard/routes/<area>.ts`, export `createXRouter(ctx: DashboardContext)`, and are mounted in `src/dashboard/server.ts`. Slash commands are auto-discovered from `src/commands/`; core files live directly under `src/`.
+
+### Adding a feature
+
+1. Add its flat feature folder and applicable seams under `src/`.
+2. Colocate tests with the code as `x.test.ts`.
+3. Add dashboard routes or slash commands in their designated folders when needed.
+4. Run typecheck, lint, tests, and applicable builds.
 
 ## Development Environment
 
@@ -51,7 +64,11 @@ Routine development:
 
 ```bash
 npm run build              # tsc → dist/
-npm test                   # tsx --test (explicit file list in package.json)
+npm test                   # tsx --test "src/**/*.test.ts" "shared/**/*.test.ts"
+npm run typecheck          # typecheck source, tests, and scripts
+npm run lint               # ESLint flat config
+npm run list-commands      # list registered Discord commands
+npm run gen:empty-timetable # generate empty timetable PNG
 npm run dev                # tsx watch src/index.ts
 npm start                  # node dist/src/index.js
 npm run build:dashboard    # dashboard npm ci + Vite build
@@ -76,12 +93,11 @@ npm run docker:up
 npm run docker:prod
 ```
 
-There is currently **no** lint or format script in `package.json`.
-
 ## Testing and Build
 
 - Root build: TypeScript compiler (`tsc`); tests are excluded from compilation
 - Tests: Node.js built-in test runner via `tsx --test` (not Jest/Vitest)
+- Typecheck source, tests, and scripts with `npm run typecheck`; run `npm run lint` for ESLint
 - After relevant code changes, prefer `npm run build` and `npm test`
 - Report failures explicitly; do not hide them
 
@@ -241,7 +257,7 @@ Rules:
 - Preserve dirty WIP that is not yours; do not assume a dirty tree belongs to this session
 - Production deployment tracks **`main`**
 
-CI: GitHub Actions `.github/workflows/ci.yml`, job `validate` (`npm ci`, `npm test`, `npm run build`, `npm run build:dashboard`). Do not disable failing checks to make CI green.
+CI: GitHub Actions `.github/workflows/ci.yml`, job `validate` (`npm ci`, `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, `npm run build:dashboard`). Do not disable failing checks to make CI green.
 
 PRs should include: What changed, Why, Validation, Risk / impact, Known limitations. A template lives at `.github/PULL_REQUEST_TEMPLATE.md`.
 

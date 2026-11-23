@@ -2,8 +2,6 @@ import { supabase } from "../supabase.js";
 import { upsertMember } from "../stats/members.js";
 import type { LibraryVisit, LibraryVisitInput } from "./types.js";
 
-export { applyVisitClear, applyVisitUpsert } from "./visitState.js";
-
 const TABLE_NAME = "library_visits";
 
 export async function listLibraryVisits(guildId: string, dayKey: string): Promise<LibraryVisit[]> {

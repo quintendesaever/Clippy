@@ -45,14 +45,11 @@ export function withGuildPanelLock<T>(guildId: string, fn: () => Promise<T>): Pr
   return current;
 }
 
-export function timetablePanelJumpUrl(guildId: string, channelId: string, messageId: string): string {
+function timetablePanelJumpUrl(guildId: string, channelId: string, messageId: string): string {
   return `https://discord.com/channels/${guildId}/${channelId}/${messageId}`;
 }
 
-export { reconcileTimetablePanel } from "./timetablePanelReconcile.js";
-export type { PanelRecord, ReconcileDiscord, ReconcileResult } from "./timetablePanelReconcile.js";
-
-export function viewFromCacheEntry(entry: WeekCacheEntry, dayKey?: string): TimetableView {
+function viewFromCacheEntry(entry: WeekCacheEntry, dayKey?: string): TimetableView {
   const selected = dayKey ?? entry.selectedDayKey;
   return assembleTimetableView(entry.timetable, selected, entry.images.get(selected));
 }
@@ -73,7 +70,7 @@ async function pinSafely(message: { pin?: () => Promise<unknown>; pinned?: boole
   }
 }
 
-export async function fetchStoredPanelMessage(
+async function fetchStoredPanelMessage(
   client: Client,
   panel: TimetablePanel
 ): Promise<Message | null> {

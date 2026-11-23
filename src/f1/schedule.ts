@@ -133,12 +133,6 @@ let cachedMeetings: F1Meeting[] | null = null;
 let cacheExpiresAt = 0;
 let inflight: Promise<F1Meeting[]> | null = null;
 
-export function clearF1ScheduleCache(): void {
-  cachedMeetings = null;
-  cacheExpiresAt = 0;
-  inflight = null;
-}
-
 export async function fetchSeasonMeetings(now: Date = new Date()): Promise<F1Meeting[]> {
   const ts = now.getTime();
   if (cachedMeetings && cacheExpiresAt > ts) return cachedMeetings;

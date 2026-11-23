@@ -2,7 +2,7 @@ import type { Client } from "discord.js";
 import { applyDayOverrideExpiry, applyTimetablePanelTick } from "./timetablePanel.js";
 import { timetableWeekCache } from "./timetableWeekCacheLive.js";
 
-export const TIMETABLE_PANEL_TICK_MS = 60 * 1000;
+const TIMETABLE_PANEL_TICK_MS = 60 * 1000;
 
 let intervalHandle: NodeJS.Timeout | null = null;
 
@@ -21,14 +21,6 @@ export function startTimetablePanelJob(client: Client): void {
       console.error("[Timetable] Panel tick failed:", err)
     );
   }, TIMETABLE_PANEL_TICK_MS);
-}
-
-export function stopTimetablePanelJob(): void {
-  if (intervalHandle) {
-    clearInterval(intervalHandle);
-    intervalHandle = null;
-  }
-  timetableWeekCache.clearOverrideTimers();
 }
 
 export function isTimetablePanelJobRunning(): boolean {

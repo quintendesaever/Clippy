@@ -1,4 +1,4 @@
-export const ROOM_CODE_PATTERN = /\b([A-Z]{1,6}\d{0,4}\.\d+\.\d+)\b/g;
+const ROOM_CODE_PATTERN = /\b([A-Z]{1,6}\d{0,4}\.\d+\.\d+)\b/g;
 
 export function shortLocation(location: string | undefined | null): string | undefined {
   if (!location?.trim()) return undefined;
@@ -10,7 +10,7 @@ export function shortLocation(location: string | undefined | null): string | und
   return `${trimmed.slice(0, 23)}…`;
 }
 
-export function truncateText(text: string, maxLen: number): string {
+function truncateText(text: string, maxLen: number): string {
   if (text.length <= maxLen) return text;
   return `${text.slice(0, maxLen - 1)}…`;
 }
@@ -58,7 +58,7 @@ export function descriptionPreview(description: string, maxLen = 48): string {
 }
 
 /** Dutch labels for activity type badges (H → hoorcollege, …). */
-export const TYPE_BADGE_LABELS: Record<string, string> = {
+const TYPE_BADGE_LABELS: Record<string, string> = {
   H: "hoorcollege",
   P: "practicum",
   W: "werkcollege",
@@ -75,7 +75,7 @@ export function labelForTypeBadge(badge: string): string {
   return TYPE_BADGE_LABELS[badge.toUpperCase()] ?? badge;
 }
 
-export const TYPE_BADGE_COLORS: Record<string, string> = {
+const TYPE_BADGE_COLORS: Record<string, string> = {
   H: "#8b5cf6",
   P: "#f97316",
   W: "#22c55e",

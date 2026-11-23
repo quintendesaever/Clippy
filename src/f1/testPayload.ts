@@ -47,7 +47,7 @@ export function buildF1TestPayload(options: {
 }
 
 /** Previews should look like the stage at fire time, not like "now" on a future weekend. */
-export function nowForTestStage(stage: F1ReminderStage, schedule: F1StageSchedule, fallback = new Date()): Date {
+function nowForTestStage(stage: F1ReminderStage, schedule: F1StageSchedule, fallback = new Date()): Date {
   if (stage === "predictions_open") return schedule.predictionsOpenAt ?? fallback;
   if (stage === "final_prediction") return schedule.finalPredictionAt ?? fallback;
   if (stage === "race_soon") return schedule.raceSoonAt ?? fallback;

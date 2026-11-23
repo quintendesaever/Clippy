@@ -1,6 +1,6 @@
 import { PermissionFlagsBits } from "discord.js";
 
-export const LIBRARY_BULK_DELETE_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
+const LIBRARY_BULK_DELETE_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
 export const LIBRARY_CLEANUP_BATCH = 100;
 
 export const LIBRARY_SEND_PERMISSIONS = [

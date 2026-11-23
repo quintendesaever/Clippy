@@ -7,8 +7,7 @@ import { deliverAuditEvent, type AuditDiscordPort, type AuditSendResult } from "
 import { getAuditLogSettings } from "./settings.js";
 import type { AuditEvent, AuditLogSettings } from "./types.js";
 
-export type { AuditDiscordPort, AuditSendResult } from "./deliver.js";
-export { deliverAuditEvent } from "./deliver.js";
+export type { AuditSendResult } from "./deliver.js";
 
 function canSendAuditEmbed(channel: GuildTextBasedChannel, client: Client): boolean {
   const me = channel.guild.members.me ?? channel.guild.members.cache.get(client.user?.id ?? "");
@@ -21,7 +20,7 @@ function canSendAuditEmbed(channel: GuildTextBasedChannel, client: Client): bool
   );
 }
 
-export function createAuditDiscordPort(client: Client): AuditDiscordPort {
+function createAuditDiscordPort(client: Client): AuditDiscordPort {
   return {
     async fetchSendableChannel(channelId) {
       const channel = await client.channels.fetch(channelId).catch(() => null);

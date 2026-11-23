@@ -1,12 +1,4 @@
-export const AUDIT_CATEGORIES = [
-  "members",
-  "roles",
-  "channels",
-  "bot_config",
-  "command_errors",
-] as const;
-
-export type AuditCategory = (typeof AUDIT_CATEGORIES)[number];
+export type AuditCategory = "members" | "roles" | "channels" | "bot_config" | "command_errors";
 
 export type AuditSeverity = "info" | "success" | "warn" | "error";
 
@@ -15,7 +7,7 @@ export type AuditActor = {
   tag?: string | null;
 };
 
-export type AuditField = {
+type AuditField = {
   name: string;
   value: string;
   inline?: boolean;
@@ -45,7 +37,7 @@ export type AuditLogSettings = {
   updated_at?: string;
 };
 
-export const CATEGORY_SETTING_KEY: Record<AuditCategory, keyof AuditLogSettings> = {
+const CATEGORY_SETTING_KEY: Record<AuditCategory, keyof AuditLogSettings> = {
   members: "log_members",
   roles: "log_roles",
   channels: "log_channels",
